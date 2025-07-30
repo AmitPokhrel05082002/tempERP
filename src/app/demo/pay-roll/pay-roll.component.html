@@ -1,0 +1,101 @@
+<div class="payroll-dashboard">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="title">Employee Payroll</h1>
+      <p class="subtitle">Keep track employee salary on daily basis.</p>
+    </div>
+    <button class="export-btn">
+      <i class="bi bi-box-arrow-up"></i>
+      Export
+    </button>
+  </div>
+  <hr>
+
+  <!-- Filters and Search Section -->
+  <div class="controls-section">
+    <div class="filter-tabs">
+      <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="filterEmployees('all')">All Employee</button>
+      <button class="filter-tab" [class.active]="activeFilter === 'active'" (click)="filterEmployees('active')">Staff</button>
+      <button class="filter-tab" [class.active]="activeFilter === 'inactive'" (click)="filterEmployees('inactive')">Contract</button>
+    </div>
+
+    <div class="date-filters enhanced-date-selectors">
+      <div class="selectors-wrapper">
+        <label class="selector-group">
+          <span class="selector-label">Year:</span>
+          <select class="selector-input" [(ngModel)]="selectedYear" (ngModelChange)="onYearChange($event)">
+            <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+          </select>
+        </label>
+
+        <label class="selector-group">
+          <span class="selector-label">Month:</span>
+          <select class="selector-input" [(ngModel)]="selectedMonth" (ngModelChange)="onMonthChange($event)">
+            <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="search-section">
+      <div class="search-input-wrapper">
+        <svg class="search-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <path d="m21 21-4.35-4.35" (click)="searchEmployees()"></path>
+        </svg>
+        <input type="text" class="search-input" placeholder="Search" [(ngModel)]="searchQuery" (keyup.enter)="searchEmployees()">
+      </div>
+
+      <button class="filters-btn">
+        <i class="bi bi-filter"></i>
+        Filter
+      </button>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-container">
+    <table class="payroll-table">
+      <thead>
+        <tr>
+          <th>Employee ID</th>
+          <th>Employee</th>
+          <th>Net Salary</th>
+          <th>Pay Month</th>
+          <th>Status</th>
+          <th>Over Time</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngIf="filteredEmployees.length === 0">
+          <td colspan="7" class="no-data-row">No data found for the selected year and month.</td>
+        </tr>
+        <tr *ngFor="let employee of filteredEmployees">
+          <td class="employee-id">{{ employee.empCode }}</td>
+          <td class="employee-info">
+            <div class="employee-details">
+              <div class="employee-text">
+                <div class="employee-name">{{ employee.name }}</div>
+                <div class="employee-department"></div>
+              </div>
+            </div>
+          </td>
+          <td class="salary">Nu. {{ employee.netSalary }}</td>
+          <td class="pay-day">{{ employee.salaryMonth }}</td>
+          <td class="status-">
+            <span class="status-badge" [class.paid]="employee.status === 'active'" [class.unpaid]="employee.status !== 'active'">
+              {{ getStatusText(employee.status) }}
+            </span>
+          </td>
+          <td class="action">
+            <button class="action-btn" [routerLink]="['/pay-slip', employee.id]" [queryParams]="{ year: selectedYear, month: selectedMonth }">
+              View Payslip
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

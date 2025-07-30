@@ -1,0 +1,16 @@
+<div class="job-management-container">
+  <div class="tab-navigation">
+    <a [routerLink]="['./employee-attendance']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}"
+      class="tab-item">
+      <i class="bi bi-diagram-3 me-2"></i>Employee Attendance
+    </a>
+    <a [routerLink]="['./attendance-sheet']" routerLinkActive="active" [routerLinkActiveOptions]="{exact: false}"
+      class="tab-item">
+      <i class="bi bi-briefcase me-2"></i>Attendance Sheet
+    </a>
+  </div>
+
+  <div class="content-container">
+    <router-outlet></router-outlet>
+  </div>
+</div>

@@ -1,0 +1,85 @@
+<div class="page-wrapper">
+  <div class="card" *ngIf="!loading; else loadingTemplate">
+    <div class="card-body">
+      <div class="calendar-info">
+        <div class="info-item">
+          <span class="info-label">Organization:</span>
+          <span class="info-value">{{ getSelectedOrgName() }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Branch:</span>
+          <span class="info-value">{{ selectedBranchName || 'N/A' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Year:</span>
+          <span class="info-value">{{ selectedYear }}</span>
+        </div>
+      </div>
+
+      <div class="calendar-legend">
+        <div class="legend-item">
+          <span class="legend-box full-day"></span>
+          <span>Holiday</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-box half-day"></span>
+          <span>Half Day</span>
+        </div>
+      </div>
+
+      <div class="calendar-grid">
+        <div class="month" *ngFor="let month of months; let monthIndex = index">
+          <h5 class="month-title">{{ month }} {{ selectedYear }}</h5>
+          <div class="weekdays">
+            <div *ngFor="let day of daysOfWeek" class="weekday">{{ day }}</div>
+          </div>
+          <div class="days">
+            <div
+              class="day empty"
+              *ngFor="let _ of [].constructor(getStartDayOfMonth(monthIndex))"
+            ></div>
+            <div
+              *ngFor="let day of getCalendarDays(monthIndex)"
+              [ngClass]="'day ' + getDayType(monthIndex, day)"
+              [title]="markedDaysByMonth[monthIndex]?.[day]?.name || ''"
+            >
+              {{ day }}
+            </div>
+          </div>
+          <!-- Holiday list below the month -->
+          <div class="holiday-list-below mt-2">
+            <div class="holiday-col">
+              <div *ngFor="let day of getFirstHalfHolidayDays(monthIndex)"
+                   [ngClass]="markedDaysByMonth[monthIndex][day].type === 'half' ? 'half-day-text' : 'full-day-text'">
+                {{ day }}: {{ markedDaysByMonth[monthIndex][day].name }}
+              </div>
+            </div>
+            <div class="holiday-col">
+              <div *ngFor="let day of getSecondHalfHolidayDays(monthIndex)"
+                   [ngClass]="markedDaysByMonth[monthIndex][day].type === 'half' ? 'half-day-text' : 'full-day-text'">
+                {{ day }}: {{ markedDaysByMonth[monthIndex][day].name }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <ng-template #noBranchTemplate>
+        <div class="alert alert-warning">
+          No branch selected or branch not found. Please go back and select a valid branch.
+        </div>
+      </ng-template>
+    </div>
+  </div>
+  
+  <ng-template #loadingTemplate>
+    <div class="card">
+      <div class="card-body text-center p-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 mb-0">Loading calendar data...</p>
+      </div>
+    </div>
+  </ng-template>
+</div>

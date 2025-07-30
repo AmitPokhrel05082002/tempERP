@@ -1,0 +1,339 @@
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { AttendanceSheetService } from '../../../services/attendance-sheet.service';
+import { Subscription } from 'rxjs';
+
+interface AttendanceRecord {
+  date: number;
+  day: string;
+  shift: number;
+  dayStatus: 'PP' | 'AA' | 'XX' | 'PA';
+  checkIn: string;
+  checkOut: string;
+  breakTime: string;
+  workingHours: string;
+  extraHours: string;
+  lateTime: string;
+  earlyTime: string;
+  isHoliday: boolean;
+  isWeekend: boolean;
+}
+
+interface Employee {
+  name: string;
+  designation: string;
+  empCode: string;
+  records: AttendanceRecord[];
+  totals: {
+    fullDay: number;
+    halfDay: number;
+    presentDay: number;
+    absentDay: number;
+    leaves: number;
+    lateDays: number;
+    holidays: number;
+    earlyDays: number;
+    latePenalty: number;
+    penalty: number;
+    extraHours: number;
+    totalWorkHours: number;
+  };
+}
+
+@Component({
+  selector: 'app-attendance-sheet',
+  templateUrl: './attendance-sheet.component.html',
+  styleUrls: ['./attendance-sheet.component.scss']
+})
+export class AttendanceSheetComponent implements OnInit, OnDestroy {
+  private subscription: Subscription = new Subscription();
+  
+  // Configuration
+  currentDepartment = 'E-Centric';
+  currentYear = new Date().getFullYear();
+  currentMonth: string;
+  
+  // State
+  employees: Employee[] = [];
+  isLoading = true;
+  errorMessage: string | null = null;
+  
+  // Calendar data
+  daysInMonth: number;
+  weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June', 
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  
+  // Dynamic headers
+  dynamicWeekHeaders: string[] = [];
+  dynamicDateHeaders: number[] = [];
+  
+  constructor(private attendanceService: AttendanceSheetService) {
+    this.currentMonth = this.monthNames[new Date().getMonth()];
+    this.daysInMonth = this.getDaysInMonth(this.currentMonth, this.currentYear);
+  }
+
+  ngOnInit() {
+    this.generateMonthHeaders();
+    this.loadAttendanceData();
+  }
+  
+  ngOnDestroy() {
+    this.subscription.unsubscribe();
+  }
+
+  private getDaysInMonth(month: string, year: number): number {
+    return new Date(year, this.monthNames.indexOf(month) + 1, 0).getDate();
+  }
+
+  private generateMonthHeaders() {
+    this.dynamicWeekHeaders = [];
+    this.dynamicDateHeaders = [];
+    
+    const monthIndex = this.monthNames.indexOf(this.currentMonth);
+    const year = this.currentYear;
+    
+    for (let day = 1; day <= this.daysInMonth; day++) {
+      const date = new Date(year, monthIndex, day);
+      this.dynamicWeekHeaders.push(this.weekDays[date.getDay()]);
+      this.dynamicDateHeaders.push(day);
+    }
+  }
+
+  private loadAttendanceData() {
+    this.isLoading = true;
+    this.errorMessage = null;
+    
+    const monthNumber = this.monthNames.indexOf(this.currentMonth) + 1;
+    
+    this.subscription = this.attendanceService.getAttendanceData(
+      this.currentYear,
+      monthNumber,
+      this.currentDepartment
+    ).subscribe({
+      next: (response: any) => {
+        try {
+          // Handle both direct array and paginated responses
+          const data = Array.isArray(response) ? response : 
+                     (response?.content && Array.isArray(response.content) ? response.content : []);
+          
+          if (data.length > 0) {
+            this.processAttendanceData(data);
+          } else {
+            this.errorMessage = 'No attendance data available for the selected period';
+            this.loadSampleData();
+          }
+        } catch (error) {
+          console.error('Error processing attendance data:', error);
+          this.errorMessage = 'Error processing attendance data';
+          this.loadSampleData();
+        } finally {
+          this.isLoading = false;
+        }
+      },
+      error: (error) => {
+        console.error('Error fetching attendance data:', error);
+        this.errorMessage = 'Failed to load attendance data. Please try again later.';
+        this.isLoading = false;
+        this.loadSampleData();
+      }
+    });
+  }
+
+  private processAttendanceData(apiData: any[]) {
+    this.employees = [];
+    
+    // Group data by employee
+    const employeeMap = new Map<string, any>();
+    
+    apiData.forEach(record => {
+      const empId = record.employeeId;
+      if (!employeeMap.has(empId)) {
+        employeeMap.set(empId, {
+          employeeId: empId,
+          name: `${record.firstName || ''} ${record.lastName || ''}`.trim(),
+          designation: this.extractDepartment(record.department),
+          empCode: record.empCode || '',
+          attendanceList: []
+        });
+      }
+      employeeMap.get(empId).attendanceList.push(record);
+    });
+    
+    // Process each employee's attendance
+    employeeMap.forEach(empData => {
+      this.processEmployeeAttendance(empData);
+    });
+    
+    this.updateSummary();
+  }
+  
+  private extractDepartment(departmentPath: string): string {
+    if (!departmentPath) return 'N/A';
+    const parts = departmentPath.split('>');
+    return parts[parts.length - 1].trim() || 'N/A';
+  }
+  
+  private processEmployeeAttendance(employeeData: any) {
+    const employee: Employee = {
+      name: employeeData.name || 'Unknown Employee',
+      designation: employeeData.designation || 'N/A',
+      empCode: employeeData.empCode || '',
+      records: [],
+      totals: {
+        fullDay: 0,
+        halfDay: 0,
+        presentDay: 0,
+        absentDay: 0,
+        leaves: 0,
+        lateDays: 0,
+        holidays: 0,
+        earlyDays: 0,
+        latePenalty: 0,
+        penalty: 0,
+        extraHours: 0,
+        totalWorkHours: 0
+      }
+    };
+    
+    // Initialize records for all days of the month
+    for (let i = 0; i < this.daysInMonth; i++) {
+      const date = new Date(this.currentYear, this.monthNames.indexOf(this.currentMonth), i + 1);
+      const dayOfWeek = this.weekDays[date.getDay()];
+      const isWeekend = dayOfWeek === 'Sun' || dayOfWeek === 'Sat';
+      
+      employee.records.push({
+        date: i + 1,
+        day: dayOfWeek,
+        shift: 1,
+        dayStatus: isWeekend ? 'AA' : 'PP',
+        checkIn: isWeekend ? '00:00' : '09:00',
+        checkOut: isWeekend ? '00:00' : '18:00',
+        breakTime: isWeekend ? '00:00' : '01:00',
+        workingHours: isWeekend ? '00:00' : '08:00',
+        extraHours: '00:00',
+        lateTime: '00:00',
+        earlyTime: '00:00',
+        isHoliday: false,
+        isWeekend
+      });
+    }
+    
+    // Process actual attendance data
+    employeeData.attendanceList.forEach((attendance: any) => {
+      try {
+        const attendanceDate = new Date(attendance.attendanceDate);
+        const dayOfMonth = attendanceDate.getDate() - 1; // Convert to 0-based index
+        
+        if (dayOfMonth >= 0 && dayOfMonth < this.daysInMonth) {
+          const dayOfWeek = this.weekDays[attendanceDate.getDay()];
+          const isWeekend = dayOfWeek === 'Sun' || dayOfWeek === 'Sat';
+          
+          const record: AttendanceRecord = {
+            date: dayOfMonth + 1,
+            day: dayOfWeek,
+            shift: 1,
+            dayStatus: this.calculateDayStatus(attendance),
+            checkIn: this.formatTime(attendance.actualCheckInTime) || '00:00',
+            checkOut: this.formatTime(attendance.actualCheckOutTime) || '00:00',
+            breakTime: attendance.breakDuration || '00:00',
+            workingHours: attendance.totalDuration || '00:00',
+            extraHours: attendance.extraHours || '00:00',
+            lateTime: attendance.lateCheckInTime || '00:00',
+            earlyTime: attendance.earlyDepartureTime || '00:00',
+            isHoliday: attendance.isHoliday || false,
+            isWeekend
+          };
+          
+          employee.records[dayOfMonth] = record;
+          this.updateEmployeeTotals(employee, record, dayOfMonth);
+        }
+      } catch (error) {
+        console.error('Error processing attendance record:', error);
+      }
+    });
+    
+    this.employees.push(employee);
+  }
+  
+  private calculateDayStatus(attendance: any): 'PP' | 'AA' | 'XX' | 'PA' {
+    if (!attendance) return 'AA';
+    
+    // Add your business logic here
+    if (attendance.status === 'Present') return 'PP';
+    if (attendance.status === 'Half Day') return 'PA';
+    if (attendance.status === 'Absent') return 'AA';
+    
+    return 'XX'; // Irregular
+  }
+  
+  private updateEmployeeTotals(employee: Employee, record: AttendanceRecord, dayIndex: number) {
+    if (!record) return;
+    
+    // Update present/absent days
+    if (record.dayStatus === 'PP') {
+      employee.totals.presentDay++;
+      employee.totals.fullDay++;
+    } else if (record.dayStatus === 'PA') {
+      employee.totals.presentDay++;
+      employee.totals.halfDay++;
+    } else if (record.dayStatus === 'AA') {
+      employee.totals.absentDay++;
+    }
+    
+    // Update late days and penalty
+    if (record.lateTime !== '00:00') {
+      employee.totals.lateDays++;
+      const [hours, minutes] = record.lateTime.split(':').map(Number);
+      employee.totals.latePenalty += hours * 60 + minutes;
+    }
+    
+    // Update early days
+    if (record.earlyTime !== '00:00') {
+      employee.totals.earlyDays++;
+    }
+    
+    // Update total work hours
+    if (record.workingHours && record.workingHours !== '00:00') {
+      const [hours, minutes] = record.workingHours.split(':').map(Number);
+      employee.totals.totalWorkHours += hours + minutes / 60;
+    }
+  }
+  
+  private formatTime(timeString: string): string {
+    if (!timeString) return '00:00';
+    // Remove seconds if present
+    return timeString.split(':').slice(0, 2).join(':');
+  }
+  
+  private updateSummary() {
+    // Implement summary calculation if needed
+    console.log('Updating summary...');
+  }
+  
+  private loadSampleData() {
+    console.log('Loading sample data...');
+    // Implement sample data loading if needed
+  }
+  
+  // Public methods for template
+  onMonthChange(month: string) {
+    this.currentMonth = month;
+    this.daysInMonth = this.getDaysInMonth(month, this.currentYear);
+    this.generateMonthHeaders();
+    this.loadAttendanceData();
+  }
+  
+  onYearChange(year: number) {
+    this.currentYear = year;
+    this.daysInMonth = this.getDaysInMonth(this.currentMonth, year);
+    this.generateMonthHeaders();
+    this.loadAttendanceData();
+  }
+  
+  onDepartmentChange(department: string) {
+    this.currentDepartment = department;
+    this.loadAttendanceData();
+  }
+}

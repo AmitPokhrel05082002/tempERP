@@ -1,0 +1,299 @@
+<div class="attendance-container">
+  <!-- Filter Controls -->
+  <div class="filter-controls">
+    <div class="filters-container">
+
+      <h4 class="page-title">Attendance Sheet</h4>
+
+      <div class="filter-group">
+        <label for="yearFilter">Year:</label>
+        <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
+          <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="monthFilter">Month:</label>
+        <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+          <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label for="deptFilter">Department:</label>
+        <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
+          <option *ngIf="departments.length === 0" value="">Loading...</option>
+          <option *ngFor="let dept of departments" [value]="dept === 'All' ? 'All' : dept">
+            {{ dept }}
+          </option>
+        </select>
+      </div>
+
+      <button class="reset-btn" (click)="resetFilters()">
+        <i class="ti ti-refresh"></i>
+      </button>
+    </div>
+  </div>
+  <!-- Header Section -->
+  <div class="header-section">
+    <!-- Configuration Panel -->
+    <div class="config-panel">
+      <div class="config-item">
+        <span class="config-icon"><i class="fa fa-building"></i></span>
+        <div class="config-details">
+          <label>Department:</label>
+          <span>{{ currentDepartment }}</span>
+        </div>
+      </div>
+      <div class="config-item">
+        <span class="config-icon"><i class="fa fa-calendar"></i></span>
+        <div class="config-details">
+          <label>Year:</label>
+          <span>{{ currentYear }}</span>
+        </div>
+      </div>
+      <div class="config-item">
+        <span class="config-icon"><i class="fa fa-calendar-alt"></i></span>
+        <div class="config-details">
+          <label>Month:</label>
+          <span>{{ currentMonth }}</span>
+        </div>
+      </div>
+    </div>
+    <!-- Legend -->
+    <div class="legend">
+      <h3>Legend</h3>
+      <div class="legend-grid">
+        <div class="legend-item">
+          <span class="legend-badge absent">AA</span>
+          <span class="legend-label">Absent</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-badge irregular">XX</span>
+          <span class="legend-label">Holiday</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-badge present">PP</span>
+          <span class="legend-label">Present</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-badge half-day">PA</span>
+          <span class="legend-label">Half Day</span>
+        </div>
+      </div>
+    </div>
+    <!-- Chart Container -->
+    <div class="chart-container">
+      <h3>Daily Attendance Statistics</h3>
+      <canvas #attendanceChart width="400" height="200"></canvas>
+    </div>
+    <!-- Attendance Ratio -->
+    <div class="attendance-ratio">
+      <div class="ratio-circle">
+        <div class="circle-progress" [style.--progress]="attendanceRatio / 100">
+          <div class="circle-progress-value">
+            <span class="ratio-text">{{ attendanceRatio }}%</span>
+          </div>
+        </div>
+        <span class="ratio-label">Attendance Ratio</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Action Buttons -->
+  <div class="action-buttons">
+    <button (click)="printReport()" class="action-btn print-btn" title="Print Report">
+      <i class="ti ti-printer"></i> Print
+    </button>
+    <button (click)="exportToExcel()" class="action-btn excel-btn" title="Export to Excel">
+      <i class="ti ti-file-export"></i> Excel
+    </button>
+    <button (click)="exportToPDF()" class="action-btn pdf-btn" title="Export to PDF">
+      <i class="ti ti-file-text"></i> PDF
+    </button>
+  </div>
+  <!-- Main Attendance Table -->
+  <div class="main-attendance-section">
+    <div class="attendance-table-wrapper">
+      <table class="main-attendance-table">
+        <!-- Fixed Header -->
+        <thead>
+          <tr class="week-header">
+            <th class="row-label-header"></th>
+            <th *ngFor="let day of dynamicWeekHeaders; let i = index" class="day-header"
+              [class.weekend]="day === 'Sat' || day === 'Sun'">
+              {{ day }}
+            </th>
+          </tr>
+          <tr class="date-header">
+            <th class="row-label-header"></th>
+            <th *ngFor="let date of dynamicDateHeaders; let i = index" class="date-cell"
+              [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+              {{ date }}
+            </th>
+          </tr>
+        </thead>
+
+        <!-- Employee Data Sections -->
+        <tbody>
+          <ng-container *ngFor="let person of employees; let personIndex = index">
+            <!-- Employee Name and Designation -->
+            <tr class="employee-name-row">
+              <td colspan="32" class="employee-info">
+                <strong>{{ person.name }}</strong> &nbsp;&nbsp; Department: <strong>{{ person.designation }}</strong>
+              </td>
+            </tr>
+
+            <!-- Dashed separator line -->
+            <tr class="separator-row">
+              <td colspan="32" class="dashed-separator"></td>
+            </tr>
+            <tr class="data-row">
+              <td class="row-label">Shift</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                {{ person.records[i]?.shift || '--' }}
+              </td>
+            </tr>
+            <!-- Status Row -->
+            <tr class="data-row">
+              <td class="row-label">Day Status</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index"
+                class="data-cell {{ getStatusClass(person.records[i]?.dayStatus) }}"
+                [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+                {{ person.records[i]?.dayStatus || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Check - in</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell"
+                [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+                {{ person.records[i]?.checkIn || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Check - out</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell"
+                [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+                {{ person.records[i]?.checkOut || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Break Time</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                {{ person.records[i]?.breakTime || '--' }}
+              </td>
+            </tr>
+
+            <!-- Working Hours Row -->
+            <tr class="data-row">
+              <td class="row-label">Working Hours</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell"
+                [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+                {{ person.records[i]?.workingHours || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Extra Hours</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                {{ person.records[i]?.extraHours || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Late Time</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                {{ person.records[i]?.lateTime || '--' }}
+              </td>
+            </tr>
+
+            <tr class="data-row">
+              <td class="row-label">Early Time</td>
+              <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                {{ person.records[i]?.earlyTime || '--' }}
+              </td>
+            </tr>
+
+            <!-- Space between employees -->
+            <tr class="employee-spacer" *ngIf="personIndex < employees.length - 1">
+              <td colspan="32"></td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="summary-section">
+      <div class="summary-header">
+        <i class="ti ti-layout-grid summary-icon"></i>
+        <span>Summary</span>
+      </div>
+
+      <div class="summary-content" *ngFor="let person of employees">
+        <div class="summary-employee-name">{{ person.name }}</div>
+
+        <div class="summary-grid">
+          <div class="summary-column">
+            <div class="summary-column-header">TOTALS</div>
+            <div class="summary-row">
+              <span class="summary-label">Full Day:</span>
+              <span class="summary-value">{{ person.totals.fullDay }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Half Day:</span>
+              <span class="summary-value">{{ person.totals.halfDay }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Present Day:</span>
+              <span class="summary-value">{{ person.totals.presentDay }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Absent Day:</span>
+              <span class="summary-value">{{ person.totals.absentDay }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Leaves:</span>
+              <span class="summary-value">{{ person.totals.leaves }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Late Days:</span>
+              <span class="summary-value">{{ person.totals.lateDays }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Holidays:</span>
+              <span class="summary-value">{{ person.totals.holidays }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Early Days:</span>
+              <span class="summary-value">{{ person.totals.earlyDays }}</span>
+            </div>
+          </div>
+
+          <div class="summary-column">
+            <div class="summary-column-header">OTHERS</div>
+            <div class="summary-row">
+              <span class="summary-label">Total Late/Early Penalty:</span>
+              <span class="summary-value">{{ formatTimeDisplay(person.totals.latePenalty / 60) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Applied Penalty:</span>
+              <span class="summary-value">{{ calculateAppliedPenalty(person.totals.latePenalty) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Over Time:</span>
+              <span class="summary-value">{{ formatTimeDisplay(person.totals.extraHours) }}</span>
+            </div>
+            <div class="summary-row">
+              <span class="summary-label">Total Work Hours:</span>
+              <span class="summary-value">{{ formatTimeDisplay(person.totals.totalWorkHours) }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

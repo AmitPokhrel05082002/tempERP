@@ -1,0 +1,20 @@
+.full-frame {
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: block;
+  overflow: hidden;
+  background-color: #fff;
+}
+
+:host {
+  display: block;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+

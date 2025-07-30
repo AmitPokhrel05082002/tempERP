@@ -1,0 +1,87 @@
+<div class="modal-overlay" *ngIf="visible">
+  <div class="modal-content">
+    <h3>Add your event</h3>
+    <div class="modal-body">
+      <div class="modal-calendar">
+        <label>Select Date</label>
+        <div class="mini-calendar">
+          <div class="calendar-header">
+            <button class="nav-btn" (click)="changeMonth(-1)" title="Previous month">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="month-year">{{ month }} {{ year }}</span>
+            <button class="nav-btn" (click)="changeMonth(1)" title="Next month">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="calendar-weekdays">
+            <span *ngFor="let day of daysOfWeek">{{ day }}</span>
+          </div>
+          <div class="calendar-days">
+            <ng-container *ngFor="let day of calendarDays">
+              <span *ngIf="day !== 0"
+                    [class.full-day]="isDaySelected(day) && isFullDay(day)"
+                    [class.half-day]="isDaySelected(day) && isHalfDay(day)"
+                    [class.selected]="!isDaySelected(day) && lastClickedDay === day"
+                    [class.drag-range]="isDayInDragRange(day)"
+                    [class.other-month]="isOtherMonth(day)"
+                    (mousedown)="onMouseDown(day, $event)"
+                    (mouseenter)="onMouseEnter(day)"
+                    (mouseup)="onMouseUp()">
+                {{ day }}
+              </span>
+              <span *ngIf="day === 0" class="empty-day"></span>
+            </ng-container>
+          </div>
+          <div class="calendar-instructions">
+            <small>💡 Click to select single dates or drag to select multiple dates. Drag the same selection again to toggle between full/half day.</small>
+          </div>
+        </div>
+      </div>
+      <div class="modal-form">
+        <label>Selected Dates ({{ events.length }})</label>
+        <div class="selected-dates">
+          <div *ngFor="let event of events" class="event-input-group">
+            <div class="event-header">
+              <h4>{{ event.date | date:'mediumDate' }}</h4>
+              <div class="event-type">
+                <label>
+                  <input type="radio" [(ngModel)]="event.leaveDayType" value="full day" name="{{'dayType'+event.date.getTime()}}">
+                  <span>Full Day</span>
+                </label>
+                <label class="half-day-option">
+                  <input type="radio" [(ngModel)]="event.leaveDayType" value="half day" name="{{'dayType'+event.date.getTime()}}">
+                  <span>Half Day</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label>Holiday Name</label>
+              <input type="text" [(ngModel)]="event.holidayName" class="form-control" placeholder="Enter holiday name" required>
+            </div>
+            
+            <div class="form-group">
+              <label>Holiday Type</label>
+              <select [(ngModel)]="event.holidayType" class="form-control" required>
+                <option value="Public">Public</option>
+                <option value="Private">Private</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" [(ngModel)]="event.isOptional">
+                Optional Holiday
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn cancel" (click)="onCancel()">Cancel</button>
+      <button class="btn save" (click)="onSave()">Save</button>
+    </div>
+  </div>
+</div>

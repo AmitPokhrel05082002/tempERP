@@ -1,0 +1,711 @@
+/* Employee Management Component - Responsive SCSS */
+$primary-color: #23a9d2;
+$primary-hover: #015b9d;
+$secondary-color: #6c757d;
+$light-gray: #f8f9fa;
+$border-color: #dee2e6;
+$danger-color: #dc3545;
+$warning-color: #f59e0b;
+$success-color: #198754;
+$info-color: #0d6efd;
+
+/* Base Styles */
+.emp-det-container {
+  font-family: 'Poppins', sans-serif;
+  padding: 1rem;
+  background: #f9f9fc;
+  position: relative;
+  overflow: visible !important;
+
+  @media (min-width: 768px) {
+    padding: 2rem;
+  }
+}
+
+/* Header Section */
+.emp-det-header {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+}
+
+.emp-det-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+
+  @media (min-width: 768px) {
+    font-size: 1.75rem;
+  }
+}
+
+.emp-det-subtitle {
+  color: $secondary-color;
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* Action Buttons */
+.emp-det-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+
+  button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    i {
+      margin-right: 0.5rem;
+    }
+
+    @media (min-width: 576px) {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+  }
+
+  .emp-det-count-btn, 
+  .emp-det-add-btn {
+    background-color: transparent;
+    border: 1px solid #212529;
+    color: #212529;
+  }
+
+  .emp-det-export-btn {
+    background-color: $primary-color;
+    border: 1px solid $primary-color;
+    color: white;
+    font-weight: 500;
+
+    &:hover {
+      background-color: $primary-hover;
+      border-color: $primary-hover;
+    }
+  }
+}
+
+/* Divider Line */
+.emp-det-divider {
+  width: 100%;
+  border-bottom: 1px solid $border-color;
+  margin: 1rem 0;
+}
+
+/* Filter Section Adjustments */
+.emp-det-filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+
+  @media (min-width: 768px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.emp-det-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+    width: auto; /* Changed from 100% to auto */
+    flex: 0 0 auto; /* Prevent growing */
+  }
+
+  @media (min-width: 768px) {
+    margin-right: auto;
+  }
+}
+
+.emp-det-filter-select {
+  flex: 1;
+  min-width: 100%;
+
+  @media (min-width: 576px) {
+    min-width: 160px; /* Reduced from 200px */
+    max-width: 180px; /* Added max-width constraint */
+  }
+
+  .form-select {
+    height: 40px;
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    background-color: $light-gray;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:focus {
+      border-color: #86b7fe;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+      background-color: #fff;
+    }
+  }
+}
+
+.emp-det-search-container {
+  width: 100%;
+
+  @media (min-width: 576px) {
+    width: auto; /* Changed from fixed width */
+    min-width: 200px; /* Minimum search width */
+    flex: 1; /* Allow to grow */
+    max-width: 400px; /* Maximum search width */
+  }
+
+  @media (min-width: 768px) {
+    margin-left: auto;
+    flex: 0 0 300px; /* Fixed width on larger screens */
+  }
+}
+
+.emp-det-search {
+  position: relative;
+
+  i {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #adb5bd;
+    z-index: 2;
+  }
+
+  .emp-det-search-input {
+    padding-left: 2.5rem;
+    height: 40px;
+    border-radius: 0.5rem;
+    border: 1px solid #e9ecef;
+    background-color: $light-gray;
+    transition: all 0.3s ease;
+    font-size: 0.875rem;
+    width: 100%;
+
+    &:focus {
+      border-color: $primary-color;
+      box-shadow: 0 0 0 3px rgba($primary-color, 0.2);
+      background-color: #fff;
+      outline: none;
+    }
+  }
+}
+
+/* Employee Table */
+.emp-det-table-card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: none;
+  overflow-x: auto;
+}
+
+.emp-det-table {
+  width: 100%;
+  margin-bottom: 0;
+  min-width: 800px;
+
+  @media (max-width: 767.98px) {
+    min-width: 100%;
+  }
+
+  thead tr th {
+    background: #e6e5e5;
+    font-weight: 550;
+    color: #333;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    padding: 0.75rem 1rem;
+    border: none;
+  }
+
+  tbody tr {
+    background-color: white;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: $light-gray;
+    }
+  }
+
+  tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid $border-color;
+    color: black;
+    vertical-align: middle;
+  }
+}
+
+/* Department Badges */
+.emp-dept-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 50rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &.bg-success { background-color: $success-color !important; }
+  &.bg-danger { background-color: $danger-color !important; }
+  &.bg-warning { background-color: $warning-color !important; color: #1f2937 !important; }
+  &.bg-info { background-color: $info-color !important; }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    opacity: 0.9;
+  }
+}
+
+/* Action Buttons in Table */
+.emp-det-actions-btns {
+  display: flex;
+  gap: 0.5rem;
+
+  button {
+    padding: 0.25rem;
+    font-size: 0.875rem;
+    min-width: 30px;
+    border: none;
+    background: transparent;
+    border-radius: 0.25rem;
+    transition: all 0.2s;
+
+    @media (min-width: 576px) {
+      padding: 0.25rem 0.5rem;
+    }
+
+    i {
+      margin-right: 0;
+    }
+
+    &.emp-det-view-btn {
+      color: $warning-color;
+    }
+
+    &.emp-det-edit-btn {
+      color: $info-color;
+
+      &:hover {
+        background-color: $info-color;
+        color: white;
+      }
+    }
+
+    &.emp-det-delete-btn {
+      color: $danger-color;
+
+      &:hover {
+        background-color: $danger-color;
+        color: white;
+      }
+    }
+  }
+}
+
+/* No Data State */
+.emp-det-empty {
+  text-align: center;
+  padding: 2rem 0;
+
+  .bi-people {
+    font-size: 2.5rem;
+    color: #dee2e6;
+    margin-bottom: 1rem;
+  }
+
+  p {
+    color: $secondary-color;
+    margin-bottom: 1rem;
+  }
+
+  .emp-det-add-record-btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+    background-color: $primary-color;
+    border-color: $primary-color;
+    color: white;
+
+    &:hover {
+      background-color: $primary-hover;
+      border-color: $primary-hover;
+    }
+  }
+}
+
+/* Pagination */
+.emp-det-pagination {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+
+  @media (min-width: 576px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .dataTables_info {
+    font-size: 0.875rem;
+    color: $secondary-color;
+  }
+
+  .dataTables_paginate {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+
+    @media (min-width: 576px) {
+      flex-direction: row;
+    }
+
+    select {
+      margin-bottom: 0.5rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      border: 1px solid $border-color;
+
+      @media (min-width: 576px) {
+        margin-bottom: 0;
+        margin-right: 0.5rem;
+      }
+    }
+
+    .pagination {
+      margin: 0;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+
+      .page-item {
+        margin: 0;
+
+        .page-link {
+          padding: 0.375rem 0.75rem;
+          font-size: 0.875rem;
+          min-width: 36px;
+          text-align: center;
+          border-radius: 0.375rem;
+          border: 1px solid $border-color;
+          color: $info-color;
+
+          &:hover {
+            background-color: $light-gray;
+          }
+
+          &.active {
+            background-color: $info-color;
+            border-color: $info-color;
+            color: white;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* Modal Styles */
+.emp-det-modal {
+  z-index: 1050;
+
+  &.show {
+    display: block;
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+
+  .modal-dialog {
+    margin: 1rem;
+    max-width: calc(100% - 2rem);
+
+    @media (min-width: 576px) {
+      margin: 1.75rem auto;
+      max-width: 800px;
+    }
+  }
+
+  .modal-content {
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  }
+
+  .modal-header {
+    padding: 1rem 1.25rem;
+    background-color: $primary-color;
+    color: white;
+    border-radius: 0.5rem 0.5rem 0 0;
+    border: none;
+
+    @media (min-width: 576px) {
+      padding: 1.25rem 1.75rem;
+    }
+
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+
+      @media (min-width: 576px) {
+        font-size: 1.5rem;
+      }
+    }
+
+    .btn-close {
+      filter: invert(1) brightness(100%);
+      opacity: 0.8;
+      transition: opacity 0.2s;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+
+  .modal-body {
+    padding: 1.25rem;
+
+    @media (min-width: 576px) {
+      padding: 1.75rem;
+    }
+
+    .alert {
+      margin-bottom: 1.5rem;
+    }
+  }
+
+  /* Modal Tabs */
+  .emp-det-tabs {
+    margin-bottom: 1.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+
+    .nav-tabs {
+      border-bottom: 2px solid $border-color;
+      flex-wrap: nowrap;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+
+      &::-webkit-scrollbar {
+        display: none;
+      }
+
+      .nav-link {
+        border: none;
+        color: $secondary-color;
+        font-weight: 500;
+        padding: 0.75rem 1rem;
+        margin-right: 0;
+        transition: all 0.3s;
+        white-space: nowrap;
+        font-size: 0.875rem;
+
+        @media (min-width: 768px) {
+          padding: 0.75rem 1.25rem;
+        }
+
+        &:hover {
+          border-color: transparent;
+          color: #495057;
+        }
+
+        &.active {
+          color: $info-color;
+          background-color: transparent;
+          border-bottom: 2px solid $info-color;
+        }
+
+        i {
+          font-size: 0.9rem;
+          width: 18px;
+          text-align: center;
+          transition: all 0.3s ease;
+          margin-right: 8px;
+          display: inline-block;
+        }
+
+        &:hover i {
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+
+  /* Form Elements */
+  .emp-det-form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .emp-det-form-input,
+  .emp-det-form-select {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    border-radius: 0.375rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+    &:focus {
+      border-color: #86b7fe;
+      outline: 0;
+      box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+  }
+
+  .emp-det-form-error {
+    font-size: 0.75rem;
+    color: $danger-color;
+    margin-top: 0.25rem;
+  }
+
+  /* Modal Footer */
+  .modal-footer {
+    padding: 1rem 1.25rem;
+    border-top: none;
+    background-color: $light-gray;
+    border-radius: 0 0 0.5rem 0.5rem;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+
+    @media (min-width: 576px) {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+
+    .emp-det-cancel-btn {
+      padding: 0.5rem 1rem;
+      border: 1px solid #212529;
+      color: #212529;
+      font-size: 0.875rem;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+      width: 100%;
+
+      @media (min-width: 576px) {
+        width: auto;
+      }
+
+      &:hover {
+        background-color: $light-gray;
+      }
+    }
+
+    .emp-det-save-btn {
+      padding: 0.5rem 1rem;
+      background-color: $primary-color;
+      border-color: $primary-color;
+      color: #ffffff;
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: 0.375rem;
+      transition: all 0.2s;
+      width: 100%;
+
+      @media (min-width: 576px) {
+        width: auto;
+      }
+
+      &:hover {
+        background-color: $primary-hover;
+        border-color: $primary-hover;
+      }
+
+      &:disabled {
+        opacity: 0.65;
+        background-color: $primary-hover;
+        border-color: $primary-hover;
+      }
+    }
+  }
+}
+
+/* Modal Backdrop */
+.emp-det-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+
+  &.show {
+    opacity: 0.5;
+  }
+}
+
+/* Responsive Grid Adjustments */
+.row.g-3 {
+  > [class*="col-"] {
+    margin-bottom: 1rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+/* Very Small Screen Adjustments */
+@media (max-width: 400px) {
+  .emp-det-actions {
+    button {
+      flex: 1 0 calc(50% - 0.25rem);
+
+      &:last-child {
+        flex: 1 0 100%;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+
+  .emp-det-filter-section {
+    gap: 0.75rem;
+  }
+
+  .emp-det-filter-select .form-select,
+  .emp-det-search-input {
+    height: 36px;
+    font-size: 0.8125rem;
+  }
+
+  .emp-det-table {
+    thead tr th,
+    tbody td {
+      padding: 0.5rem;
+      font-size: 0.8125rem;
+    }
+  }
+
+  .emp-det-actions-btns button {
+    padding: 0.25rem;
+    min-width: 28px;
+  }
+
+  .emp-dept-badge {
+    font-size: 0.6875rem;
+    padding: 0.2rem 0.5rem;
+  }
+}

@@ -1,0 +1,318 @@
+
+
+<div class="job-position-container">
+  <div class="header">
+    <div class="title">
+      <h2>Job Positions</h2>
+      <p>Manage and organize job positions for your organization.</p>
+    </div>
+  </div>
+
+  <div class="filter-row-container">
+    <!-- Search and Filters -->
+    <div class="search-filter-row">
+      <div class="search-input-wrapper">
+        <i class="ti ti-search"></i>
+        <input type="text" placeholder="Search positions..." 
+               (input)="applyFilters()" [(ngModel)]="searchTerm" />
+      </div>
+      
+      <div class="filter-container">
+        <button class="filter-icon" (click)="toggleFilter()" [class.active]="isFilterActive()">
+          <i class="ti ti-filter-2"></i>
+          <span>Filters</span>
+          <span class="filter-count" *ngIf="isFilterActive()">
+            {{ (filterOptions.selectedGrades.size + filterOptions.selectedPositionNames.size) || '' }}
+          </span>
+        </button>
+            
+        <div class="filter-dropdown" *ngIf="isFilterOpen">
+          <div class="filter-section">
+            <h4>Position Name</h4>
+            <div class="filter-options">
+              <div class="filter-options-scroll">
+                <div *ngFor="let name of (setToArray(filterOptions.positionNames) | slice:0:showAllPositionNames ? undefined : 5)">
+                  <label class="filter-option">
+                    <input type="checkbox" 
+                           [checked]="isSelected(filterOptions.selectedPositionNames, name)"
+                           (change)="toggleFilterOption('positionNames', name)">
+                    <span>{{ name }}</span>
+                  </label>
+                </div>
+              </div>
+              <div *ngIf="filterOptions.positionNames.size > 5" class="text-end mt-2">
+                <button class="show-more-btn" (click)="toggleShowAll('positionNames')">
+                  {{ showAllPositionNames ? 'Show less' : 'Show more...' }}
+                </button>
+              </div>
+            </div>
+          </div>
+              
+          <!-- Grade Filter -->
+          <div class="filter-section">
+            <h4>Grade</h4>
+            <div class="filter-options">
+              <div class="filter-options-scroll">
+                <div *ngFor="let grade of (setToArray(filterOptions.grades) | slice:0:showAllGrades ? undefined : 5)">
+                  <label class="filter-option">
+                    <input type="checkbox" 
+                           [checked]="isSelected(filterOptions.selectedGrades, grade)"
+                           (change)="toggleFilterOption('grades', grade)">
+                    <span>{{ grade }}</span>
+                  </label>
+                </div>
+              </div>
+              <div *ngIf="filterOptions.grades.size > 5" class="text-end mt-2">
+                <button class="show-more-btn" (click)="toggleShowAll('grades')">
+                  {{ showAllGrades ? 'Show less' : 'Show more...' }}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Filter Actions -->
+          <div class="filter-actions">
+            <button class="clear-btn" (click)="clearFilters()">
+              Clear All
+            </button>
+            <button class="apply-btn" (click)="isFilterOpen = false">
+              Apply
+            </button>
+          </div>
+        </div>
+          </div>
+          <button class="emp-att-add-btn" (click)="openAddModal(positionModal)">
+              <i class="bi bi-plus-lg me-1"></i>
+              <span>Add Position</span>
+          </button>
+      </div>
+  </div>
+
+    <!-- Positions Table -->
+  <div class="attendance-table" *ngIf="!isLoading && filteredPositions.length > 0">
+    <table>
+      <thead>
+        <tr>
+          <th>Position Name</th>
+          <th>Position Code</th>
+          <th>Grade Name</th>
+          <th>Skill Requirement</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pos of paginatedPositions">
+          <td>{{ pos.positionName || '--' }}</td>
+          <td>{{ pos.positionCode || '--' }}</td>
+          <td>{{ (pos.gradeName || pos.gradeId) || '--' }}</td>
+          <td>{{ pos.skillRequirements || '--' }}</td>
+          <td>
+            <div class="action-buttons">
+              <button class="view-btn" (click)="viewPosition(pos)" title="View">
+                <i class="ti ti-eye"></i>
+              </button>
+              <button class="edit-btn" (click)="openEditModal(positionModal, pos)" title="Edit">
+                <i class="ti ti-edit"></i>
+              </button>
+              <button class="delete-btn" (click)="$event.stopPropagation()" title="Delete" disabled>
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredPositions.length === 0 && !errorMessage" class="text-center py-5">
+    <div class="text-muted">
+      <i class="bi bi-inbox display-4 d-block mb-3"></i>
+      <p class="mb-2">No positions found.</p>
+      <button class="btn btn-primary btn-sm" (click)="openAddModal(positionModal)">
+        Add new position
+      </button>
+    </div>
+  </div>
+
+      
+  <!-- Pagination Wrapper -->
+  <div class="pagination-wrapper">
+    <div class="simple-pagination" *ngIf="filteredPositions.length > itemsPerPage && !isLoading">
+      <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+        <i class="ti ti-chevron-left"></i> Previous
+      </button>
+      <span class="page-info">
+        Page {{ currentPage }} of {{ totalPages }}
+      </span>
+      <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">
+        Next <i class="ti ti-chevron-right"></i>
+      </button>
+    </div>
+  </div>
+
+<!-- Add/Edit Position Modal -->
+<ng-template #positionModal let-modal>
+  <div class="emp-att-modal modal fade" [class.show]="true" [style.display]="'block'" [class.d-block]="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="emp-att-modal-content modal-content border-0 shadow">
+        <div class="emp-att-modal-header modal-header bg-warning text-white border-0">
+          <h5 class="modal-title fw-bold">
+            {{ isEditing ? 'Edit' : 'Add' }} Position
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
+        </div>
+        <form [formGroup]="positionForm" (ngSubmit)="savePosition()">
+        <div class="emp-att-modal-body modal-body p-4">
+        <!-- Organization -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <label for="orgId" class="form-label">Organization <span class="text-danger">*</span></label>
+            
+            <!-- Organization loading state -->
+            <div *ngIf="isOrgLoading" class="d-flex align-items-center text-muted">
+              <div class="spinner-border spinner-border-sm me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <small>Loading organizations...</small>
+            </div>
+            
+            <!-- Organization select -->
+            <select *ngIf="!isOrgLoading" 
+                    class="form-select" 
+                    id="orgId" 
+                    formControlName="orgId" 
+                    (change)="onOrganizationChange($event)" 
+                    [class.is-invalid]="positionForm.get('orgId')?.invalid && positionForm.get('orgId')?.touched">
+              <option [ngValue]="null" disabled>Select an organization</option>
+              <option *ngFor="let org of organizations" [value]="org.orgId">
+                {{ org.orgName }}
+              </option>
+            </select>
+            
+            <!-- Error message -->
+            <div *ngIf="positionForm.get('orgId')?.invalid && positionForm.get('orgId')?.touched" class="invalid-feedback d-block">
+              <small>Please select an organization</small>
+            </div>
+            
+            <!-- No organizations message -->
+            <div *ngIf="!isOrgLoading && organizations.length === 0" class="alert alert-warning mt-2 py-1 small">
+              <i class="bi bi-exclamation-triangle me-1"></i> No organizations found. Please add an organization first.
+            </div>
+          </div>
+        </div>
+        
+        <!-- Position Name & Code -->
+        <div class="row mb-3">
+          <div class="col-md-6 mb-3">
+            <label for="positionName" class="form-label">Position Name <span class="text-danger">*</span></label>
+            <input type="text" 
+                   class="form-control" 
+                   id="positionName" 
+                   formControlName="positionName" 
+                   placeholder="Enter position name"
+                   [class.is-invalid]="positionForm.get('positionName')?.invalid && positionForm.get('positionName')?.touched">
+            <div *ngIf="positionForm.get('positionName')?.invalid && positionForm.get('positionName')?.touched" class="invalid-feedback">
+              <small *ngIf="positionForm.get('positionName')?.errors?.['required']">Position name is required</small>
+              <small *ngIf="positionForm.get('positionName')?.errors?.['minlength']">Minimum 3 characters required</small>
+            </div>
+          </div>
+          
+          <div class="col-md-6 mb-3">
+            <label for="positionCode" class="form-label">Position Code <span class="text-danger">*</span></label>
+            <input type="text" 
+                   class="form-control" 
+                   id="positionCode" 
+                   formControlName="positionCode" 
+                   placeholder="e.g., DEV-001"
+                   [class.is-invalid]="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched">
+            <div *ngIf="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched" class="invalid-feedback">
+              <small *ngIf="positionForm.get('positionCode')?.errors?.['required']">Position code is required</small>
+              <small *ngIf="positionForm.get('positionCode')?.errors?.['pattern']">Only alphanumeric characters and hyphens allowed</small>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Grade & Manager -->
+        <div class="row mb-3">
+          <!-- Grade Dropdown -->
+          <div class="col-md-6 mb-3" *ngIf="orgId; else noOrgSelectedForGrade">
+            <label for="gradeId" class="form-label">Grade <span class="text-danger">*</span></label>
+            <select class="form-select" 
+                    id="gradeId" 
+                    formControlName="gradeId" 
+                    [class.is-invalid]="positionForm.get('gradeId')?.invalid && positionForm.get('gradeId')?.touched">
+              <option [ngValue]="null" disabled>Select a grade</option>
+              <option *ngFor="let grade of grades" [ngValue]="grade.gradeId">
+                {{ grade.gradeName }}
+              </option>
+            </select>
+            <div *ngIf="positionForm.get('gradeId')?.invalid && positionForm.get('gradeId')?.touched" class="invalid-feedback">
+              <small>Please select a grade</small>
+            </div>
+            <div *ngIf="grades.length === 0" class="alert alert-warning mt-2 py-1 small">
+              <i class="bi bi-exclamation-triangle me-1"></i> No grades available for the selected organization.
+            </div>
+          </div>
+          
+          <!-- No organization selected template for grades -->
+          <ng-template #noOrgSelectedForGrade>
+            <div class="col-md-6 mb-3">
+              <label class="form-label">Grade <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" placeholder="Select organization to enable" disabled>
+            </div>
+          </ng-template>
+          
+          <div class="col-md-6 mb-3">
+            <label for="reportingManagerPosition" class="form-label">Reporting Manager Position ID</label>
+            <input type="text" 
+                   class="form-control" 
+                   id="reportingManagerPosition" 
+                   formControlName="reportingManagerPosition" 
+                   placeholder="Enter manager's position ID (optional)">
+          </div>
+        </div>
+        
+        <!-- Skill Requirements -->
+        <div class="mb-3">
+          <label for="skillRequirements" class="form-label">Skill Requirements <span class="text-danger">*</span></label>
+          <textarea class="form-control" 
+                    id="skillRequirements" 
+                    formControlName="skillRequirements" 
+                    rows="2"
+                    [class.is-invalid]="positionForm.get('skillRequirements')?.invalid && positionForm.get('skillRequirements')?.touched"
+                    placeholder="Enter required skills and qualifications"></textarea>
+          <div *ngIf="positionForm.get('skillRequirements')?.invalid && positionForm.get('skillRequirements')?.touched" class="invalid-feedback">
+            <small>Skill requirements are required</small>
+          </div>
+        </div>
+        
+        <!-- Job Description -->
+        <div class="mb-4">
+          <label for="jobDescription" class="form-label">Job Description <span class="text-danger">*</span></label>
+          <textarea class="form-control" 
+                    id="jobDescription" 
+                    formControlName="jobDescription" 
+                    rows="3"
+                    [class.is-invalid]="positionForm.get('jobDescription')?.invalid && positionForm.get('jobDescription')?.touched"
+                    placeholder="Enter detailed job description"></textarea>
+          <div *ngIf="positionForm.get('jobDescription')?.invalid && positionForm.get('jobDescription')?.touched" class="invalid-feedback">
+            <small>Job description is required</small>
+          </div>
+        </div>
+        
+
+        </div>
+        <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
+          <button type="button" class="emp-att-cancel-btn btn btn-outline-dark" (click)="closeModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="positionForm.invalid">
+            {{ isEditing ? 'Update' : 'Save' }}
+          </button>
+        </div>
+      </form>
+      </div>
+    </div>
+  </div>
+  <div class="emp-att-modal-backdrop fade show" [style.display]="'block'" (click)="closeModal()"></div>
