@@ -28,7 +28,7 @@ export const NavigationItems: NavigationItem[] = [
       type: 'item',
       classes: 'nav-item',
       url: '/default',
-      icon: 'ti ti-dashboard', // ✓ Correct - already good
+      icon: 'ti ti-chart-bar', // ✓ Correct - already good
       breadcrumbs: false
     }
   ]
@@ -84,7 +84,7 @@ export const NavigationItems: NavigationItem[] = [
       title: 'Leave Management',
       type: 'item',
       url: '/elmr',
-      icon: 'ti ti-calendar-time', // Changed to calendar with time for leave management
+      icon: 'ti ti-calendar-minus', // Changed to calendar with time for leave management
       target: false,
       breadcrumbs: false,
       children: [
@@ -99,21 +99,21 @@ export const NavigationItems: NavigationItem[] = [
       ]
     },
     {
-      id: 'leave-allocation',
-      title: 'Leave Allocation',
-      type: 'item',
-      url: '/leave-allocation',
-      icon: 'ti ti-calendar',
-      classes: 'nav-item',
-      breadcrumbs: false,
-      hidden: false
-    },
+  id: 'leave-allocation',
+  title: 'Leave Allocation',
+  type: 'item',
+  url: '/leave-allocation',
+  icon: 'ti ti-calendar-plus', // Best match for "allocation"
+  classes: 'nav-item',
+  breadcrumbs: false,
+  hidden: false
+},
     {
       id: 'Calendar',
       title: 'Calendar',
       type: 'item',
       url: '/calendar',
-      icon: 'ti ti-calendar-time', // Changed to calendar with time for leave management
+      icon: 'ti ti-calendar', // Changed to calendar with time for leave management
       target: false,
       classes: 'nav-item',
       breadcrumbs: false,
@@ -123,7 +123,7 @@ export const NavigationItems: NavigationItem[] = [
       title: 'Job Management',
       type: 'item',
       url: '/job-management',
-      icon: 'ti ti-calendar-time', // Changed to calendar with time for leave management
+      icon: 'ti ti-tool', // Changed to calendar with time for leave management
       classes: 'nav-item',
       target: false,
       breadcrumbs: false,

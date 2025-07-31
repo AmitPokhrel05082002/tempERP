@@ -165,17 +165,13 @@
                 </div>
               </div>
               <hr />
-              <a [routerLink]="['/guest/register']" class="dropdown-item">
-                <i class="ti ti-settings"></i>
-                <span>Account Profile</span>
-              </a>
-              <a href="javascript:" class="dropdown-item">
-                <i class="ti ti-user"></i>
-                <span>Social Profile</span>
-              </a>
-              <a [routerLink]="['/guest/login']" class="dropdown-item">
+              <a href="javascript:void(0)" class="dropdown-item" (click)="onLogout()">
                 <i class="ti ti-logout"></i>
                 <span>Logout</span>
+              </a>
+              <a href="javascript:void(0)" class="dropdown-item">
+                <i class="ti ti-user"></i>
+                <span>Account Profile</span>
               </a>
             </ng-scrollbar>
           </div>

@@ -12,7 +12,7 @@
         <i class="bi bi-calendar-week me-2"></i>
         {{ currentDate | date:'dd MMMM yyyy' }}
       </button>
-      <button class="att-det-export-btn btn btn-warning d-flex align-items-center" (click)="exportToPdf()" [disabled]="!attendanceData.length">
+      <button class="att-det-export-btn btn btn-warning d-flex align-items-center" (click)="exportToPdf()">
         <i class="bi bi-download me-2"></i>
         Export
       </button>
@@ -173,16 +173,16 @@
             </tr>
           </ng-container>
 
-          <ng-template #noData>
-            <tr>
-              <td colspan="9" class="att-det-empty text-center py-5">
-                <div>
-                  <i class="bi bi-people display-4 d-block mb-3"></i>
-                  <p class="mb-2">{{ emptyStateMessage }}</p>
-                </div>
-              </td>
-            </tr>
-          </ng-template>
+           <ng-template #noData>
+          <tr>
+            <td colspan="9" class="att-det-empty text-center py-5">
+              <div>
+                <i class="bi bi-people display-4 d-block mb-3"></i>
+                <p class="mb-2">No employee records found.</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
         </tbody>
       </table>
     </div>

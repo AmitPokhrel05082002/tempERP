@@ -84,14 +84,14 @@ $info-color: #0d6efd;
   }
 
   .att-det-export-btn {
-    background-color: $warning-color;
-    border: 1px solid $warning-color;
-    color: #212529;
+    background-color: $primary-color;
+    border: 1px solid $primary-color;
+    color: #fbfcfc;
     font-weight: 500;
 
     &:hover {
-      background-color: darken($warning-color, 10%);
-      border-color: darken($warning-color, 10%);
+      background-color: $primary-hover;
+      border-color: $primary-hover;
     }
 
     &:disabled {

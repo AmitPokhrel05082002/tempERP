@@ -14,10 +14,13 @@
 
   <!-- Filters and Search Section -->
   <div class="controls-section">
-    <div class="filter-tabs">
-      <button class="filter-tab" [class.active]="activeFilter === 'all'" (click)="filterEmployees('all')">All Employee</button>
-      <button class="filter-tab" [class.active]="activeFilter === 'active'" (click)="filterEmployees('active')">Staff</button>
-      <button class="filter-tab" [class.active]="activeFilter === 'inactive'" (click)="filterEmployees('inactive')">Contract</button>
+
+    <div class="filter-dropdown">
+      <select [(ngModel)]="selectedDepartment" (change)="applyFilters()">
+        <option *ngFor="let dept of departments" [value]="dept">
+          {{ dept === 'All' ? 'All Departments' : dept }}
+        </option>
+      </select>
     </div>
 
     <div class="date-filters enhanced-date-selectors">
@@ -61,6 +64,7 @@
         <tr>
           <th>Employee ID</th>
           <th>Employee</th>
+          <th>Department</th>
           <th>Net Salary</th>
           <th>Pay Month</th>
           <th>Status</th>
@@ -70,7 +74,7 @@
       </thead>
       <tbody>
         <tr *ngIf="filteredEmployees.length === 0">
-          <td colspan="7" class="no-data-row">No data found for the selected year and month.</td>
+          <td colspan="8" class="no-data-row">No data found for the selected criteria.</td>
         </tr>
         <tr *ngFor="let employee of filteredEmployees">
           <td class="employee-id">{{ employee.empCode }}</td>
@@ -78,17 +82,18 @@
             <div class="employee-details">
               <div class="employee-text">
                 <div class="employee-name">{{ employee.name }}</div>
-                <div class="employee-department"></div>
               </div>
             </div>
           </td>
+          <td class="department">{{ employee.department }}</td>
           <td class="salary">Nu. {{ employee.netSalary }}</td>
           <td class="pay-day">{{ employee.salaryMonth }}</td>
-          <td class="status-">
+          <td class="status">
             <span class="status-badge" [class.paid]="employee.status === 'active'" [class.unpaid]="employee.status !== 'active'">
               {{ getStatusText(employee.status) }}
             </span>
           </td>
+          <td class="overtime">{{ employee.overtime }}</td>
           <td class="action">
             <button class="action-btn" [routerLink]="['/pay-slip', employee.id]" [queryParams]="{ year: selectedYear, month: selectedMonth }">
               View Payslip

@@ -1,14 +1,31 @@
 // Angular import
 import { Component } from '@angular/core';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
-// third party import
+// Core services
+import { AuthService } from '../../../../../core/services/auth.service';
+
+// Third party imports
 import { SharedModule } from 'src/app/theme/shared/shared.module';
 
 @Component({
   selector: 'app-nav-right',
-  imports: [RouterModule, SharedModule],
+  standalone: true,
+  imports: [CommonModule, RouterModule, SharedModule],
   templateUrl: './nav-right.component.html',
-  styleUrls: ['./nav-right.component.scss']
+  styleUrls: ['./nav-right.component.scss'],
+  providers: [AuthService]
 })
-export class NavRightComponent {}
+export class NavRightComponent {
+  constructor(
+    public authService: AuthService,
+    private router: Router
+  ) {}
+  onLogout() {
+    console.log('Logout button clicked in NavRightComponent');
+    this.authService.logout();
+  }
+  
+}
+

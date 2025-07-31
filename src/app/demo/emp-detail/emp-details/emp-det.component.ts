@@ -431,7 +431,29 @@ export class EmployeeDetailComponent implements OnInit {
         });
     });
   }
+// Add these to your EmployeeDetailComponent class
 
+hasActiveFilters(): boolean {
+  return !!this.selectedBranchId || 
+         this.activeTab !== 'All Employee' || 
+         !!this.searchQuery;
+}
+/**
+   * clear all filters
+   */
+clearAllFilters(): void {
+  // Reset branch filter
+  this.selectedBranchId = '';
+  
+  // Reset department filter
+  this.activeTab = 'All Employee';
+  
+  // Reset search
+  this.searchQuery = '';
+  
+  // Apply the cleared filters
+  this.applyFilters();
+}
   /**
    * Load job positions
    */

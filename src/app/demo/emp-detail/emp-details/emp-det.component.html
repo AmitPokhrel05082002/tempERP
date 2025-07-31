@@ -30,31 +30,38 @@
   <div class="emp-det-divider w-100 pb-3 mb-4" style="border-bottom: 1px solid #dee2e6;"></div>
 
   <div class="emp-det-filter-section d-flex align-items-center mb-4 gap-4">
-    <!-- Branch Select -->
-     <div class="emp-det-filter-select">
+  <!-- Branch Select -->
+  <div class="emp-det-filter-select">
     <select class="form-select" [(ngModel)]="selectedBranchId" (change)="onBranchChange()">
-      <option *ngFor="let branch of branches" 
-              [value]="branch.branchId">
+      <option *ngFor="let branch of branches" [value]="branch.branchId">
         {{ branch.branchName }}
       </option>
     </select>
   </div>
 
-    <!-- Department Select -->
-    <div class="emp-det-filter-select">
-      <select class="form-select" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
-        <option *ngFor="let dept of tabDepartments" [value]="dept">{{ dept }}</option>
-      </select>
-    </div>
+  <!-- Department Select -->
+  <div class="emp-det-filter-select">
+    <select class="form-select" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
+      <option *ngFor="let dept of tabDepartments" [value]="dept">{{ dept }}</option>
+    </select>
+  </div>
+   <!-- Clear Filters Button -->
+    <button class="clear_btn btn btn-sm d-flex align-items-center" 
+          (click)="clearAllFilters()" 
+          [disabled]="!hasActiveFilters()">
+    <i class="bi bi-funnel"></i> Clear Filters
+  </button>
 
-    <!-- Search Input -->
-    <div class="emp-det-search-container">
-      <div class="emp-det-search position-relative">
-        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-        <input type="text" class="emp-det-search-input form-control ps-5" placeholder="Search employees..."
-          [(ngModel)]="searchQuery" (input)="applyFilters()">
-      </div>
+
+  <!-- Search Input -->
+  <div class="emp-det-search-container">
+    <div class="emp-det-search position-relative">
+      <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+      <input type="text" class="emp-det-search-input form-control ps-5" placeholder="Search employees..."
+        [(ngModel)]="searchQuery" (input)="applyFilters()">
     </div>
+  </div>
+
   </div>
 
   <!-- Employee Table -->

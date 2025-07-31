@@ -9,7 +9,8 @@ import * as html2pdf from 'html2pdf.js';
 @Component({
   selector: 'app-pay-slip',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, DecimalPipe],
+  imports: [CommonModule, HttpClientModule, FormsModule],
+  providers: [DecimalPipe],
   templateUrl: './pay-slip.component.html',
   styleUrls: ['./pay-slip.component.scss']
 })

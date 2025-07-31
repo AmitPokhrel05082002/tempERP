@@ -10,6 +10,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import Swal from 'sweetalert2';
 import { LeaveFormComponent } from '../leave-form/leave-form.component'
+import { environment } from 'src/environments/environment';
 
 interface LeaveRequestUI {
   id: string;
@@ -53,6 +54,7 @@ export class ELMRComponent implements OnInit {
   qrCodeImage = 'assets/frame (2).png'; // Path to your placeholder image
   searchTerm = '';
   selectedDepartment = 'All';
+  departments: string[] = ['All'];
   selectedDate: string | null = null;
   showDatePicker = false;
   showFilter = false;
@@ -60,6 +62,9 @@ export class ELMRComponent implements OnInit {
   filterDate = '';
   filterDepartment = '';
   
+
+  private readonly deptApiUrl = `${environment.apiUrl}/api/v1/departments`;
+
   // Template methods
   toggleDatePicker(): void {
     this.showDatePicker = !this.showDatePicker;
@@ -85,7 +90,7 @@ export class ELMRComponent implements OnInit {
   toggleFilter(): void {
     this.showFilter = !this.showFilter;
   }
-  
+
   clearFilters(): void {
     this.searchTerm = '';
     this.selectedDepartment = 'All';
@@ -95,7 +100,22 @@ export class ELMRComponent implements OnInit {
     this.filterDepartment = '';
     this.applyFilters();
   }
-  
+  private fetchDepartments(): void {
+  this.isLoading = true;
+  this.http.get<string[]>(this.deptApiUrl)
+    .pipe(
+      finalize(() => this.isLoading = false)
+    )
+    .subscribe({
+      next: (depts) => {
+        // Add 'All' option and then the fetched departments
+        this.departments = ['All', ...depts];
+      },
+      error: (error) => {
+        console.error('Failed to fetch departments:', error);
+      }
+    });
+}
   formatDisplayDate(dateString: string | null): string {
     if (!dateString) return 'Select Date';
     try {
@@ -111,35 +131,24 @@ export class ELMRComponent implements OnInit {
     }
   }
   
-  private applyFilters(): void {
-    console.log('Applying filters...');
-    console.log('Search term:', this.searchTerm);
-    console.log('Selected department:', this.selectedDepartment);
-    console.log('Selected date:', this.selectedDate);
-    console.log('Filter name:', this.filterName);
-    console.log('Filter date:', this.filterDate);
-    console.log('Filter department:', this.filterDepartment);
+  applyFilters(): void {
+  console.log('Applying filters...');
+  console.log('Selected department:', this.selectedDepartment);
+  
+  this.leaveRequests = this.allLeaveRequests.filter(leave => {
+    const matchesSearch = !this.searchTerm || 
+      leave.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+      leave.empCode.toLowerCase().includes(this.searchTerm.toLowerCase());
     
-    // Apply filters to leaveRequests
-    this.leaveRequests = this.allLeaveRequests.filter(leave => {
-      // Filter by search term (name or employee code)
-      const matchesSearch = !this.searchTerm || 
-        leave.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-        leave.empCode.toLowerCase().includes(this.searchTerm.toLowerCase());
-      
-      // Filter by department
-      const matchesDepartment = this.selectedDepartment === 'All' || 
-        leave.department === this.selectedDepartment;
-      
-      // Filter by date if selected
-      const matchesDate = !this.selectedDate || 
-        (leave.rawDate && leave.rawDate === this.selectedDate);
-      
-      return matchesSearch && matchesDepartment && matchesDate;
-    });
+    const matchesDepartment = this.selectedDepartment === 'All' || 
+      leave.department === this.selectedDepartment;
     
-    console.log('Filtered leave requests:', this.leaveRequests);
-  }
+    const matchesDate = !this.selectedDate || 
+      (leave.rawDate && leave.rawDate === this.selectedDate);
+    
+    return matchesSearch && matchesDepartment && matchesDate;
+  });
+}
   
   // Modal state
   showRequestModal = false;
@@ -157,7 +166,8 @@ export class ELMRComponent implements OnInit {
   ngOnInit(): void {
     console.log('Component initialized');
     // Load both current and all leave requests
-    this.loadLeaveRequests();
+   this.loadLeaveRequests();
+  this.fetchDepartments();
   }
 
   loadLeaveRequests(): void {

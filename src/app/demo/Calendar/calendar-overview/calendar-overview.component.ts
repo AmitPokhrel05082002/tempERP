@@ -176,47 +176,31 @@ export class CalendarOverviewComponent implements OnInit {
 
   // Get branch summary data for the table
   get holidayRows() {
-    if (!this.calendarData.length) {
-      // If there are no branches, show a single row with all values as 0
-      if (!this.branchList.length) {
-        return [{
-          id: 1,
-          branch: 'N/A',
-          fullDayLeaves: 0,
-          halfDayLeaves: 0,
-          totalDays: 0,
-          branchData: { branch: 'N/A', holidays: [], id: 1 }
-        }];
-      }
-      // If there are branches but no data for the year, show each branch with 0s
-      return this.branchList.map((branch, idx) => ({
-        id: idx + 1,
-        branch: branch,
-        fullDayLeaves: 0,
-        halfDayLeaves: 0,
-        totalDays: 0,
-        branchData: { branch, holidays: [], id: idx + 1 }
-      }));
-    }
-    return this.calendarData.map(entry => {
-      // Try to find the branch ID from the first holiday (if available)
-      const firstHoliday = entry.holidays && entry.holidays.length > 0 ? entry.holidays[0] : null;
-      const branchId = firstHoliday?.branchId || entry.branch; // Fall back to branch name if ID not available
-      
-      return {
-        id: entry.id,
-        branch: entry.branch,
-        branchId: branchId, // Include branch ID for navigation
-        totalDays: entry.totalDays,
-        fullDayLeaves: entry.fullDayLeaves,
-        halfDayLeaves: entry.halfDayLeaves,
-        branchData: {
-          ...entry,
-          branchId: branchId // Also include in branchData for backward compatibility
-        }
-      };
-    });
+  // Return empty array if calendarData is empty (no data from API)
+  if (!this.calendarData.length) {
+    return [];
   }
+  
+  return this.calendarData.map(entry => {
+    // Try to find the branch ID from the first holiday (if available)
+    const firstHoliday = entry.holidays && entry.holidays.length > 0 ? entry.holidays[0] : null;
+    const branchId = firstHoliday?.branchId || entry.branch; // Fall back to branch name if ID not available
+    
+    return {
+      id: entry.id,
+      branch: entry.branch,
+      branchId: branchId, // Include branch ID for navigation
+      totalDays: entry.totalDays,
+      fullDayLeaves: entry.fullDayLeaves,
+      halfDayLeaves: entry.halfDayLeaves,
+      branchData: {
+        ...entry,
+        branchId: branchId // Also include in branchData for backward compatibility
+      }
+    };
+  });
+}
+
   
   // Navigate to calendar details view for a specific branch
   viewHolidays(entry: { branch: string; holidays: Holiday[]; branchId?: string; id?: number }) {

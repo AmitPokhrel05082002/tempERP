@@ -14,40 +14,82 @@
               </div>
             </div>
           </div>
+          
+          <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+            <div *ngIf="error" class="alert alert-danger">
+              {{ error }}
+            </div>
+            
+            <div class="form-floating mb-3">
+              <input 
+                type="text" 
+                class="form-control" 
+                id="username" 
+                formControlName="username"
+                [ngClass]="{ 'is-invalid': loginForm.get('username')?.errors && loginForm.get('username')?.touched }"
+                placeholder="Username"
+              />
+              <label for="username">Username</label>
+              <div *ngIf="loginForm.get('username')?.errors?.['required'] && loginForm.get('username')?.touched" class="invalid-feedback">
+                Username is required
+              </div>
+            </div>
+            
+            <div class="form-floating mb-3">
+              <input 
+                type="password" 
+                class="form-control" 
+                id="password" 
+                formControlName="password"
+                [ngClass]="{ 'is-invalid': loginForm.get('password')?.errors && loginForm.get('password')?.touched }"
+                placeholder="Password"
+              />
+              <label for="password">Password</label>
+              <div *ngIf="loginForm.get('password')?.errors?.['required'] && loginForm.get('password')?.touched" class="invalid-feedback">
+                Password is required
+              </div>
+            </div>
+            
+            <div class="d-flex mt-1 justify-content-between">
+              <div class="form-check">
+                <input 
+                  class="form-check-input input-primary" 
+                  type="checkbox" 
+                  id="rememberMe" 
+                  formControlName="rememberMe"
+                />
+                <label class="form-check-label text-muted" for="rememberMe">Remember me</label>
+              </div>
+              <h5 class="text-secondary">
+                <a [routerLink]="['/auth/forgot-password']">Forgot Password?</a>
+              </h5>
+            </div>
+             <div class="saprator mt-3">
+            <span>or</span>
+          </div>
           <div class="d-grid">
             <button type="button" class="btn mt-2 btn-light-primary bg-light text-muted">
               <img src="assets/images/authentication/google-icon.svg" alt="google" />
               Sign In With Google
             </button>
           </div>
-          <div class="saprator mt-3">
-            <span>or</span>
-          </div>
-          <h5 class="my-4 d-flex justify-content-center">Sign in with Email address</h5>
-          <div class="form-floating mb-3">
-            <input type="email" class="form-control" id="floatingInput" value="info@codedthemes.com" />
-            <label for="floatingInput">Email address / Username</label>
-          </div>
-          <div class="form-floating mb-3">
-            <input type="password" class="form-control" id="password" value="12345" />
-            <label for="password">Password</label>
-          </div>
-          <div class="d-flex mt-1 justify-content-between">
-            <div class="form-check">
-              <input class="form-check-input input-primary" type="checkbox" id="customCheckc1" checked="" />
-              <label class="form-check-label text-muted" for="customCheckc1">Remember me</label>
+            <div class="d-grid mt-4">
+              <button 
+                type="submit" 
+                class="btn btn-secondary"
+                [disabled]="loading || loginForm.invalid"
+              >
+                <span *ngIf="!loading">Sign In</span>
+                <span *ngIf="loading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                <span *ngIf="loading" class="visually-hidden">Loading...</span>
+              </button>
             </div>
-            <h5 class="text-secondary">
-              <a href="javascript:">Forgot Password?</a>
-            </h5>
-          </div>
-          <div class="d-grid mt-4">
-            <button type="button" class="btn btn-secondary">Sign In</button>
-          </div>
+          </form>
+          
           <hr />
-          <h5 class="d-flex justify-content-center">
-            <a [routerLink]="['/guest/register']">Don't have an account?</a>
-          </h5>
+          <!-- <h5 class="d-flex justify-content-center">
+            <a [routerLink]="['/auth/register']">Don't have an account? Register</a>
+          </h5> -->
         </div>
       </div>
     </div>

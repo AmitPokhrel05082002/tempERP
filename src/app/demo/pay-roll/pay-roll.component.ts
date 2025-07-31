@@ -13,9 +13,10 @@ import { environment } from 'src/environments/environment';
   styleUrls: ['./pay-roll.component.scss']
 })
 export class PayRollComponent implements OnInit {
-
   employees: any[] = [];
   filteredEmployees: any[] = [];
+  departments: string[] = [];
+  selectedDepartment: string = 'All';
   activeFilter: string = 'all';
   searchQuery: string = '';
 
@@ -38,6 +39,8 @@ export class PayRollComponent implements OnInit {
     { value: '12', name: 'December' },
   ];
 
+  private readonly deptApiUrl = `${environment.apiUrl}/api/v1/departments`;
+
   constructor(private http: HttpClient) {
     const now = new Date();
     this.selectedYear = now.getFullYear().toString();
@@ -56,7 +59,21 @@ export class PayRollComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.loadDepartments();
     this.loadEmployees();
+  }
+
+  loadDepartments() {
+    this.http.get<any[]>(this.deptApiUrl).subscribe({
+      next: (data) => {
+        this.departments = ['All', ...data.map(dept => dept.name)];
+        console.log('Departments loaded:', this.departments);
+      },
+      error: (err) => {
+        console.error('Failed to load departments:', err);
+        this.departments = ['All'];
+      }
+    });
   }
 
   loadEmployees() {
@@ -75,12 +92,13 @@ export class PayRollComponent implements OnInit {
           id: emp.empId,
           empCode: emp.empCode,
           name: [emp.firstName, emp.middleName, emp.lastName].filter(n => n).join(' '),
+          department: emp.department || 'Unknown',
           netSalary: emp.netSalary,
           salaryMonth: emp.salaryMonth,
           status: emp.employmentStatus.toLowerCase(),
           overtime: emp.overtime || '0'
         }));
-        this.filterEmployees(this.activeFilter); // Apply current filter
+        this.applyFilters(); // Apply current filters
       },
       error: (err) => {
         console.error('Failed to load payroll data:', err);
@@ -106,28 +124,35 @@ export class PayRollComponent implements OnInit {
 
   filterEmployees(type: string) {
     this.activeFilter = type;
-    if (type === 'all') {
-      this.filteredEmployees = [...this.employees];
-    } else {
-      this.filteredEmployees = this.employees.filter(emp =>
-        emp.status === type.toLowerCase()
+    this.applyFilters();
+  }
+
+  applyFilters() {
+    // Apply employment type filter
+    let filtered = [...this.employees];
+    if (this.activeFilter !== 'all') {
+      filtered = filtered.filter(emp => emp.status === this.activeFilter.toLowerCase());
+    }
+
+    // Apply department filter
+    if (this.selectedDepartment && this.selectedDepartment !== 'All') {
+      filtered = filtered.filter(emp => emp.department === this.selectedDepartment);
+    }
+
+    // Apply search filter
+    if (this.searchQuery) {
+      const query = this.searchQuery.toLowerCase();
+      filtered = filtered.filter(emp =>
+        emp.name.toLowerCase().includes(query) ||
+        emp.empCode.toLowerCase().includes(query) ||
+        emp.department.toLowerCase().includes(query)
       );
     }
 
-    // Also apply search again if query exists
-    if (this.searchQuery) {
-      this.searchEmployees();
-    }
+    this.filteredEmployees = filtered;
   }
 
   searchEmployees() {
-    if (!this.searchQuery) {
-      this.filterEmployees(this.activeFilter);
-      return;
-    }
-    const query = this.searchQuery.toLowerCase();
-    this.filteredEmployees = this.filteredEmployees.filter(emp =>
-      emp.name.toLowerCase().includes(query)
-    );
+    this.applyFilters();
   }
 }
