@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, tap, throwError, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable, interval, merge, of, throwError } from 'rxjs';
+import { catchError, tap, switchMap, startWith, distinctUntilChanged, shareReplay, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
 export interface LeaveRequestPayload {
@@ -69,8 +69,22 @@ export type LeaveType = 'current' | 'all';
 })
 export class LeaveService {
   private apiUrl = environment.leaveApiUrl;
+  private refreshInterval = 3000; // 30 seconds
 
   constructor(private http: HttpClient) { }
+
+  watchLeaveStatus(leaveId: string): Observable<any> {
+    return interval(this.refreshInterval).pipe(
+      startWith(0),
+      switchMap(() => this.getLeaveRequestById(leaveId)),
+      distinctUntilChanged((prev, curr) => prev.status === curr.status),
+      shareReplay(1)
+    );
+  }
+
+  getLeaveRequestById(leaveId: string): Observable<any> {
+    return this.http.get(`${this.apiUrl}/leave/${leaveId}`);
+  }
 
   getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
     if (!empId) {
@@ -85,7 +99,6 @@ export class LeaveService {
     );
   }
 
-  // Get leave requests
   getLeaveRequests(type: LeaveType = 'current'): Observable<LeaveRequest[]> {
     const endpoint = `${this.apiUrl}/applications/recent/${type}`;
     console.log(`Fetching ${type} leave requests from:`, endpoint);
@@ -96,14 +109,12 @@ export class LeaveService {
     );
   }
   
-  // Get all leave requests (convenience method)
   getAllLeaveRequests(type: LeaveType = 'all'): Observable<LeaveRequest[]> {
     const endpoint = `${this.apiUrl}/applications/recent/${type}`;
     console.log(`Fetching ${type} leave requests from:`, endpoint);
     
     return this.http.get<LeaveRequest[]>(endpoint).pipe(
       map((response: any) => {
-        // Ensure we have a valid response
         if (!Array.isArray(response)) {
           console.warn('Unexpected response format, expected an array:', response);
           return [];
@@ -131,7 +142,6 @@ export class LeaveService {
     );
   }
 
-  // Get all employees
   getAllEmployees(): Observable<Employee[]> {
     const endpoint = `${this.apiUrl}/getAllEmployee`;
     console.log('Fetching all employees from:', endpoint);
@@ -142,7 +152,6 @@ export class LeaveService {
     );
   }
 
-  // Get all leave types
   getAllLeaveTypes(): Observable<{id: string, name: string}[]> {
     const endpoint = `${this.apiUrl}/getAllLeaveType`;
     console.log('Fetching all leave types from:', endpoint);
@@ -153,7 +162,6 @@ export class LeaveService {
     );
   }
 
-  // Submit a new leave request
   requestLeave(leaveData: LeaveRequestPayload): Observable<LeaveRequest> {
     const endpoint = `${this.apiUrl}/requestLeave`;
     console.log('Submitting leave request to:', endpoint, 'with data:', leaveData);
@@ -164,7 +172,6 @@ export class LeaveService {
     );
   }
 
-  // Get employee leave details
   getEmployeeLeaveDetails(empid: string): Observable<any> {
     const endpoint = `${this.apiUrl}/employee/${empid}`;
     console.log(`Fetching leave details for employee ID: ${empid}`);
@@ -175,32 +182,21 @@ export class LeaveService {
     );
   }
 
-  /**
-   * Updates the status of a leave request
-   * @param updateData Either a string (legacy ID) or an object containing leave update details
-   * @param approved Optional boolean for legacy parameter style
-   * @param reason Optional reason for the status update
-   * @returns Observable with the update result
-   */
   updateLeaveStatus(updateData: { 
     empCode: string; 
     id: string; 
     approved: boolean;
     reason?: string;
   } | string, approved?: boolean, reason?: string): Observable<any> {
-
     console.log('Updating leave status with data:', updateData);
     let id: string;
     let isApproved: boolean; 
     
     try {
-      // Handle both parameter styles for backward compatibility
       if (typeof updateData === 'string') {
-        // Old style: updateLeaveStatus(id, approved, reason?)
         id = updateData;
         isApproved = approved as boolean;
       } else {
-        // New style: updateLeaveStatus({ empCode, id, approved, reason? })
         id = updateData.id;
         isApproved = updateData.approved;
         reason = updateData.reason || reason;
@@ -210,16 +206,13 @@ export class LeaveService {
         throw new Error('Leave ID is required');
       }
       
-      // Endpoint for approving/rejecting leave requests - using the leave ID in the URL
       const endpoint = `${this.apiUrl}/leave/${id}/approve`;
       
-      // Prepare the request body with approval status and reason
       const body = {
         approved: isApproved,
         reason: reason || (isApproved ? 'Approved by manager' : 'Rejected by manager')
       };
       
-      // Log the request details for debugging
       console.log('Preparing request to update leave status:', {
         endpoint,
         leaveId: id,
@@ -228,7 +221,6 @@ export class LeaveService {
         requestBody: JSON.stringify(body, null, 2)
       });
       
-      // Make the API call
       return this.http.post<any>(endpoint, body, {
         headers: {
           'Content-Type': 'application/json',
@@ -258,7 +250,6 @@ export class LeaveService {
     }
   }
 
-  // Submit a new leave request
   submitLeaveRequest(leaveData: any): Observable<any> {
     const endpoint = `${this.apiUrl}/requestLeave`;
     console.log('Submitting leave request:', leaveData);
@@ -269,7 +260,6 @@ export class LeaveService {
     );
   }
 
-  // Get leave balance for an employee
   getLeaveBalance(empCode: string): Observable<any> {
     const endpoint = `${this.apiUrl}/employee/${empCode}`;
     console.log('Fetching leave balance for employee:', empCode);
@@ -277,11 +267,9 @@ export class LeaveService {
     return this.http.get<any>(endpoint).pipe(
       tap(data => console.log('Received employee data:', data)),
       map((response: any) => {
-        // If the response has a leaveBalances array, return it
         if (response && Array.isArray(response.leaveBalances)) {
           return response.leaveBalances;
         }
-        // If the response is the balance data directly, return it
         if (response && typeof response === 'object' && !Array.isArray(response)) {
           return [{
             type: 'Annual Leave',
@@ -290,18 +278,16 @@ export class LeaveService {
             remaining: (response.totalDays || 0) - (response.usedDays || 0)
           }];
         }
-        // If no valid data found, return default values
         console.warn('No valid leave balance data found in response');
         return [];
       }),
       catchError(error => {
         console.error('Error in getLeaveBalance:', error);
-        return of([]); // Return empty array on error
+        return of([]);
       })
     );
   }
 
-  // Get leave history for an employee
   getLeaveHistory(empCode: string): Observable<any[]> {
     console.log('Fetching leave history for employee:', empCode);
     const endpoint = `${this.apiUrl}/employee/${empCode}`;
@@ -309,21 +295,18 @@ export class LeaveService {
     return this.http.get<any>(endpoint).pipe(
       tap(data => console.log('Received employee leave data:', data)),
       map((response: any) => {
-        // If the response is an array, return it directly
         if (Array.isArray(response)) {
           return response;
         }
-        // If response is an object with data array, return that
         if (response && Array.isArray(response.data)) {
           return response.data;
         }
-        // If no valid data found, return empty array
         console.warn('No valid leave history data found in response');
         return [];
       }),
       catchError(error => {
         console.error('Error in getLeaveHistory:', error);
-        return of([]); // Return empty array on error
+        return of([]);
       })
     );
   }

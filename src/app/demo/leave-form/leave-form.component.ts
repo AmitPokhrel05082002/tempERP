@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { finalize } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-leave-form',
@@ -61,7 +62,7 @@ export class LeaveFormComponent {
 
     console.log('Submitting leave request with data:', formData);
 
-    this.http.post('http://192.168.124.237:8083/api/leave/requestLeave', formData, { observe: 'response' })
+    this.http.post(`${environment.leaveApiUrl}/requestLeave`, formData, { observe: 'response' })
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (response) => {
@@ -101,7 +102,7 @@ export class LeaveFormComponent {
 
   private fetchLeaveTypes() {
     this.isLoading = true;
-    this.http.get<any[]>('http://192.168.124.237:8083/api/leave/getAllLeaveType')
+    this.http.get<any[]>(`${environment.leaveApiUrl}/getAllLeaveType`)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (response) => {

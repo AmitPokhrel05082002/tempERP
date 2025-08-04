@@ -1,3 +1,4 @@
+// login.component.ts
 import { Component, OnInit } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
@@ -22,14 +23,13 @@ export class LoginComponent implements OnInit {
     private router: Router
   ) {
     this.loginForm = this.formBuilder.group({
-      email: ['admin@ngn.com', [Validators.required, Validators.email]],
-      password: ['admin123', Validators.required],
+      username: ['', Validators.required], // Changed from email to username
+      password: ['', Validators.required],
       rememberMe: [false]
     });
   }
 
   ngOnInit(): void {
-    // Check if user is already logged in
     if (this.authService.currentUserValue) {
       this.router.navigate(['/default']);
     }
@@ -43,14 +43,14 @@ export class LoginComponent implements OnInit {
     this.loading = true;
     this.error = '';
 
-    const { email, password, rememberMe } = this.loginForm.value;
+    const { username, password } = this.loginForm.value;
 
-    this.authService.login(email, password).subscribe({
+    this.authService.login(username, password).subscribe({
       next: (success) => {
         if (success) {
           this.router.navigate(['/default']);
         } else {
-          this.error = 'Invalid email or password';
+          this.error = 'Invalid username or password';
           this.loading = false;
         }
       },

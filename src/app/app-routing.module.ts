@@ -14,7 +14,7 @@ export const routes: Routes = [
     path: 'login',
     loadChildren: () => import('./demo/pages/authentication/authentication-routing.module').then(m => m.AuthenticationRoutingModule)
   },
-  {
+  { 
     path: '',
     component: AdminComponent,
     canActivate: [AuthGuard],

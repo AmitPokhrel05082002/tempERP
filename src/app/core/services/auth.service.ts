@@ -1,19 +1,30 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, tap, catchError, throwError } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { tap, catchError, map, switchMap } from 'rxjs/operators';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import jwt_decode, { jwtDecode } from 'jwt-decode';
+
+export interface Permission {
+  permissionId: string;
+  permissionCode: string;
+  moduleName: string;
+  actionType: string;
+  permissionName: string;
+  grantedDate: string;
+}
 
 export interface User {
+  userId: string;
+  empId: string;
   username: string;
-  name: string;
-  role: string;
-  permissions: string[];
+  email: string;
+  accountStatus: string;
+  roleId: string;
+  mustChangePassword: boolean;
   accessToken: string;
   refreshToken: string;
-  tokenExpiration?: number;
+  permissions?: Permission[];
 }
 
 @Injectable({
@@ -22,7 +33,8 @@ export interface User {
 export class AuthService {
   private currentUserSubject: BehaviorSubject<User | null>;
   public currentUser$: Observable<User | null>;
-  private tokenRefreshTimeout: any;
+  private permissionsSubject = new BehaviorSubject<Permission[]>([]);
+  public permissions$ = this.permissionsSubject.asObservable();
 
   constructor(private router: Router, private http: HttpClient) {
     const storedUser = localStorage.getItem('currentUser');
@@ -30,11 +42,10 @@ export class AuthService {
       storedUser ? JSON.parse(storedUser) : null
     );
     this.currentUser$ = this.currentUserSubject.asObservable();
-
-    // Start token refresh timer if user exists
+    
     if (storedUser) {
       const user = JSON.parse(storedUser);
-      this.startTokenRefreshTimer(user);
+      this.permissionsSubject.next(user.permissions || []);
     }
   }
 
@@ -43,79 +54,72 @@ export class AuthService {
   }
 
   public get isAuthenticated$(): Observable<boolean> {
-    return this.currentUser$.pipe(map(user => !!user && !this.isTokenExpired(user)));
-  }
-
-  private isTokenExpired(user: User): boolean {
-    if (!user.tokenExpiration) return true;
-    return Date.now() > user.tokenExpiration * 1000;
-  }
-
-  private startTokenRefreshTimer(user: User): void {
-    if (!user.tokenExpiration) return;
-
-    // Set timeout to refresh token 1 minute before it expires
-    const expiresIn = user.tokenExpiration * 1000 - Date.now() - 60000;
-    
-    this.tokenRefreshTimeout = setTimeout(() => {
-      this.refreshToken().subscribe();
-    }, expiresIn);
-  }
-
-  private stopTokenRefreshTimer(): void {
-    clearTimeout(this.tokenRefreshTimeout);
+    return this.currentUser$.pipe(map(user => !!user));
   }
 
   login(username: string, password: string): Observable<boolean> {
     const url = `${environment.apiUrl}/api/auth/login`;
     return this.http.post<any>(url, { username, password }).pipe(
-      tap(res => {
-        // Decode token to get expiration
-        const decodedToken: any = jwtDecode(res.accessToken);
-        
-        const user: User = {
-          username: res.username || username,
-          name: res.name,
-          role: res.role,
-          permissions: res.permissions || [],
-          accessToken: res.accessToken,
-          refreshToken: res.refreshToken,
-          tokenExpiration: decodedToken.exp
+      switchMap(loginResponse => {
+        if (!loginResponse.success) {
+          throw new Error('Login failed');
+        }
+
+        const userData = loginResponse.data.user;
+        const baseUser: User = {
+          userId: userData.userId,
+          empId: userData.empId,
+          username: userData.username,
+          email: userData.email,
+          accountStatus: userData.accountStatus,
+          roleId: userData.roleId,
+          mustChangePassword: userData.mustChangePassword,
+          accessToken: loginResponse.data.accessToken,
+          refreshToken: loginResponse.data.refreshToken
         };
-        
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        this.currentUserSubject.next(user);
-        this.startTokenRefreshTimer(user);
+
+        return this.http.get<Permission[]>(
+          `${environment.apiUrl}/api/v1/role-permissions/role/${userData.roleId}/permissions`
+        ).pipe(
+          tap(permissions => {
+            const completeUser = {
+              ...baseUser,
+              permissions: permissions
+            };
+            localStorage.setItem('currentUser', JSON.stringify(completeUser));
+            this.currentUserSubject.next(completeUser);
+            this.permissionsSubject.next(permissions);
+          }),
+          map(() => true)
+        );
       }),
-      map(() => true),
-      catchError((error: HttpErrorResponse) => {
+      catchError(error => {
         console.error('Login error', error);
-        return throwError(() => error);
+        return of(false);
       })
     );
   }
 
-  refreshToken(): Observable<User | null> {
+  refreshToken(): Observable<any> {
     const currentUser = this.currentUserValue;
     if (!currentUser?.refreshToken) {
-      return of(null);
+      this.logout();
+      return throwError(() => new Error('No refresh token available'));
     }
 
-    const url = `${environment.apiUrl}/api/auth/refresh-token`;
-    return this.http.post<any>(url, { refreshToken: currentUser.refreshToken }).pipe(
-      tap(res => {
-        const decodedToken: any = jwtDecode(res.accessToken);
-        
-        const user: User = {
-          ...currentUser,
-          accessToken: res.accessToken,
-          refreshToken: res.refreshToken,
-          tokenExpiration: decodedToken.exp
-        };
-        
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        this.currentUserSubject.next(user);
-        this.startTokenRefreshTimer(user);
+    return this.http.post<any>(`${environment.apiUrl}/api/auth/refresh-token`, {
+      refreshToken: currentUser.refreshToken
+    }).pipe(
+      tap(response => {
+        if (response.success) {
+          const updatedUser = {
+            ...currentUser,
+            accessToken: response.data.accessToken,
+            refreshToken: response.data.refreshToken
+          };
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+          this.currentUserSubject.next(updatedUser);
+        }
       }),
       catchError(error => {
         this.logout();
@@ -124,27 +128,34 @@ export class AuthService {
     );
   }
 
-  hasPermission(permission: string): boolean {
-    const user = this.currentUserValue;
-    if (!user) return false;
-    
-    // Admin has all permissions
-    if (user.role === 'admin') return true;
-    
-    return user.permissions.includes(permission);
-  }
-
   logout(): void {
-    // Stop the refresh timer
-    this.stopTokenRefreshTimer();
-    
-    // Clear user data
     localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
-    
-    // Navigate to login
-    this.router.navigate(['/auth/login']).then(() => {
+    this.permissionsSubject.next([]);
+    this.router.navigate(['/guest/login']).then(() => {
       window.location.reload();
     });
+  }
+
+  hasPermission(permissionCode: string): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.permissions) return false;
+    return user.permissions.some(p => p.permissionCode === permissionCode);
+  }
+
+  hasAnyPermission(permissionCodes: string[]): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.permissions) return false;
+    return permissionCodes.some(code => 
+      user.permissions?.some(p => p.permissionCode === code)
+    );
+  }
+
+  hasAllPermissions(permissionCodes: string[]): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.permissions) return false;
+    return permissionCodes.every(code => 
+      user.permissions?.some(p => p.permissionCode === code)
+    );
   }
 }
