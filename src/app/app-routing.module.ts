@@ -5,6 +5,7 @@ import { GuestComponent } from './theme/layout/guest/guest.component';
 import { AuthGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
+  
    {
     path: '',
     redirectTo: '/guest/login',
@@ -75,10 +76,7 @@ export const routes: Routes = [
         path: 'balanceleave',
         loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c)=>c.BalanceleaveComponent)
       },
-      {
-        path: 'leave-form',
-        loadComponent: () => import('./demo/leave-form/leave-form.component').then((c) => c.LeaveFormComponent)
-      },
+     
       {
         path: 'balanceleave/:id',
         loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent),
@@ -191,7 +189,7 @@ export const routes: Routes = [
       },
       {
         path: 'leave-form',
-        loadComponent: () => import('./demo/leave-form/leave-form.component').then((c) => c.LeaveFormComponent)
+        loadChildren: () => import('./demo/Leave/leave-form/leave-form.component').then((m) => m.LeaveFormComponent)
       },
       {
         path: 'balanceleave/:id',

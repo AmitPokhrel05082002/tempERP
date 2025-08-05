@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 import { catchError, throwError, tap, of } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 
+
 // =============================================
 // INTERFACE DEFINITIONS
 // =============================================
@@ -546,7 +547,7 @@ clearAllFilters(): void {
       });
   }
 
-  /**
+    /**
    * Map API response to local employee structure
    */
   private mapApiEmployee(apiEmployee: ApiEmployeeResponse): Employee {

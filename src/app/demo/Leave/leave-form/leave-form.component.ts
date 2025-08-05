@@ -53,8 +53,9 @@ export class LeaveFormComponent {
     this.isLoading = true;
     this.errorMessage = null;
 
-    const formData = {
+        const formData = {
       cid: this.leaveForm.value.cid,
+      leaveTypeId: this.leaveForm.value.leaveTypeId, // Added missing leaveTypeId
       leaveName: this.leaveForm.value.leaveName,
       fromDate: this.formatDate(this.leaveForm.value.fromDate),
       toDate: this.formatDate(this.leaveForm.value.toDate),

@@ -80,24 +80,33 @@
     <div class="header-divider"></div>
     
     <div class="controls">
-    <div class="filter-dropdown">
-  <select [(ngModel)]="selectedDepartment" (change)="applyFilters()">
-    <option *ngFor="let dept of departments" [value]="dept">
-      {{ dept === 'All' ? 'All Employees' : dept }}
-    </option>
-  </select>
-</div>
-  
-  <div class="search-container">
-    <div class="search-box">
-      <i class="fas fa-search"></i>
-      <input type="text" placeholder="Search by name, code or department" [(ngModel)]="searchTerm" />
+      <div class="department-tabs">
+        <button [class.active]="selectedDepartment === 'All'" (click)="selectDepartment('All')">
+          All Employees
+        </button>
+        <button [class.active]="selectedDepartment === 'IT Division'" (click)="selectDepartment('IT Division')">
+          IT Division
+        </button>
+        <button [class.active]="selectedDepartment === 'Content Division'" (click)="selectDepartment('Content Division')">
+          Content Division
+        </button>
+        <button [class.active]="selectedDepartment === 'Marketing'" (click)="selectDepartment('Marketing')">
+          Marketing
+        </button>
+        <button [class.active]="selectedDepartment === 'Finance'" (click)="selectDepartment('Finance')">
+          Finance
+        </button>
+      </div>
+      <div class="search-container">
+        <div class="search-box">
+          <i class="fas fa-search"></i>
+          <input type="text" placeholder="Search by name, code or department" [(ngModel)]="searchTerm" />
+        </div>
+        <button class="filter-btn" (click)="toggleFilter()">
+          <i class="bi bi-filter"></i> Filters
+        </button>
+      </div>
     </div>
-    <button class="filter-btn" (click)="toggleFilter()">
-      <i class="bi bi-filter"></i> Filters
-    </button>
-  </div>
-</div>
 
     <div class="filter-panel" *ngIf="showFilter">
       <label>
@@ -125,6 +134,19 @@
   </div>
 
   <div class="leave-sections">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-container">
+      <p>Loading leave requests...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="errorMessage" class="error-container">
+      <p>{{ errorMessage }}</p>
+      <button class="retry-btn" (click)="loadLeaveRequests()">Retry</button>
+    </div>
+
+    <!-- Content -->
+    <ng-container *ngIf="!isLoading && !errorMessage">
     <div class="leave-section" *ngIf="!selectedDate">
       <h3 class="section-title">Today's Leave Requests</h3>
       <div class="leave-cards">
@@ -166,7 +188,6 @@
           </button>
         </div>
         <div class="no-leaves" *ngIf="filteredTodaysLeaves.length === 0">
-          <i class="far fa-calendar-times"></i>
           {{ searchTerm || filterName || filterDepartment ? 'No matching leave requests for today' : 'No leave requests for today' }}
         </div>
       </div>
@@ -215,10 +236,10 @@
           </button>
         </div>
         <div class="no-leaves" *ngIf="filteredLeaves.length === 0">
-          <i class="far fa-calendar-times"></i>
           {{ searchTerm || filterName || filterDepartment || selectedDate ? 'No leave requests match your criteria' : 'No leave requests found' }}
         </div>
       </div>
     </div>
+    </ng-container>
   </div>
 </div>
