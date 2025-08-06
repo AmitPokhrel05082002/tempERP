@@ -60,13 +60,16 @@
     <div class="cards-container">
       <!-- Left Card - Employee Overview -->
       <div class="overview-card">
+         <div class="profile-header-container">
+    <!-- Status Badge -->
+    <div class="status-badge" >
+      {{ employee.employmentStatus || '-' }}
+    </div>
+         </div>
         <!-- Profile Image -->
         <div class="profile-image-section">
           <div class="profile-image-wrapper">
-             <!-- Status Badge -->
-          <div class="status-badge" [ngClass]="getStatusBadgeClass(employee.employmentStatus)">
-            {{ employee.employmentStatus || '-' }}
-          </div>
+        
             <div class="profile-image-placeholder" *ngIf="!profileImageUrl && !employee.profileImage">
               <i class="fa-solid fa-user"></i>
             </div>
@@ -147,10 +150,10 @@
             <div class="content-header">
               <div class="content-badges">
                 <span class="content-badge badge-blue">
-                  <i class="fas fa-circle-exclamation"></i> {{ employee.empCode || 'EMP010' }}
+                  <i class="fa-regular fa-address-card"></i> {{ employee.empCode || 'Not Specified' }}
                 </span>
                 <span class="content-badge badge-purple">
-                  <i class="fa fa-user-tie"></i> {{ employee.positionName || 'Programmer' }}
+                  <i class="fa fa-user-tie"></i> {{ employee.positionName || 'Not Specified' }}
                 </span>
               </div>
               <button class="export-btn" (click)="exportToPDF()">
@@ -164,28 +167,32 @@
               <div class="detail-grid">
                 <div class="detail-item">
                   <label>Full Name</label>
-                  <p>{{ (employee.firstName || 'Dorji') + ' ' + (employee.lastName || 'Penjor') }}</p>
+                  <p>{{ (employee.firstName || 'Not Specified') + ' ' + (employee.lastName || 'Not Specified') }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Date of Birth</label>
-                  <p>{{ formatDate(employee.dateOfBirth) || 'Jul 3, 1998' }}</p>
+                  <p>{{ formatDate(employee.dateOfBirth) || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Gender</label>
-                  <p>{{ employee.gender || 'Male' }}</p>
+                  <p>{{ employee.gender || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Marital Status</label>
-                  <p>{{ employee.maritalStatus || 'Single' }}</p>
+                  <p>{{ employee.maritalStatus || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Nationality</label>
-                  <p>{{ employee.nationality || 'Bhutanese' }}</p>
+                  <p>{{ employee.nationality || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>CID Number</label>
-                  <p>{{ employee.cidNumber || '123111123' }}</p>
+                  <p>{{ employee.cidNumber || 'Not Specified' }}</p>
                 </div>
+                <div class="detail-item">
+  <label>Organization</label>
+  <p>{{ employee.orgName || 'Not Specified' }}</p>
+</div>
               </div>
             </div>
           </div>
@@ -195,10 +202,10 @@
             <div class="content-header">
               <div class="content-badges">
                 <span class="content-badge badge-blue">
-                  <i class="fa fa-building"></i> {{ employee.department || 'Ecentric' }}
+                  <i class="fa fa-building-user"></i> {{ employee.department || 'Not Specified' }}
                 </span>
                 <span class="content-badge badge-purple">
-                  <i class="fa fa-medal"></i> {{ employee.gradeName || 'Senior Grade' }}
+                  <i class="fa fa-medal"></i> {{ employee.gradeName || 'Not Specified' }}
                 </span>
               </div>
               <button class="export-btn" (click)="exportToPDF()">
@@ -211,19 +218,19 @@
               <div class="detail-grid">
                 <div class="detail-item">
                   <label>Department</label>
-                  <p>{{ employee.department || 'Ecentric' }}</p>
+                  <p>{{ employee.department || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Position</label>
-                  <p>{{ employee.positionName || 'Backend Developer' }}</p>
+                  <p>{{ employee.positionName || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Employment Type</label>
-                  <p>{{ employee.employmentType || 'Full-time' }}</p>
+                  <p>{{ employee.employmentType || 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Location</label>
-                  <p>{{ employee.location || 'Thimphu' }}</p>
+                  <p>{{ employee.location || 'Not Specified' }}</p>
                 </div>
               </div>
             </div>
@@ -234,17 +241,17 @@
                 <div class="detail-item">
                   <label>Grade</label>
                   <p>
-                    {{ employee.gradeName || 'Senior Grade' }}
+                    {{ employee.gradeName || 'Not Specified' }}
                     <span *ngIf="employee.gradeCode" class="grade-code">({{ employee.gradeCode }})</span>
                   </p>
                 </div>
                 <div class="detail-item">
                   <label>Basic Salary</label>
-                  <p>{{ employee.basicSalary ? (employee.basicSalary | currency:'Nu.':'symbol':'1.2-2') : 'Nu. 45,000.00' }}</p>
+                  <p>{{ employee.basicSalary ? (employee.basicSalary | currency:'Nu.':'symbol':'1.2-2') : 'Not Specified' }}</p>
                 </div>
                 <div class="detail-item">
                   <label>Max Salary</label>
-                  <p>{{ employee.maxSalary ? (employee.maxSalary | currency:'Nu.':'symbol':'1.2-2') : 'Nu. 65,000.00' }}</p>
+                  <p>{{ employee.maxSalary ? (employee.maxSalary | currency:'Nu.':'symbol':'1.2-2') : 'Not Specified' }}</p>
                 </div>
               </div>
               <ng-template #noGrade>
@@ -261,10 +268,10 @@
             <div class="content-header">
               <div class="content-badges">
                 <span class="content-badge badge-blue">
-                  <i class="fa fa-location-dot"></i> {{ employee.address?.addressLine1 || 'Thimphu' }}
+                  <i class="fa fa-location-dot"></i> {{ employee.address?.addressLine1 || 'Not Specified' }}
                 </span>
                 <span class="content-badge badge-purple">
-                  <i class="fa fa-phone"></i> {{ employee.contact?.phonePrimary || '+975-77123456' }}
+                  <i class="fa fa-phone"></i> {{ employee.contact?.phonePrimary || 'Not Specified' }}
                 </span>
               </div>
               <button class="export-btn" (click)="exportToPDF()">
@@ -286,9 +293,9 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{{ employee.contact?.email || 'dorji.penjor@ecentric.bt' }}</td>
-                      <td>{{ employee.contact?.phonePrimary || '+975-77123456' }}</td>
-                      <td>{{ employee.contact?.phoneSecondary || '+975-17123456' }}</td>
+                      <td>{{ employee.contact?.email || 'Not Specified' }}</td>
+                      <td>{{ employee.contact?.phonePrimary || 'Not Specified' }}</td>
+                      <td>{{ employee.contact?.phoneSecondary || 'Not Specified' }}</td>
                       <td>
                         <span class="badge" 
                               [ngClass]="employee.contact?.isEmergencyContact ? 'badge-success' : 'badge-success'">
@@ -317,11 +324,11 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{{ employee.address?.addressType || 'Permanent' }}</td>
-                      <td>{{ employee.address?.addressLine1 || 'Motithang' }}</td>
-                      <td>{{ employee.address?.addressLine2 || 'Near School' }}</td>
-                      <td>{{ employee.address?.thromde || employee.address?.dzongkhag || 'Thimphu' }}</td>
-                      <td>{{ employee.address?.country || 'Bhutan' }}</td>
+                      <td>{{ employee.address?.addressType || 'Not Specified' }}</td>
+                      <td>{{ employee.address?.addressLine1 || 'Not Specified' }}</td>
+                      <td>{{ employee.address?.addressLine2 || 'Not Specified' }}</td>
+                      <td>{{ employee.address?.thromde || employee.address?.dzongkhag || 'Not Specified' }}</td>
+                      <td>{{ employee.address?.country || 'Not Specified' }}</td>
                       <td>
                         <span class="badge" 
                               [ngClass]="employee.address?.isCurrent ? 'badge-success' : 'badge-success'">
@@ -340,10 +347,10 @@
             <div class="content-header">
               <div class="content-badges">
                 <span class="content-badge badge-blue">
-                  <i class="fa fa-building-columns"></i> {{ employee.bankDetail?.bankName || 'Bank of Bhutan' }}
+                  <i class="fa fa-building-columns"></i> {{ employee.bankDetail?.bankName || 'Not Specified' }}
                 </span>
                 <span class="content-badge badge-purple">
-                  <i class="fa fa-user-gear"></i> {{ employee.bankDetail?.accountNumber || '100123456789' }}
+                  <i class="fa fa-user-gear"></i> {{ employee.bankDetail?.accountNumber || 'Not Specified' }}
                 </span>
               </div>
               <button class="export-btn" (click)="exportToPDF()">
@@ -364,10 +371,10 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{{ employee.bankDetail?.bankName || 'Bank of Bhutan' }}</td>
-                      <td>{{ employee.bankDetail?.branchName || 'Thimphu Main Branch' }}</td>
-                      <td>{{ employee.bankDetail?.accountNumber || '100123456789' }}</td>
-                      <td>{{ employee.bankDetail?.accountType || 'Savings' }}</td>
+                      <td>{{ employee.bankDetail?.bankName || 'Not Specified' }}</td>
+                      <td>{{ employee.bankDetail?.branchName || 'Not Specified' }}</td>
+                      <td>{{ employee.bankDetail?.accountNumber || 'Not Specified' }}</td>
+                      <td>{{ employee.bankDetail?.accountType || 'Not Specified' }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -380,10 +387,10 @@
             <div class="content-header">
               <div class="content-badges">
                 <span class="content-badge badge-blue">
-                  <i class="fa fa-university"></i> {{ employee.qualification?.institutionName || 'Royal University of Bhutan' }}
+                  <i class="fa fa-university"></i> {{ employee.qualification?.institutionName || 'Not Specified' }}
                 </span>
                 <span class="content-badge badge-purple">
-                  <i class="fa fa-graduation-cap"></i> {{ employee.qualification?.degreeName || 'Bachelor of IT' }}
+                  <i class="fa fa-graduation-cap"></i> {{ employee.qualification?.degreeName || 'Not Specified' }}
                 </span>
               </div>
               <button class="export-btn" (click)="exportToPDF()">
@@ -405,10 +412,10 @@
                   </thead>
                   <tbody>
                     <tr>
-                      <td>{{ employee.qualification?.institutionName || 'Royal University of Bhutan' }}</td>
-                      <td>{{ employee.qualification?.degreeName || 'Bachelor of IT' }}</td>
-                      <td>{{ employee.qualification?.specialization || 'Software Development' }}</td>
-                      <td>{{ employee.qualification?.yearOfCompletion || '2020' }}</td>
+                      <td>{{ employee.qualification?.institutionName || 'Not Specified' }}</td>
+                      <td>{{ employee.qualification?.degreeName || 'Not Specified' }}</td>
+                      <td>{{ employee.qualification?.specialization || 'Not Specified' }}</td>
+                      <td>{{ employee.qualification?.yearOfCompletion || 'Not Specified' }}</td>
                     </tr>
                   </tbody>
                 </table>

@@ -63,22 +63,24 @@
   list-style: none;
   padding: 0;
   margin: 0;
-  background: white;
+  // background: white;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   overflow: hidden;
+  width: auto; /* Change from 100% to auto */
+  justify-content: flex-start; /* Align tabs to the left */
 }
 
 .tab-item {
   margin: 0;
-  flex: 1;
+  flex: 0 0 auto; /* Don't grow or shrink - use natural width */
 }
 
 .tab-link {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 16px 20px;
+  justify-content: flex-start; /* Left-align tab content */
+  padding: 16px 24px; /* More padding on sides */
   text-decoration: none;
   color: #6c757d;
   font-size: 14px;
@@ -86,10 +88,16 @@
   border: none;
   background: transparent;
   border-bottom: 3px solid transparent;
+  border-right: 1px solid #f0f0f0; /* Add separator between tabs */
   transition: all 0.3s ease;
   cursor: pointer;
-  width: 100%;
+  width: auto; /* Natural width */
   position: relative;
+}
+
+/* Remove right border from last tab */
+.tab-item:last-child .tab-link {
+  border-right: none;
 }
 
 .tab-link:hover {
@@ -110,6 +118,7 @@
 
 /* Cards Container - UPDATED FOR SAME HEIGHT */
 .cards-container {
+  height: 550px;
   display: flex;
   gap: 20px;
   align-items: stretch; /* Changed from flex-start to stretch */
@@ -135,22 +144,24 @@
   padding: 30px;
   flex: 1;
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-  min-height: 600px;
+  min-height: 550px;
   display: flex; /* Added flex */
   flex-direction: column; /* Stack content vertically */
 }
 
 /* Profile Image Section */
+/* Profile Image Section - Enhanced */
 .profile-image-section {
-  margin-bottom: 20px;
   text-align: center;
+  position: relative;
 }
 
 .profile-image-wrapper {
   position: relative;
-  width: 120px;
-  height: 120px;
-  margin-bottom: 15px;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto 20px;
+  transition: all 0.3s ease;
 }
 
 .profile-image, .profile-image-placeholder {
@@ -158,78 +169,169 @@
   height: 120px;
   border-radius: 50%;
   object-fit: cover;
-  border: 4px solid #e9ecef;
+  border: 5px solid white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
 .profile-image-placeholder {
-  background: #f8f9fa;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 40px;
-  color: #6c757d;
+  font-size: 48px;
+  color: #9fa8b2;
+}
+
+.profile-image-wrapper:hover .profile-image {
+  transform: scale(0.03);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
 }
 
 .camera-icon-overlay {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  background: #007bff;
+  bottom: 20px;
+  right: 30px;
+  background: linear-gradient(to right, #007bff, #00a1ff);
   border-radius: 50%;
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+  box-shadow: 0 3px 10px rgba(0, 123, 255, 0.4);
+  transition: all 0.3s ease;
+  z-index: 2;
+}
+
+.camera-icon-overlay:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.5);
 }
 
 .camera-icon {
   color: white;
-  font-size: 14px;
-  cursor: pointer;
+  font-size: 16px;
 }
 
 .save-photo-btn {
-  background: #28a745;
+  background: linear-gradient(to right, #28a745, #34ce57);
   color: white;
   border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 10px 24px;
+  border-radius: 30px;
   font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 15px;
+  box-shadow: 0 2px 10px rgba(40, 167, 69, 0.3);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.save-photo-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(40, 167, 69, 0.4);
 }
 
 .save-photo-btn:disabled {
-  background: #6c757d;
+  background: #adb5bd;
+  transform: none;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
-/* Status Section */
-.status-section {
-  margin-bottom: 20px;
+/* Status indicator */
+.profile-status {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #28a745;
+  border: 3px solid white;
+  z-index: 2;
 }
 
+/* Upload progress indicator */
+.upload-progress {
+  position: absolute;
+  bottom: -5px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: #e9ecef;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: linear-gradient(to right, #007bff, #00a1ff);
+  transition: width 0.3s ease;
+}
+
+/* Status Section */
+.profile-header-container {
+  position: relative;
+  width: 100%;
+  margin-bottom:3px;
+}
+
+/* Status badge styles */
 .status-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 12px;
   font-weight: 500;
+  // background: #d4edda;
+  color: #6c757d;
+}
+
+/* Status indicator dot (::before pseudo-element) */
+.status-badge::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #28a745;
+  margin-right: 5px;
+  display: inline-block;
+}
+
+/* Different status colors (example) */
+.status-badge.active {
   background: #d4edda;
   color: #155724;
 }
-
-.status-badge::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+.status-badge.active::before {
   background: #28a745;
-  margin-right: 8px;
+}
+
+.status-badge.inactive {
+  background: #fff3cd;
+  color: #856404;
+}
+.status-badge.inactive::before {
+  background: #ffc107;
+}
+
+.status-badge.terminated {
+  background: #f8d7da;
+  color: #721c24;
+}
+.status-badge.terminated::before {
+  background: #dc3545;
 }
 
 /* Employee Name Section */
@@ -301,7 +403,8 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 30px;
-  padding-bottom: 20px;
+  // padding-bottom: 60px;
+  padding:0px 0 40px 25px;
   border-bottom: 1px solid #f0f0f0;
 }
 
