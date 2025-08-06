@@ -85,7 +85,7 @@ export class EmployeeViewComponent implements OnInit {
     { id: 'education', label: 'Education', icon: 'bi bi-book' },
     { id: 'contact', label: 'Contact', icon: 'bi bi-telephone' }
   ];
-  activeTab = 'grade';
+  activeTab = 'personal';
   employee: Employee | null = null;
   isLoading = true;
   errorMessage = '';
