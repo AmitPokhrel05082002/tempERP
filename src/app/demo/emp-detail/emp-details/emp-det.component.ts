@@ -257,8 +257,7 @@ selectedOrgId: string = '';
   }
 
   ngOnInit(): void {
-    const empCode = this.route.snapshot.paramMap.get('empCode');
-    console.log('Employee Code:', empCode);
+    this.route.snapshot.paramMap.get('empCode');
     this.loadInitialData();
   }
 
@@ -334,12 +333,10 @@ selectedOrgId: string = '';
         return this.loadDepartments(this.selectedBranchId);
       })
       .then(() => {
-        console.log('Departments loaded:', this.tabDepartments);
         this.loadEmployees();
         this.loadPositions();
       })
-      .catch(error => {
-        console.error('Initialization error:', error);
+      .catch(() => {
         this.isLoading = false;
       });
   }
@@ -441,7 +438,6 @@ onBranchChangeInForm(): void {
       this.http.get<{ success: boolean, message: string, data: Department[] }>(url, this.httpOptions)
         .pipe(
           catchError((error: HttpErrorResponse) => {
-            console.error('Failed to load departments:', error);
             this.errorMessage = 'Failed to load departments. Please try again later.';
             reject(error);
             return throwError(() => error);
@@ -468,7 +464,6 @@ onBranchChangeInForm(): void {
             }
           },
           error: (error) => {
-            console.error('Error loading departments:', error);
             reject(error);
           }
         });
@@ -505,7 +500,6 @@ clearAllFilters(): void {
       this.http.get<Position[]>(this.positionApiUrl, this.httpOptions)
         .pipe(
           catchError((error: HttpErrorResponse) => {
-            console.error('Failed to load positions:', error);
             this.errorMessage = 'Failed to load positions. Please try again later.';
             reject(error);
             return throwError(() => error);
@@ -523,7 +517,6 @@ clearAllFilters(): void {
             resolve();
           },
           error: (error) => {
-            console.error('Error loading positions:', error);
             this.errorMessage = 'Failed to load positions. Please try again later.';
             reject(error);
           }
@@ -539,7 +532,6 @@ clearAllFilters(): void {
       this.http.get<Grade[]>(this.gradeApiUrl, this.httpOptions)
         .pipe(
           catchError((error: HttpErrorResponse) => {
-            console.error('Failed to load grades:', error);
             this.errorMessage = 'Failed to load grades. Please try again later.';
             reject(error);
             return throwError(() => error);
@@ -551,7 +543,6 @@ clearAllFilters(): void {
             resolve();
           },
           error: (error) => {
-            console.error('Error loading grades:', error);
             reject(error);
           }
         });
