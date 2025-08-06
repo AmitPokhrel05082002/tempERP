@@ -1,4 +1,3 @@
-// employee-detail.component.ts
 // Tashi Tshering
 
 import { Component, OnInit } from '@angular/core';
@@ -214,6 +213,8 @@ export class EmployeeDetailComponent implements OnInit {
   filteredPositions: Position[] = [];
   branches: Branch[] = [];
   locations: string[] = [];
+organizations: any[] = [];
+selectedOrgId: string = '';
 
   // Pagination
   currentPage = 1;
@@ -228,6 +229,7 @@ export class EmployeeDetailComponent implements OnInit {
   private readonly positionApiUrl = `${environment.apiUrl}/api/v1/job-positions`;
   private readonly branchApiUrl = `${environment.apiUrl}/api/v1/branches`;
   private readonly gradeApiUrl = `${environment.apiUrl}/api/v1/job-grades`;
+  private readonly orgApiUrl = `${environment.apiUrl}/api/v1/organizations`;
 
   private readonly httpOptions = {
     headers: new HttpHeaders({
@@ -272,6 +274,7 @@ export class EmployeeDetailComponent implements OnInit {
       maritalStatus: ['', Validators.required],
       nationality: ['', Validators.required],
       cidNumber: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
+      organization: ['', Validators.required],
 
       // Employment Information
       hireDate: ['', Validators.required],
@@ -320,6 +323,7 @@ export class EmployeeDetailComponent implements OnInit {
     this.isLoading = true;
     
     Promise.all([
+      this.loadOrganizations(),
       this.loadBranches(),
       this.loadGrades()
     ])
@@ -339,11 +343,35 @@ export class EmployeeDetailComponent implements OnInit {
         this.isLoading = false;
       });
   }
-
+private loadOrganizations(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    this.http.get<any[]>(this.orgApiUrl, this.httpOptions)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          console.error('Error loading organizations:', error);
+          reject(error);
+          return throwError(() => error);
+        })
+      )
+      .subscribe({
+        next: (orgs) => {
+          this.organizations = orgs;
+          if (orgs.length > 0) {
+            this.selectedOrgId = orgs[0].orgId; // Default to first organization
+          }
+          resolve();
+        },
+        error: (error) => {
+          console.error('Error loading organizations:', error);
+          reject(error);
+        }
+      });
+  });
+}
   /**
    * Load branches data
    */
- private loadBranches(): Promise<void> {
+private loadBranches(): Promise<void> {
   return new Promise((resolve, reject) => {
     // Immediately set "All Branches" as default
     this.branches = [{
@@ -370,10 +398,13 @@ export class EmployeeDetailComponent implements OnInit {
           // Add loaded branches after the initial "All Branches"
           this.branches = [...this.branches, ...branches];
           
-          // Build location map
+          // Build location map and locations array
           this.locationMap = {};
+          this.locations = []; // Clear existing locations
+          
           branches.forEach(branch => {
             this.locationMap[branch.branchId] = branch.branchName;
+            this.locations.push(branch.branchName); // Add branch name to locations array
           });
           
           resolve();
@@ -385,7 +416,18 @@ export class EmployeeDetailComponent implements OnInit {
       });
   });
 }
-
+// Branch change handler for form add/edit model
+onBranchChangeInForm(): void {
+  const selectedBranchName = this.employeeForm.get('location')?.value;
+  const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
+  
+  if (selectedBranch) {
+    this.loadDepartments(selectedBranch.branchId).then(() => {
+      // Reset department selection when branch changes
+      this.employeeForm.get('department')?.setValue('');
+    });
+  }
+}
   /**
    * Load departments for a specific branch
    */
@@ -642,7 +684,8 @@ clearAllFilters(): void {
         employmentType: '',
         accountType: '',
         addressType: '',
-        grade: ''
+        grade: '',
+        organization: this.selectedOrgId,
       });
 
       if (this.employeeForm.get('department')?.value) {
@@ -686,7 +729,14 @@ onBranchChange(): void {
     this.applyFilters();
   });
 }
-
+onOrganizationChange(): void {
+  const orgId = this.employeeForm.get('organization')?.value;
+  if (orgId) {
+    this.selectedOrgId = orgId;
+    // You might want to reload branches when organization changes
+    this.loadBranches();
+  }
+}
   /**
    * Handle department selection change
    */
@@ -797,6 +847,7 @@ onBranchChange(): void {
       maritalStatus: emp.maritalStatus,
       nationality: emp.nationality,
       cidNumber: emp.cidNumber,
+      organization: emp.orgId || this.selectedOrgId,
       hireDate: this.formatDateForInput(emp.hireDate),
       employmentStatus: emp.employmentStatus,
       employmentType: emp.employmentType || '',
@@ -878,7 +929,7 @@ onBranchChange(): void {
           employmentStatus: formValue.employmentStatus,
           employmentType: formValue.employmentType,
           branchId: branchId,
-          orgId: '5fb2d078-532d-4352-84ba-4e185ae08dac',
+          orgId: this.employeeForm.get('organization')?.value,
           gradeId: formValue.grade,
           basicSalary: formValue.basicSalary,
           maxSalary: formValue.maxSalary
