@@ -10,6 +10,7 @@ export const environment = {
   production: false,
   apiUrl: 'http://192.168.137.173:8088',
   leaveApiUrl: 'http://192.168.137.173:8085/api/leave',
+  payrollApiUrl: 'http://localhost:8082',
 };
 
 /*
