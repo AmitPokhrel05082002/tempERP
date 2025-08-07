@@ -81,6 +81,7 @@ export class LeaveService {
   ) { }
 
  getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
+
     const token = this.authService.getToken();
     if (!token) {
       this.router.navigate(['/auth/login']);
@@ -91,6 +92,7 @@ export class LeaveService {
     const endpoint = `${this.leaveApiUrl}/getAllocationByEmpId/${empId}`;
     
     return this.http.get<LeaveAllocation[]>(endpoint, { headers }).pipe(
+
       catchError(error => {
         console.error('Error fetching leave allocations:', error);
         // Return empty array on error to prevent breaking the UI
@@ -182,7 +184,43 @@ export class LeaveService {
   getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
     
-    return this.http.get<Employee[]>(endpoint).pipe(
+
+    // Get the auth token from your auth service
+    const token = this.authService.getToken();
+    
+    // Set up headers with authorization
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+    
+
+    return this.http.get<Employee[]>(endpoint, { headers }).pipe(
+      map((response: any) => {
+        // Transform the response to match the Employee interface
+        if (Array.isArray(response)) {
+          return response.map((emp: any) => ({
+            empId: emp.empId || emp.id || '',
+            empCode: emp.empCode || emp.employeeCode || '',
+            firstName: emp.firstName || emp.name?.split(' ')[0] || '',
+            middleName: emp.middleName || null,
+            lastName: emp.lastName || emp.name?.split(' ').slice(1).join(' ') || emp.name || '',
+            dateOfBirth: emp.dateOfBirth || null,
+            gender: emp.gender || '',
+            maritalStatus: emp.maritalStatus || null,
+            bloodGroup: emp.bloodGroup || null,
+            nationality: emp.nationality || '',
+            socialSecurityNumber: emp.socialSecurityNumber || null,
+            cidNumber: emp.cidNumber || emp.cid || null,
+            hireDate: emp.hireDate || null,
+            employmentStatus: emp.employmentStatus || emp.status || '',
+            organizationName: emp.organizationName || emp.organization?.name || emp.department || '',
+            branchName: emp.branchName || emp.branch?.name || emp.division || '',
+            departmentName: emp.departmentName || emp.department?.name || emp.section || ''
+          }));
+        }
+        return [];
+      }),
       catchError(this.handleError)
     );
   }
