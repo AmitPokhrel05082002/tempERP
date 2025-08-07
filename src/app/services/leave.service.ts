@@ -80,7 +80,12 @@ export class LeaveService {
     private router: Router
   ) { }
 
- getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
+  /**
+   * Get leave allocations for a specific employee
+   * @param empId The employee ID to get allocations for
+   * @returns Observable of LeaveAllocation array
+   */
+  getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
 
     const token = this.authService.getToken();
     if (!token) {
@@ -115,7 +120,8 @@ export class LeaveService {
     });
 
     // Use apiUrl for leave applications endpoints
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
+    const endpoint = `${this.apiUrl}/leave/applications/recent/${type}`;
+
     
     return this.http.get<any>(endpoint, { headers }).pipe(
       map((response: any) => {
@@ -147,7 +153,8 @@ export class LeaveService {
   
   // Get all leave requests (convenience method)
   getAllLeaveRequests(type: LeaveType = 'all'): Observable<LeaveRequest[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
+    const endpoint = `${this.apiUrl}/applications/recent/${type}`;
+
     
     return this.http.get<LeaveRequest[]>(endpoint).pipe(
       map((response: any) => {
@@ -179,7 +186,7 @@ export class LeaveService {
 
   // Get all employees
   getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
+    const endpoint = `${this.apiUrl}/leave/applications/recent/${mode}`;
     
     // Get the auth token from your auth service
     const token = this.authService.getToken();

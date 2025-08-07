@@ -8,6 +8,7 @@ import packageInfo from '../../package.json';
 export const environment = {
   appVersion: packageInfo.version,
   production: false,
+
   apiUrl: 'http://localhost:8088',
   leaveApiUrl: 'http://localhost:8085/api/leave',
   payrollApiUrl: 'http://localhost:8082',
