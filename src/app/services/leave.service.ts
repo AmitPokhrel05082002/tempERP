@@ -81,6 +81,7 @@ export class LeaveService {
   ) { }
 
  getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
+
     const token = this.authService.getToken();
     if (!token) {
       this.router.navigate(['/auth/login']);
@@ -91,6 +92,7 @@ export class LeaveService {
     const endpoint = `${this.leaveApiUrl}/getAllocationByEmpId/${empId}`;
     
     return this.http.get<LeaveAllocation[]>(endpoint, { headers }).pipe(
+
       catchError(error => {
         console.error('Error fetching leave allocations:', error);
         // Return empty array on error to prevent breaking the UI
@@ -188,6 +190,7 @@ export class LeaveService {
       'Content-Type': 'application/json'
     });
     
+
     return this.http.get<Employee[]>(endpoint, { headers }).pipe(
       map((response: any) => {
         // Transform the response to match the Employee interface
