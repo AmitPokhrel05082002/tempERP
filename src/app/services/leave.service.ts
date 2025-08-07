@@ -95,6 +95,9 @@ export class LeaveService {
         console.error('Error fetching leave allocations:', error);
         // Return empty array on error to prevent breaking the UI
         return of([]);
+        console.error('Error fetching leave allocations:', error);
+        // Return empty array on error to prevent breaking the UI
+        return of([]);
       })
     );
   }
@@ -113,6 +116,7 @@ export class LeaveService {
     });
 
     // Use apiUrl for leave applications endpoints
+    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     
     return this.http.get<any>(endpoint, { headers }).pipe(
@@ -146,6 +150,7 @@ export class LeaveService {
   // Get all leave requests (convenience method)
   getAllLeaveRequests(type: LeaveType = 'all'): Observable<LeaveRequest[]> {
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
+    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     
     return this.http.get<LeaveRequest[]>(endpoint).pipe(
       map((response: any) => {
@@ -176,6 +181,8 @@ export class LeaveService {
   }
 
   // Get all employees
+  getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
+    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
   getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
     
