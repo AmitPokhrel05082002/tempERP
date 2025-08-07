@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 import { map, tap } from 'rxjs/operators';
 
-const API_BASE_URL = 'http://192.168.123.223:8080';
+const API_BASE_URL = 'http://localhost:8080';
 
 export interface Grade {
   gradeId: string;
