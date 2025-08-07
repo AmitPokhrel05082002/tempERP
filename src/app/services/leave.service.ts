@@ -80,18 +80,21 @@ export class LeaveService {
     private router: Router
   ) { }
 
-  getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
+ getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
     const token = this.authService.getToken();
     if (!token) {
       this.router.navigate(['/auth/login']);
       return throwError(() => new Error('No authentication token found'));
     }
 
-    return this.http.get<LeaveAllocation[]>(`${this.leaveApiUrl}/leave-allocations/employee/${empId}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    }).pipe(
+    const headers = { 'Authorization': `Bearer ${token}` };
+    const endpoint = `${this.leaveApiUrl}/getAllocationByEmpId/${empId}`;
+    
+    return this.http.get<LeaveAllocation[]>(endpoint, { headers }).pipe(
       catchError(error => {
-        return throwError(() => error);
+        console.error('Error fetching leave allocations:', error);
+        // Return empty array on error to prevent breaking the UI
+        return of([]);
       })
     );
   }
