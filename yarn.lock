@@ -275,7 +275,7 @@
     symbol-observable "4.0.0"
     yargs "17.7.2"
 
-"@angular/common@^18.0.1", "@angular/common@^19.0.0", "@angular/common@^19.0.0 || ^20.0.0", "@angular/common@>= 10.0.0", "@angular/common@>=16.0.0-0", "@angular/common@>=17.3.0", "@angular/common@19.0.5":
+"@angular/common@^18.0.1", "@angular/common@^19.0.0", "@angular/common@^19.0.0 || ^20.0.0", "@angular/common@>= 10.0.0", "@angular/common@>=17.3.0", "@angular/common@19.0.5":
   version "19.0.5"
   resolved "https://registry.npmjs.org/@angular/common/-/common-19.0.5.tgz"
   integrity sha512-fFK+euCj1AjBHBCpj9VnduMSeqoMRhZZHbhPYiND7tucRRJ8vwGU0sYK2KI/Ko+fsrNIXL/0O4F36jVPl09Smg==
@@ -303,7 +303,7 @@
   dependencies:
     tslib "^2.3.0"
 
-"@angular/core@^18.0.1", "@angular/core@^19.0.0", "@angular/core@^19.0.0 || ^20.0.0", "@angular/core@>= 10.0.0", "@angular/core@>=16.0.0-0", "@angular/core@>=17.3.0", "@angular/core@19.0.5":
+"@angular/core@^18.0.1", "@angular/core@^19.0.0", "@angular/core@^19.0.0 || ^20.0.0", "@angular/core@>= 10.0.0", "@angular/core@>=17.3.0", "@angular/core@19.0.5":
   version "19.0.5"
   resolved "https://registry.npmjs.org/@angular/core/-/core-19.0.5.tgz"
   integrity sha512-Ywc6sPO6G/Y1stfk3y/MallV/h0yzQ0vdOHRWueLrk5kD1DTdbolV4X03Cs3PuVvravgcSVE3nnuuHFuH32emQ==
@@ -334,7 +334,7 @@
   dependencies:
     tslib "^2.3.0"
 
-"@angular/platform-browser@>= 10.0.0", "@angular/platform-browser@>=16.0.0-0", "@angular/platform-browser@19.0.5":
+"@angular/platform-browser@>= 10.0.0", "@angular/platform-browser@19.0.5":
   version "19.0.5"
   resolved "https://registry.npmjs.org/@angular/platform-browser/-/platform-browser-19.0.5.tgz"
   integrity sha512-41+Jo5DEil4Ifvv+UE/p1l9YJtYN+xfhx+/C9cahVgvV5D2q+givyK73d0Mnb6XOfe1q+hoV5lZ+XhQYp21//g==
@@ -2379,11 +2379,6 @@
     "@types/qs" "*"
     "@types/serve-static" "*"
 
-"@types/html2pdf.js@^0.10.0":
-  version "0.10.0"
-  resolved "https://registry.npmjs.org/@types/html2pdf.js/-/html2pdf.js-0.10.0.tgz"
-  integrity sha512-XisuzaIQRGHsdu+Xxnymffh/+M2cu4lzpFMsoMTCoq3flN0EcEVFeYhqIO2uq5FE19NoA7tWYE62lS3SeOdMqA==
-
 "@types/http-errors@*":
   version "2.0.5"
   resolved "https://registry.npmjs.org/@types/http-errors/-/http-errors-2.0.5.tgz"
@@ -3600,9 +3595,9 @@ date-format@^4.0.14:
   integrity sha512-39BOQLs9ZjKh0/patS9nrT8wc3ioX3/eA/zgbKNopnF2wCqJEoxywwwElATYvRsXdnOxA/OQeQoFZ3rFjVajhg==
 
 debug@^4.1.0, debug@^4.1.1, debug@^4.3.1, debug@^4.3.2, debug@^4.3.4, debug@^4.3.6, debug@4:
-  version "4.4.0"
-  resolved "https://registry.npmjs.org/debug/-/debug-4.4.0.tgz"
-  integrity sha512-6WTZ/IxCY/T6BALoZHaE4ctp9xm+Z5kY/pzYaCHRFeyVhojxlrm+46y68HA6hr0TcwEssoxNiDEUJQjfPZ/RYA==
+  version "4.4.1"
+  resolved "https://registry.npmjs.org/debug/-/debug-4.4.1.tgz"
+  integrity sha512-KcKCqiftBJcZr++7ykoDIEwSa3XWowTfNPo92BYxjXiyYEVrUQh2aLyhxBCwww+heortUFxEJYcRzosstTEBYQ==
   dependencies:
     ms "^2.1.3"
 
@@ -5742,13 +5737,6 @@ ngx-scrollbar@16.1.1:
   version "16.1.1"
   resolved "https://registry.npmjs.org/ngx-scrollbar/-/ngx-scrollbar-16.1.1.tgz"
   integrity sha512-gddeGYeWxDF56ZqVxDILxOoPNwf6cEaBBFP2StQkx52yw2TeUx7rz/Di1guZZ7yZ2hZqANFmDEHthS6TDyvV3Q==
-  dependencies:
-    tslib "^2.3.0"
-
-ngx-toastr@^19.0.0:
-  version "19.0.0"
-  resolved "https://registry.npmjs.org/ngx-toastr/-/ngx-toastr-19.0.0.tgz"
-  integrity sha512-6pTnktwwWD+kx342wuMOWB4+bkyX9221pAgGz3SHOJH0/MI9erLucS8PeeJDFwbUYyh75nQ6AzVtolgHxi52dQ==
   dependencies:
     tslib "^2.3.0"
 
