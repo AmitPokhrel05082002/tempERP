@@ -117,7 +117,6 @@ export class LeaveService {
 
     // Use apiUrl for leave applications endpoints
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     
     return this.http.get<any>(endpoint, { headers }).pipe(
       map((response: any) => {
@@ -149,7 +148,6 @@ export class LeaveService {
   
   // Get all leave requests (convenience method)
   getAllLeaveRequests(type: LeaveType = 'all'): Observable<LeaveRequest[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
     
     return this.http.get<LeaveRequest[]>(endpoint).pipe(
@@ -183,44 +181,8 @@ export class LeaveService {
   // Get all employees
   getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
-  getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
     
-    // Get the auth token from your auth service
-    const token = this.authService.getToken();
-    
-    // Set up headers with authorization
-    const headers = new HttpHeaders({
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    });
-    
-    return this.http.get<Employee[]>(endpoint, { headers }).pipe(
-      map((response: any) => {
-        // Transform the response to match the Employee interface
-        if (Array.isArray(response)) {
-          return response.map((emp: any) => ({
-            empId: emp.empId || emp.id || '',
-            empCode: emp.empCode || emp.employeeCode || '',
-            firstName: emp.firstName || emp.name?.split(' ')[0] || '',
-            middleName: emp.middleName || null,
-            lastName: emp.lastName || emp.name?.split(' ').slice(1).join(' ') || emp.name || '',
-            dateOfBirth: emp.dateOfBirth || null,
-            gender: emp.gender || '',
-            maritalStatus: emp.maritalStatus || null,
-            bloodGroup: emp.bloodGroup || null,
-            nationality: emp.nationality || '',
-            socialSecurityNumber: emp.socialSecurityNumber || null,
-            cidNumber: emp.cidNumber || emp.cid || null,
-            hireDate: emp.hireDate || null,
-            employmentStatus: emp.employmentStatus || emp.status || '',
-            organizationName: emp.organizationName || emp.organization?.name || emp.department || '',
-            branchName: emp.branchName || emp.branch?.name || emp.division || '',
-            departmentName: emp.departmentName || emp.department?.name || emp.section || ''
-          }));
-        }
-        return [];
-      }),
+    return this.http.get<Employee[]>(endpoint).pipe(
       catchError(this.handleError)
     );
   }
