@@ -51,7 +51,7 @@ export interface TrainingNomination {
   providedIn: 'root'
 })
 export class TrainingService {
-  private apiUrl = environment.trainingApiUrl;
+  private apiUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 
@@ -68,7 +68,7 @@ export class TrainingService {
    * @returns Observable of TrainingProgram array
    */
   getTrainingPrograms(): Observable<TrainingProgram[]> {
-    return this.http.get<TrainingProgram[]>(`${this.apiUrl}/training/programs`).pipe(
+    return this.http.get<TrainingProgram[]>(`${this.apiUrl}/api/training/programs`).pipe(
       catchError(error => {
         console.error('Error fetching training programs:', error);
         // Return empty array if there's an error

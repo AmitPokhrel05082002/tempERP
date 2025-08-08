@@ -75,7 +75,7 @@ export class EmpNominationsComponent implements OnInit {
   programs: TrainingProgram[] = [];
   filteredNominations: TrainingNominationWithProgram[] = [];
   currentNomination: TrainingNominationWithProgram | null = null;
-  private apiUrl = environment.trainingApiUrl;
+  private apiUrl = environment.apiUrl;
   
   // Search state
   searchQuery = '';
@@ -123,7 +123,7 @@ export class EmpNominationsComponent implements OnInit {
 
   loadPrograms(): void {
     this.isLoading = true;
-    const url = `${this.apiUrl}/training/programs`;
+    const url = `${this.apiUrl}/api/training/programs`;
     console.log('Fetching programs from:', url); // Debug log
     
     this.http.get<TrainingProgram[]>(url, {

@@ -37,7 +37,7 @@ export class EmpCategoriesComponent implements OnInit {
   categories: TrainingCategory[] = [];
   filteredCategories: TrainingCategory[] = [];
   currentCategory: TrainingCategory | null = null;
-  private apiUrl = environment.trainingApiUrl;
+  private apiUrl = environment.apiUrl;
   isLoading = false;
 
   // Search state
