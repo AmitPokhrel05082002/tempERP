@@ -1,0 +1,359 @@
+<div class="job-grade-container">
+  <!-- Header Section -->
+  <div class="training-container">
+    <div class="header">
+      <div class="title">
+        <h2>Training Management</h2>
+        <p>Manage and organize training programs for your organization.</p>
+      </div>
+      <div class="controls">
+        <button class="add-btn" (click)="openAddModal()">
+          <i class="ti ti-plus"></i>
+          <span>Training</span>
+        </button>
+        <button class="add-btn" (click)="openAddModal()">
+            <i class="bi bi-download me-2"></i>
+            <span>Export</span>
+          </button>
+      </div>
+    </div>
+
+  <!-- Search and Filter Row -->
+  <div class="search-filter-row">
+    <div class="d-flex justify-content-end w-100">
+      <div class="search-filter-content">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            placeholder="Search..."
+            [(ngModel)]="searchQuery"
+            (input)="applySearch()">
+        </div>
+
+        <div class="filter-container">
+          <button class="filter-icon">
+            <i class="bi bi-funnel"></i>
+            <span>Filters</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Training List -->
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th class="min-width-200">Training Name</th>
+          <th class="text-nowrap">Code</th>
+          <th class="text-nowrap">Start Date</th>
+          <th class="text-nowrap">End Date</th>
+          <th class="text-center">Status</th>
+          <th>Location</th>
+          <th>Held By</th>
+          <th class="text-center">Participants</th>
+          <th class="text-end pe-3">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let program of paginatedPrograms" class="table-row">
+          <td class="fw-medium text-truncate" style="max-width: 200px;" title="{{ program.programName }}">
+            {{ program.programName }}
+          </td>
+          <td class="text-nowrap">{{ program.programCode || 'N/A' }}</td>
+          <td class="text-nowrap">{{ program.startDate | date:'mediumDate' }}</td>
+          <td class="text-nowrap">{{ program.endDate | date:'mediumDate' }}</td>
+          <td class="text-center">
+            <span [class.badge]="program.status && program.status.toLowerCase() !== 'no nominations'" 
+                  [ngClass]="getStatusBadgeClass(program.status)">
+              {{ program.status || 'N/A' }}
+            </span>
+          </td>
+          <td class="text-truncate" style="max-width: 150px;" title="{{ program.venue }}">
+            {{ program.venue || 'N/A' }}
+          </td>
+          <td class="text-truncate" style="max-width: 150px;" title="{{ program.heldBy }}">
+            {{ program.heldBy || 'N/A' }}
+          </td>
+          <td class="text-center">{{ program.seatsBooked || 0 }}/{{ program.maxSeats || 0 }}</td>
+          <td class="text-end">
+            <div class="d-flex justify-content-end">
+              <button class="btn btn-sm btn-outline-primary me-2" (click)="openViewModal(program)" title="View">
+                <i class="bi bi-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary me-2" (click)="openEditModal(program)" title="Edit">
+                <i class="bi bi-pencil"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" (click)="confirmDelete(program.programId)" title="Delete">
+                <i class="bi bi-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredPrograms.length === 0">
+          <td colspan="9" class="text-center">
+            <div class="text-muted">
+              <i class="bi bi-inbox"></i>
+              <p class="mb-0">No training programs found</p>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="simple-pagination" *ngIf="filteredPrograms.length > 0">
+    <tr *ngIf="filteredPrograms.length === 0">
+      <td colspan="9" class="text-center">
+        <div class="text-muted">
+          <i class="bi bi-inbox"></i>
+          <p class="mb-0">No training programs found</p>
+        </div>
+      </td>
+    </tr>
+    <button 
+      (click)="onPageChange(currentPage - 1)" 
+      [disabled]="currentPage === 1">
+      <i class="bi bi-chevron-left"></i> Previous
+    </button>
+    
+    <div class="page-info">
+      Page {{ currentPage }} of {{ totalPages }}
+    </div>
+    
+    <button 
+      (click)="onPageChange(currentPage + 1)" 
+      [disabled]="currentPage === totalPages">
+      Next <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Add/Edit Training Modal -->
+<ng-template #trainingModal let-modal>
+  <form #trainingForm="ngForm" (ngSubmit)="onSubmit()" *ngIf="currentTraining">
+    <div class="modal-header bg-primary text-white">
+      <h5 class="modal-title fw-bold">{{ isEditMode ? 'Edit' : 'Add New' }} Training</h5>
+      <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="trainingName" class="form-label">Training Name *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="trainingName"
+            formControlName="trainingName"
+            [class.is-invalid]="form.get('trainingName')?.invalid && form.get('trainingName')?.touched">
+          <div 
+            *ngIf="form.get('trainingName')?.invalid && form.get('trainingName')?.touched" 
+            class="invalid-feedback">
+            Training name is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="trainingCode" class="form-label">Training Code *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="trainingCode"
+            formControlName="trainingCode"
+            [class.is-invalid]="form.get('trainingCode')?.invalid && form.get('trainingCode')?.touched">
+          <div 
+            *ngIf="form.get('trainingCode')?.invalid && form.get('trainingCode')?.touched" 
+            class="invalid-feedback">
+            Training code is required
+          </div>
+        </div>
+        
+        <div class="col-12">
+          <label for="description" class="form-label">Description</label>
+          <textarea 
+            class="form-control" 
+            id="description" 
+            rows="3"
+            formControlName="description"></textarea>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="startDate" class="form-label">Start Date *</label>
+          <input 
+            type="date" 
+            class="form-control" 
+            id="startDate"
+            formControlName="startDate"
+            [class.is-invalid]="form.get('startDate')?.invalid && form.get('startDate')?.touched">
+          <div 
+            *ngIf="form.get('startDate')?.invalid && form.get('startDate')?.touched" 
+            class="invalid-feedback">
+            Start date is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="endDate" class="form-label">End Date *</label>
+          <input 
+            type="date" 
+            class="form-control" 
+            id="endDate"
+            formControlName="endDate"
+            [class.is-invalid]="form.get('endDate')?.invalid && form.get('endDate')?.touched">
+          <div 
+            *ngIf="form.get('endDate')?.invalid && form.get('endDate')?.touched" 
+            class="invalid-feedback">
+            End date is required and must be after start date
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="status" class="form-label">Status *</label>
+          <select 
+            class="form-select" 
+            id="status"
+            formControlName="status">
+            <option *ngFor="let status of ['Planned', 'In Progress', 'Completed', 'Cancelled']" 
+                    [value]="status">
+              {{status}}
+            </option>
+          </select>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="trainerName" class="form-label">Trainer Name *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="trainerName"
+            formControlName="trainerName"
+            [class.is-invalid]="form.get('trainerName')?.invalid && form.get('trainerName')?.touched">
+          <div 
+            *ngIf="form.get('trainerName')?.invalid && form.get('trainerName')?.touched" 
+            class="invalid-feedback">
+            Trainer name is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="location" class="form-label">Location *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="location"
+            formControlName="location"
+            [class.is-invalid]="form.get('location')?.invalid && form.get('location')?.touched">
+          <div 
+            *ngIf="form.get('location')?.invalid && form.get('location')?.touched" 
+            class="invalid-feedback">
+            Location is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="maxParticipants" class="form-label">Max Participants *</label>
+          <input 
+            type="number" 
+            class="form-control" 
+            id="maxParticipants"
+            min="1"
+            formControlName="maxParticipants"
+            [class.is-invalid]="form.get('maxParticipants')?.invalid && form.get('maxParticipants')?.touched">
+          <div 
+            *ngIf="form.get('maxParticipants')?.invalid && form.get('maxParticipants')?.touched" 
+            class="invalid-feedback">
+            Please enter a valid number of participants
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+        {{ isEditMode ? 'Update' : 'Save' }}
+      </button>
+    </div>
+  </form>
+</ng-template>
+
+<!-- View Training Modal -->
+<ng-template #viewTrainingModal let-modal>
+  <div class="modal-header">
+    <h5 class="modal-title">Training Program Details</h5>
+    <button type="button" class="btn-close" (click)="modal.dismiss()"></button>
+  </div>
+  <div class="modal-body">
+    <div class="row">
+      <div class="col-md-12">
+        <h5>{{ currentTraining?.programName || 'N/A' }} <span *ngIf="currentTraining?.programCode">({{ currentTraining.programCode }})</span></h5>
+        <p class="text-muted" *ngIf="currentTraining?.programDescription">{{ currentTraining.programDescription }}</p>
+      </div>
+    </div>
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <h6>Details</h6>
+        <p class="mb-2">
+          <strong>Status:</strong>
+          <span class="badge ms-2" [ngClass]="getStatusBadgeClass(currentTraining?.status)">
+            {{currentTraining?.status || 'N/A'}}
+          </span>
+        </p>
+        <p class="mb-2"><strong>Trainer:</strong> {{currentTraining?.trainerName || 'N/A'}}</p>
+        <p class="mb-2"><strong>Location:</strong> {{currentTraining?.location || 'N/A'}}</p>
+        <p class="mb-2"><strong>Venue:</strong> {{currentTraining?.venue || 'N/A'}}</p>
+      </div>
+      
+      <div class="col-md-6">
+        <h6>Schedule</h6>
+        <p class="mb-2"><strong>Start Date:</strong> {{currentTraining?.startDate | date:'mediumDate'}}</p>
+        <p class="mb-2"><strong>End Date:</strong> {{currentTraining?.endDate | date:'mediumDate'}}</p>
+        <p class="mb-2"><strong>Max Seats:</strong> {{currentTraining?.maxSeats || 0}}</p>
+        <div class="mb-2">
+          <strong>Seats Booked: </strong>
+          {{currentTraining?.seatsBooked || 0}}/{{currentTraining?.maxSeats || 0}}
+          <div class="progress mt-1" style="height: 5px;">
+            <div class="progress-bar bg-success" 
+                 role="progressbar" 
+                 [style.width]="getProgressPercentage(currentTraining) + '%'"
+                 [attr.aria-valuenow]="currentTraining?.seatsBooked || 0" 
+                 [attr.aria-valuemin]="0" 
+                 [attr.aria-valuemax]="currentTraining?.maxSeats || 1">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="mt-4" *ngIf="currentTraining?.nominations?.length">
+      <h6>Nominations ({{currentTraining.nominations.length}})</h6>
+      <div class="table-responsive">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Status</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let nom of currentTraining.nominations">
+              <td>{{nom.employeeName || nom.employeeId || 'N/A'}}</td>
+              <td>
+                <span class="badge" [ngClass]="getStatusBadgeClass(nom.status)">
+                  {{nom.status || 'N/A'}}
+                </span>
+              </td>
+              <td>{{(nom.nominationDate || nom.createdDate) ? ((nom.nominationDate || nom.createdDate) | date:'mediumDate') : 'N/A'}}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.close()">Close</button>
+  </div>
+</ng-template>

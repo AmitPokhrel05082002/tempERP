@@ -74,19 +74,19 @@ export const routes: Routes = [
       },
       {
         path: 'balanceleave',
-        loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c)=>c.BalanceleaveComponent)
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c)=>c.BalanceleaveComponent)
       },
      
       {
         path: 'balanceleave/:id',
-        loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent),
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent),
       },
       {
         path: 'pay-roll',
         loadComponent: () => import('./demo/pay-roll/pay-roll.component').then((c) => c.PayRollComponent)
       },
       {
-        path: 'pay-slip',
+        path: 'pay-slip/:empId',
         loadComponent: () => import('./demo/pay-roll/pay-slip/pay-slip.component').then((c) => c.PaySlipComponent)
       },
       {
@@ -144,9 +144,9 @@ export const routes: Routes = [
           }
         ]
       },
+
       {
         path: 'job-management',
-        loadComponent: () => import('./demo/job-management/job-management.component').then((c) => c.JobManagementComponent),
         children: [
           { path: '', redirectTo: 'job-grade', pathMatch: 'full' },
           {
@@ -156,6 +156,10 @@ export const routes: Routes = [
           {
             path: 'job-position',
             loadComponent: () => import('./demo/job-position/job-position.component').then((c) => c.JobPositionComponent)
+          },
+          {
+            path: 'department',
+            loadComponent: () => import('./demo/department/department.component').then((c) => c.DepartmentComponent)
           }
         ]
       },
@@ -170,6 +174,26 @@ export const routes: Routes = [
         redirectTo: 'job-management/job-grade',
         pathMatch: 'full'
       },
+       {
+        path: 'emp-training',
+        loadComponent: () => import('./demo/Training Management/emp-training/emp-training.component').then((c) => c.EmpTrainingComponent)
+      },
+      {
+        path: 'emp-categories',
+        loadComponent: () => import('./demo/Training Management/emp-categories/emp-categories.component').then((c) => c.EmpCategoriesComponent)
+      },
+      {
+        path: 'emp-nominations',
+        loadComponent: () => import('./demo/Training Management/emp-nominations/emp-nominations.component').then((c) => c.EmpNominationsComponent)
+      },
+      {
+        path: 'emp-transfer',
+        loadComponent: () => import('./demo/emp-transfer/emp-transfer.component').then((c) => c.EmpTransferComponent)
+      },
+      {
+        path: 'emp-separation',
+        loadComponent: () => import('./demo/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)
+      }
 
     ]
   },
@@ -183,19 +207,26 @@ export const routes: Routes = [
       }
     ]
   },
+  {
+    path: '',
+    component: AdminComponent,
+    canActivate: [AuthGuard],
+    children: [
       {
         path: 'balanceleave',
-        loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c)=>c.BalanceleaveComponent)
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
       },
       {
         path: 'leave-form',
-        loadChildren: () => import('./demo/Leave/leave-form/leave-form.component').then((m) => m.LeaveFormComponent)
+        loadComponent: () => import('./demo/Leave/leave-form/leave-form.component').then((c) => c.LeaveFormComponent)
       },
       {
         path: 'balanceleave/:id',
-        loadComponent: () => import('./demo/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent),
-      },
-      
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
+      }
+    ]
+  },
+  
 ];
 
 @NgModule({
