@@ -10,6 +10,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AuthService } from 'src/app/core/services/auth.service';
 
 interface Employee {
   empId: string;
@@ -143,7 +144,8 @@ isSaving = false;
   private http: HttpClient,
   private datePipe: DatePipe,
   private sanitizer: DomSanitizer,
-  private fb: FormBuilder
+  private fb: FormBuilder,
+  private authService:AuthService
   ) {
     this.employeeForm = this.fb.group({
       firstName: ['', [Validators.required]],
@@ -171,12 +173,25 @@ isSaving = false;
       dzongkhag: ['']
     });
   }
-  ngOnInit(): void {
-  const empCode = this.route.snapshot.paramMap.get('empCode');
-  if (!empCode) {
-    this.handleMissingCodeError();
+ngOnInit(): void {
+  const currentUser = this.authService.currentUserValue;
+  
+  // Check if user is employee (should view own profile)
+  if (currentUser?.roleCode === 'ROLE_EMPLOYEE') {
+    this.loadEmployeeForSelf();
     return;
   }
+
+  // For admin users, get empCode from route
+  const empCode = this.route.snapshot.paramMap.get('empCode');
+  
+  if (empCode) {
+    this.loadEmployeeByCode(empCode);
+  } else {
+    this.errorMessage = 'Employee code not specified';
+    setTimeout(() => this.router.navigate(['/employees']), 3000);
+  }
+
 
   this.initializeForm();
   
@@ -186,9 +201,10 @@ isSaving = false;
       console.error('Error loading reference data:', error);
       this.isLoading = false;
       this.errorMessage = 'Failed to load required data';
-      this.employee = null; // Explicitly set to null on error
+      this.employee = null;
     });
 }
+
 private initializeForm(): void {
   this.employeeForm = this.fb.group({
     // Personal Information
@@ -254,6 +270,7 @@ private async loadPositions(): Promise<void> {
     this.filteredPositions = [];
   }
 }
+
   private async loadReferenceData(): Promise<void> {
   try {
     // Load all reference data in parallel for better performance
@@ -313,42 +330,56 @@ private async loadPositions(): Promise<void> {
     setTimeout(() => this.router.navigate(['/employees']), 3000);
   }
 
-// In your loadEmployeeByCode method, modify it like this:
 loadEmployeeByCode(empCode: string): void {
   this.isLoading = true;
   this.errorMessage = '';
 
-  this.http.get<any[]>(this.apiUrl).pipe(
-    map(response => {
-      if (!Array.isArray(response)) {
-        throw new Error('Invalid response format');
-      }
-      
-      const match = response.find(e => e.employee?.empCode === empCode);
-      if (!match) {
-        throw new Error(`Employee with code ${empCode} not found`);
-      }
-      return this.transformResponse(match);
-    }),
-    catchError(error => {
+  this.http.get<any>(`${this.apiUrl}/${empCode}`).subscribe({
+    next: (response) => {
       this.isLoading = false;
-      this.errorMessage = error.message || 'Failed to fetch employee details';
-      return throwError(() => error);
-    })
-  ).subscribe({
-    next: (employee) => {
-      this.employee = employee;
-      this.isLoading = false;
+      if (!response) {
+        this.errorMessage = 'Employee not found';
+        return;
+      }
+      // Call transformResponse here
+      this.employee = this.transformResponse(response);
     },
     error: (error) => {
+      this.isLoading = false;
       console.error('Error loading employee:', error);
       this.errorMessage = error.message || 'Failed to fetch employee details';
-      this.isLoading = false;
-      this.employee = null; // Explicitly set to null on error
+      this.employee = null;
     }
   });
 }
+loadEmployeeForSelf(): void {
+  const currentUser = this.authService.currentUserValue;
+  if (!currentUser?.empId) {
+    this.errorMessage = 'Unable to identify employee';
+    this.isLoading = false;
+    return;
+  }
 
+  this.isLoading = true;
+  this.errorMessage = '';
+
+  this.http.get<any>(`${this.apiUrl}/${currentUser.empId}`).subscribe({
+    next: (response) => {
+      this.isLoading = false;
+      if (!response) {
+        this.errorMessage = 'Employee data not found';
+        return;
+      }
+      this.employee = this.transformResponse(response);
+    },
+    error: (error) => {
+      this.isLoading = false;
+      console.error('Error loading employee data:', error);
+      this.errorMessage = 'Failed to load your profile information';
+      this.employee = null;
+    }
+  });
+}
   private transformResponse(response: any): Employee {
     if (!response) {
     return null;

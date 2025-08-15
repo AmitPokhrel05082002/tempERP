@@ -6,6 +6,9 @@ import { AuthGuard } from './core/guards/auth.guard';
 import { SalaryViewDetailsComponent } from './demo/dashboard/pay-revision/salary-view-details/salary-view-details.component';
 import { PayRollComponent } from './demo/pay-roll/pay-roll.component';
 import { PayRollDetailComponent } from './demo/pay-roll/pay-roll-details/pay-roll-detail.component';
+import { EmployeeDetailComponent } from './demo/emp-detail/emp-details/emp-det.component';
+import { EmployeeViewComponent } from './demo/emp-detail/emp-view/emp-view-detail.component';
+import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   
@@ -113,10 +116,10 @@ export const routes: Routes = [
         path: 'doc-view-file/:id',
         loadComponent: () => import('./demo/elements/doc-view-file/doc-view-file.component').then((m) => m.DocViewFileComponent)
       },
-      {
-        path: 'empl',
-        loadChildren: () => import('./demo/emp-detail/emp.module').then((m) => m.EmployeeModule)
-      },
+      // {
+      //   path: 'empl',
+      //   loadChildren: () => import('./demo/emp-detail/emp.module').then((m) => m.EmployeeModule)
+      // },
       {
         path: 'leave-allocation',
         loadComponent: () => import('./demo/Leave/leave-allocation/leave-allocation.component').then((c) => c.LeaveAllocationComponent)
@@ -206,10 +209,40 @@ export const routes: Routes = [
         path: 'emp-transfer',
         loadComponent: () => import('./demo/Transfer/emp-transfer/emp-transfer.component').then((c) => c.EmpTransferComponent)
       },
-      {
+         {
+        path: 'emp-type',
+        loadComponent: () => import('./demo/Transfer/emp-type/emp-type.component').then((c) => c.EmpTypeComponent)
+      },
+       {
         path: 'emp-separation',
-        loadComponent: () => import('./demo/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)
+          loadComponent: () => import('./demo/emp-separation/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)
+        },
+      {
+        path: 'separation-type',
+        loadComponent: () => import('./demo/emp-separation/separation-type/separation-type.component').then((c) => c.SeparationTypeComponent)
+      },
+      {
+    path: 'emp-det',
+    children: [
+      {
+        path: '', // /employees
+        component: EmployeeDetailComponent,
+        canActivate: [AdminGuard]
+      },
+      {
+        path: 'emp-det/view/:empCode', // /employees/view/123
+        component: EmployeeViewComponent,
+        canActivate: [AdminGuard]
       }
+    ]
+  },
+  
+  // Employee self-profile
+  {
+    path: 'view-emp-det',
+    component: EmployeeViewComponent,
+    canActivate: [AuthGuard]
+  }
 
     ]
   },
