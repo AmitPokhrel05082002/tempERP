@@ -8,7 +8,6 @@ import { PayRollComponent } from './demo/pay-roll/pay-roll.component';
 import { PayRollDetailComponent } from './demo/pay-roll/pay-roll-details/pay-roll-detail.component';
 import { EmployeeDetailComponent } from './demo/emp-detail/emp-details/emp-det.component';
 import { EmployeeViewComponent } from './demo/emp-detail/emp-view/emp-view-detail.component';
-import { AdminGuard } from './core/guards/admin.guard';
 
 export const routes: Routes = [
   
@@ -221,28 +220,14 @@ export const routes: Routes = [
         path: 'separation-type',
         loadComponent: () => import('./demo/emp-separation/separation-type/separation-type.component').then((c) => c.SeparationTypeComponent)
       },
-      {
-    path: 'emp-det',
-    children: [
-      {
-        path: '', // /employees
-        component: EmployeeDetailComponent,
-        canActivate: [AdminGuard]
+       {
+        path: 'emp-det',
+        loadComponent: () => import('./demo/emp-detail/emp-details/emp-det.component').then((c) => c.EmployeeDetailComponent)
       },
-      {
-        path: 'emp-det/view/:empCode', // /employees/view/123
-        component: EmployeeViewComponent,
-        canActivate: [AdminGuard]
-      }
-    ]
-  },
-  
-  // Employee self-profile
-  {
-    path: 'view-emp-det',
-    component: EmployeeViewComponent,
-    canActivate: [AuthGuard]
-  }
+         {
+        path: 'emp-det/view',
+        loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
+      },
 
     ]
   },

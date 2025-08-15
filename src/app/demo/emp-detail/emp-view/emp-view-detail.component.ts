@@ -173,25 +173,17 @@ isSaving = false;
       dzongkhag: ['']
     });
   }
-ngOnInit(): void {
-  const currentUser = this.authService.currentUserValue;
-  
-  // Check if user is employee (should view own profile)
-  if (currentUser?.roleCode === 'ROLE_EMPLOYEE') {
-    this.loadEmployeeForSelf();
+ ngOnInit(): void {
+  // Get empCode from route or current user
+  const empCodeFromRoute = this.route.snapshot.paramMap.get('empCode');
+  const userData: any = localStorage.getItem('currentUser');
+  const formattedData: any = JSON.parse(userData);
+  const empCode = empCodeFromRoute || formattedData.empId;
+
+  if (!empCode) {
+    this.handleMissingCodeError();
     return;
   }
-
-  // For admin users, get empCode from route
-  const empCode = this.route.snapshot.paramMap.get('empCode');
-  
-  if (empCode) {
-    this.loadEmployeeByCode(empCode);
-  } else {
-    this.errorMessage = 'Employee code not specified';
-    setTimeout(() => this.router.navigate(['/employees']), 3000);
-  }
-
 
   this.initializeForm();
   
@@ -352,34 +344,7 @@ loadEmployeeByCode(empCode: string): void {
     }
   });
 }
-loadEmployeeForSelf(): void {
-  const currentUser = this.authService.currentUserValue;
-  if (!currentUser?.empId) {
-    this.errorMessage = 'Unable to identify employee';
-    this.isLoading = false;
-    return;
-  }
 
-  this.isLoading = true;
-  this.errorMessage = '';
-
-  this.http.get<any>(`${this.apiUrl}/${currentUser.empId}`).subscribe({
-    next: (response) => {
-      this.isLoading = false;
-      if (!response) {
-        this.errorMessage = 'Employee data not found';
-        return;
-      }
-      this.employee = this.transformResponse(response);
-    },
-    error: (error) => {
-      this.isLoading = false;
-      console.error('Error loading employee data:', error);
-      this.errorMessage = 'Failed to load your profile information';
-      this.employee = null;
-    }
-  });
-}
   private transformResponse(response: any): Employee {
     if (!response) {
     return null;
