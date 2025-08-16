@@ -14,16 +14,13 @@
           <button class="clear-date" *ngIf="selectedDate" (click)="clearSelectedDate()">
             <i class="fas fa-times"></i>
           </button>
-          <input #dateInput 
-                type="date" 
-                [style.display]="showDatePicker ? 'block' : 'none'"
-                (change)="onDateChange($event)" 
-                (click)="$event.stopPropagation()" />
+          <input #dateInput type="date" [style.display]="showDatePicker ? 'block' : 'none'"
+            (change)="onDateChange($event)" (click)="$event.stopPropagation()" />
           <button class="request-leave-btn" (click)="openRequestModal()">
             <i class="fas fa-plus"></i> Request Leave
           </button>
         </div>
-        
+
         <!-- Request Leave Modal -->
         <div class="modal" *ngIf="showRequestModal" (click)="closeModal($event)">
           <div class="modal-content" (click)="$event.stopPropagation()">
@@ -44,17 +41,15 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Leave Form Modal -->
         <div class="modal" *ngIf="showLeaveForm" (click)="closeLeaveForm()">
           <div class="modal-content" (click)="$event.stopPropagation()">
-            <app-leave-form 
-              (close)="closeLeaveForm()"
-              (submitted)="onLeaveSubmitted($event)">
+            <app-leave-form (close)="closeLeaveForm()" (submitted)="onLeaveSubmitted($event)">
             </app-leave-form>
           </div>
         </div>
-        
+
         <!-- QR Code Modal -->
         <div class="modal" *ngIf="showQRCodeModal" (click)="closeQRCodeModal()">
           <div class="modal-content qr-modal" (click)="$event.stopPropagation()">
@@ -71,68 +66,69 @@
             </div>
           </div>
         </div>
-        
+
         <button class="export-button" (click)="exportToPDF()">
           <i class="bi bi-upload"></i> Export
         </button>
       </div>
     </div>
-    
-    <div class="header-divider"></div>
-    
-    <div class="controls">
-      <div class="department-tabs">
-        <button [class.active]="selectedDepartment === 'All'" (click)="selectDepartment('All')">
-          All Employees
-        </button>
-        <button [class.active]="selectedDepartment === 'SMD'" (click)="selectDepartment('SMD')">
-          SMD
-        </button>
-        <button [class.active]="selectedDepartment === 'Ecentric'" (click)="selectDepartment('Ecentric')">
-          Ecentric
-        </button>
-        <button [class.active]="selectedDepartment === 'TSSD'" (click)="selectDepartment('TSSD')">
-          TSSD
-        </button>
-        <button [class.active]="selectedDepartment === 'Marketing'" (click)="selectDepartment('Marketing')">
-          Marketing
-        </button>
-      </div>
-      <div class="search-container">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input type="text" placeholder="Search by name, code or department" [(ngModel)]="searchTerm" />
-        </div>
-        <button class="filter-btn" (click)="toggleFilter()">
-          <i class="bi bi-filter"></i> Filters
-        </button>
-      </div>
-    </div>
 
-    <div class="filter-panel" *ngIf="showFilter">
-      <label>
-        Name:
-        <input type="text" [(ngModel)]="filterName" placeholder="Filter by name" />
-      </label>
-      <label>
-        Date:
-        <input type="date" [(ngModel)]="filterDate" />
-      </label>
-      <label>
-        Department:
-        <select [(ngModel)]="filterDepartment">
-          <option value="">All Departments</option>
-          <option value="SMD">SMD</option>
-          <option value="Ecentric">Ecentric</option>
-          <option value="TSSD">TSSD</option>
-          <option value="Marketing">Marketing</option>
-        </select>
-      </label>
-      <button class="clear-btn" (click)="clearFilters()">
-        Clear Filters
-      </button>
-    </div>
+    <div class="header-divider"></div>
+
+ <div class="controls">
+  <!-- Department Tabs - Only show for Admin/HR -->
+  <div class="department-tabs" *ngIf="canSeeDepartmentControls()">
+    <button [class.active]="selectedDepartment === 'All'" (click)="selectDepartment('All')">
+      All Employees
+    </button>
+    <button [class.active]="selectedDepartment === 'SMD'" (click)="selectDepartment('SMD')">
+      SMD
+    </button>
+    <button [class.active]="selectedDepartment === 'Ecentric'" (click)="selectDepartment('Ecentric')">
+      Ecentric
+    </button>
+    <button [class.active]="selectedDepartment === 'TSSD'" (click)="selectDepartment('TSSD')">
+      TSSD
+    </button>
+    <button [class.active]="selectedDepartment === 'Marketing'" (click)="selectDepartment('Marketing')">
+      Marketing
+    </button>
   </div>
+
+    <div class="search-container" *ngIf="canSeeDepartmentControls()">
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search by name, code or department" [(ngModel)]="searchTerm" />
+    </div>
+    <button class="filter-btn" (click)="toggleFilter()">
+      <i class="bi bi-filter"></i> Filters
+    </button>
+  </div>
+</div>
+
+   <div class="filter-panel" *ngIf="showFilter && canSeeDepartmentControls()">
+  <label>
+    Name:
+    <input type="text" [(ngModel)]="filterName" placeholder="Filter by name" />
+  </label>
+  <label>
+    Date:
+    <input type="date" [(ngModel)]="filterDate" />
+  </label>
+  <label>
+    Department:
+    <select [(ngModel)]="filterDepartment">
+      <option value="">All Departments</option>
+      <option value="SMD">SMD</option>
+      <option value="Ecentric">Ecentric</option>
+      <option value="TSSD">TSSD</option>
+      <option value="Marketing">Marketing</option>
+    </select>
+  </label>
+  <button class="clear-btn" (click)="clearFilters()">
+    Clear Filters
+  </button>
+</div>
 
   <div class="leave-sections">
     <!-- Loading State -->
@@ -148,99 +144,145 @@
 
     <!-- Content -->
     <ng-container *ngIf="!isLoading && !errorMessage">
-    <div class="leave-section" *ngIf="!selectedDate">
-      <h3 class="section-title">Today's Leave Requests</h3>
-      <div class="leave-cards">
-        <!-- Added header row -->
-        <div class="leave-card header-row">
-          <div class="employee-code">Employee ID</div>
-          <div class="employee-details">Name</div>
-          <div class="leave-dates">Date Requested</div>
-          <div class="leave-duration">Days</div>
-          <div class="status-actions">Status</div>
-          <div class="view-btn">Action</div>
-        </div>
-        
-        <div class="leave-card" *ngFor="let leave of filteredTodaysLeaves">
-          <div class="employee-code">{{ leave.empCode }}</div>
-          <div class="employee-details">
-            <strong>{{ leave.name }}</strong>
-            <span>{{ leave.department }}</span>
+      <div class="leave-section" *ngIf="!selectedDate">
+        <h3 class="section-title">Today's Leave Requests</h3>
+        <div class="leave-cards">
+          <!-- Added header row -->
+          <div class="leave-card header-row">
+            <div class="employee-code">Employee ID</div>
+            <div class="employee-details">Name</div>
+            <div class="leave-dates">Date Requested</div>
+            <div class="leave-duration">Days</div>
+            <div class="status-actions">Status</div>
+            <div class="leave-reason">Reason</div>
+            <div class="view-btn">Action</div>
           </div>
-          <div class="leave-dates">{{ leave.date }}</div>
-          <div class="leave-duration">{{ leave.duration }}</div>
-          <div class="status-actions" *ngIf="leave.status?.toLowerCase() === 'pending'; else statusDisplay">
-            <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')" title="Approve Leave">
-              <i class="fas fa-check"></i> Approve
-            </button>
-            <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')" title="Reject Leave">
-              <i class="fas fa-times"></i> Reject
-            </button>
-          </div>
-          <ng-template #statusDisplay>
-            <div class="leave-status">
-              <span [class]="'status-label ' + leave.status.toLowerCase()">
-                {{ leave.status }}
-              </span>
-            </div>
-          </ng-template>
-          <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
-            <i class="fas fa-eye"></i> View
-          </button>
-        </div>
-        <div class="no-leaves" *ngIf="filteredTodaysLeaves.length === 0">
-          {{ searchTerm || filterName || filterDepartment ? 'No matching leave requests for today' : 'No leave requests for today' }}
-        </div>
-      </div>
-    </div>
 
-    <div class="leave-section" [class.highlight-section]="selectedDate">
-      <h3 class="section-title">
-        {{ selectedDate ? ('Leave Requests for ' + formatDisplayDate(selectedDate)) : 'All Leave Requests' }}
-      </h3>
-      <div class="leave-cards">
-        <!-- Added header row -->
-        <div class="leave-card header-row">
-          <div class="employee-code">Employee ID</div>
-          <div class="employee-details">Name</div>
-          <div class="leave-dates">Date Requested</div>
-          <div class="leave-duration">Days</div>
-          <div class="status-actions">Status</div>
-          <div class="view-btn">Action</div>
-        </div>
-        
-        <div class="leave-card" *ngFor="let leave of filteredLeaves">
-          <div class="employee-code">{{ leave.empCode }} </div>
-          <div class="employee-details">
-            <strong>{{ leave.name }}</strong>
-            <span>{{ leave.department }}</span>
-          </div>
-          <div class="leave-dates">{{ leave.date }}</div>
-          <div class="leave-duration">{{ leave.duration }}</div>
-          <div class="status-actions" *ngIf="leave.status?.toLowerCase() === 'pending'; else statusDisplay">
-            <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')" title="Approve Leave">
-              <i class="fas fa-check"></i> Approve
-            </button>
-            <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')" title="Reject Leave">
-              <i class="fas fa-times"></i> Reject
-            </button>
-          </div>
-          <ng-template #statusDisplay>
-            <div class="leave-status">
-              <span [class]="'status-label ' + leave.status.toLowerCase()">
-                {{ leave.status }}
-              </span>
+          <div class="leave-card" *ngFor="let leave of filteredTodaysLeaves">
+            <div class="employee-code">{{ leave.empCode }}</div>
+            <div class="employee-details">
+              <strong>{{ leave.name }}</strong>
+              <span>{{ leave.department }}</span>
             </div>
-          </ng-template>
-          <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
-            <i class="fas fa-eye"></i> View
-          </button>
-        </div>
-        <div class="no-leaves" *ngIf="filteredLeaves.length === 0">
-          {{ searchTerm || filterName || filterDepartment || selectedDate ? 'No leave requests match your criteria' : 'No leave requests found' }}
+            <div class="leave-dates">{{ leave.date }}</div>
+            <div class="leave-duration">{{ leave.duration }}</div>
+
+            <!-- Role-based Status Display -->
+            <div class="status-actions">
+              <!-- For Admin and CTO: Show approve/reject buttons if pending, otherwise show status -->
+              <ng-container *ngIf="canManageLeaves()">
+                <ng-container *ngIf="leave.status?.toLowerCase() === 'pending'; else adminStatusDisplay">
+                  <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')"
+                    title="Approve Leave">
+                    <i class="fas fa-check"></i> Approve
+                  </button>
+                  <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')"
+                    title="Reject Leave">
+                    <i class="fas fa-times"></i> Reject
+                  </button>
+                </ng-container>
+                <ng-template #adminStatusDisplay>
+                  <div class="leave-status">
+                    <span [class]="'status-label ' + leave.status.toLowerCase()">
+                      {{ leave.status }}
+                    </span>
+                  </div>
+                </ng-template>
+              </ng-container>
+
+              <!-- For Employee: Always show just the status -->
+              <ng-container *ngIf="!canManageLeaves()">
+                <div class="leave-status">
+                  <span [class]="'status-label ' + leave.status.toLowerCase()">
+                    {{ leave.status }}
+                  </span>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="leave-reason" title="{{ leave.reason }}">{{ leave.reason | slice:0:20 }}{{ leave.reason?.length
+              > 20 ? '...' : '' }}</div>
+            <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
+              <i class="fas fa-eye"></i> View
+            </button>
+          </div>
+          <div class="no-leaves" *ngIf="filteredTodaysLeaves.length === 0">
+            {{ searchTerm || filterName || filterDepartment ? 'No matching leave requests for today' : 'No leave
+            requests for today' }}
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="leave-section" [class.highlight-section]="selectedDate">
+        <h3 class="section-title">
+          {{ selectedDate ? ('Leave Requests for ' + formatDisplayDate(selectedDate)) : 'All Leave Requests' }}
+        </h3>
+        <div class="leave-cards">
+          <!-- Added header row -->
+          <div class="leave-card header-row">
+            <div class="employee-code">Employee ID</div>
+            <div class="employee-details">Name</div>
+            <div class="leave-dates">Date Requested</div>
+            <div class="leave-duration">Days</div>
+            <div class="status-actions">Status</div>
+            <div class="leave-reason">Reason</div>
+            <div class="view-btn">Action</div>
+          </div>
+
+          <div class="leave-card" *ngFor="let leave of filteredLeaves">
+            <div class="employee-code">{{ leave.empCode }} </div>
+            <div class="employee-details">
+              <strong>{{ leave.name }}</strong>
+              <span>{{ leave.department }}</span>
+            </div>
+            <div class="leave-dates">{{ leave.date }}</div>
+            <div class="leave-duration">{{ leave.duration }}</div>
+
+            <!-- Role-based Status Display -->
+            <div class="status-actions">
+              <!-- For Admin and CTO: Show approve/reject buttons if pending, otherwise show status -->
+              <ng-container *ngIf="canManageLeaves()">
+                <ng-container *ngIf="leave.status?.toLowerCase() === 'pending'; else adminStatusDisplay">
+                  <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')"
+                    title="Approve Leave">
+                    <i class="fas fa-check"></i> Approve
+                  </button>
+                  <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')"
+                    title="Reject Leave">
+                    <i class="fas fa-times"></i> Reject
+                  </button>
+                </ng-container>
+                <ng-template #adminStatusDisplay>
+                  <div class="leave-status">
+                    <span [class]="'status-label ' + leave.status.toLowerCase()">
+                      {{ leave.status }}
+                    </span>
+                  </div>
+                </ng-template>
+              </ng-container>
+
+              <!-- For Employee: Always show just the status -->
+              <ng-container *ngIf="!canManageLeaves()">
+                <div class="leave-status">
+                  <span [class]="'status-label ' + leave.status.toLowerCase()">
+                    {{ leave.status }}
+                  </span>
+                </div>
+              </ng-container>
+            </div>
+
+            <div class="leave-reason" title="{{ leave.reason }}">{{ leave.reason | slice:0:20 }}{{ leave.reason?.length
+              > 20 ? '...' : '' }}</div>
+            <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
+              <i class="fas fa-eye"></i> View
+            </button>
+          </div>
+          <div class="no-leaves" *ngIf="filteredLeaves.length === 0">
+            {{ searchTerm || filterName || filterDepartment || selectedDate ? 'No leave requests match your criteria' :
+            'No leave requests found' }}
+          </div>
+        </div>
+      </div>
     </ng-container>
   </div>
 </div>

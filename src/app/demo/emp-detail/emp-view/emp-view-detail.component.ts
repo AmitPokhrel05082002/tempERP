@@ -186,7 +186,7 @@ isSaving = false;
   }
 
   this.initializeForm();
-  
+
   this.loadReferenceData()
     .then(() => this.loadEmployeeByCode(empCode))
     .catch(error => {
@@ -225,7 +225,7 @@ private initializeForm(): void {
     // Contact Information
     email: ['', [Validators.required, Validators.email]],
     phonePrimary: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
-    
+
     // Bank Details
     bankName: [''],
     branchName: [''],
@@ -267,10 +267,10 @@ private async loadPositions(): Promise<void> {
   try {
     // Load all reference data in parallel for better performance
     const [
-      deptsResponse, 
-      positionsResponse, 
-      branchesResponse, 
-      orgsResponse, 
+      deptsResponse,
+      positionsResponse,
+      branchesResponse,
+      orgsResponse,
       gradesResponse
     ] = await Promise.all([
       this.http.get<{ data: Department[] }>(this.deptApiUrl).toPromise(),
@@ -287,7 +287,7 @@ private async loadPositions(): Promise<void> {
     this.branches = branchesResponse || [];
     this.organizations = orgsResponse || [];
     this.grades = gradesResponse || [];
-    
+
     // Set default organization if available
     if (this.organizations.length > 0) {
       this.selectedOrgId = this.organizations[0].orgId;
@@ -303,7 +303,7 @@ private async loadPositions(): Promise<void> {
     });
   } catch (error) {
     console.error('Error loading reference data:', error);
-    
+
     // Initialize empty arrays to prevent runtime errors
     this.departments = [];
     this.positions = [];
@@ -311,7 +311,7 @@ private async loadPositions(): Promise<void> {
     this.branches = [];
     this.organizations = [];
     this.grades = [];
-    
+
     throw error;
   }
 }
@@ -359,12 +359,12 @@ loadEmployeeByCode(empCode: string): void {
     const primaryBank = Array.isArray(response.bankDetails)
       ? response.bankDetails[0] || {}
       : {};
-   
-  const primaryQualification = response.qualifications?.length > 0 
-    ? response.qualifications[0] 
+
+  const primaryQualification = response.qualifications?.length > 0
+    ? response.qualifications[0]
     : { institutionName: '', degreeName: '', specialization: '', yearOfCompletion: 0 };
-    const additionalEducations = response.qualifications?.length > 1 
-    ? response.qualifications.slice(1) 
+    const additionalEducations = response.qualifications?.length > 1
+    ? response.qualifications.slice(1)
     : [];
 
     let departmentName = '';
@@ -480,7 +480,7 @@ addNewEducation(): void {
 editEducation(education: any): void {
   this.showEditModal = true;
   this.selectModalTab('education');
-  
+
   // Find if this is the main qualification or additional education
   if (education === this.employee?.qualification) {
     // Update main form fields
@@ -492,11 +492,11 @@ editEducation(education: any): void {
     });
   } else {
     // Find in additional educations and edit
-    const index = this.educations.controls.findIndex(ctrl => 
+    const index = this.educations.controls.findIndex(ctrl =>
       ctrl.value.institutionName === education.institutionName &&
       ctrl.value.degreeName === education.degreeName
     );
-    
+
     if (index >= 0) {
       // If found in form array, update it
       this.educations.at(index).patchValue(education);
@@ -542,10 +542,10 @@ isModalTabActive(tab: string): boolean {
 
 openEditModal(): void {
   if (!this.employee) return;
-  
+
   // Initialize the form first
   this.initializeForm();
-  
+
   // Load necessary reference data
   Promise.all([
     this.loadGrades(),
@@ -632,7 +632,7 @@ private loadDepartments(branchId: string): Promise<void> {
 onBranchChangeInForm(): void {
   const selectedBranchName = this.employeeForm.get('location')?.value;
   const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
-  
+
   if (selectedBranch) {
     this.loadDepartments(selectedBranch.branchId).then(() => {
       this.employeeForm.get('department')?.setValue('');
@@ -643,13 +643,13 @@ onBranchChangeInForm(): void {
 onDepartmentChange(): void {
   const departmentControl = this.employeeForm.get('department');
   const positionControl = this.employeeForm.get('position');
-  
+
   if (!departmentControl || !positionControl) {
     return;
   }
 
   const selectedDepartmentId = departmentControl.value;
-  
+
   if (!selectedDepartmentId) {
     // If no department selected, show all positions
     this.filteredPositions = [...this.positions];
@@ -660,7 +660,7 @@ onDepartmentChange(): void {
 
   // Filter positions based on selected department
   // Note: Adjust this logic if your positions have a different relationship structure
-  this.filteredPositions = this.positions.filter(position => 
+  this.filteredPositions = this.positions.filter(position =>
     position.deptId === selectedDepartmentId || // if positions have departmentId
     !position.deptId // include positions without department assignment
   );
@@ -678,7 +678,7 @@ onDepartmentChange(): void {
 onGradeChange(event: Event): void {
   const gradeId = (event.target as HTMLSelectElement).value;
   const selectedGrade = this.grades.find(g => g.gradeId === gradeId);
-  
+
   if (selectedGrade) {
     this.employeeForm.patchValue({
       basicSalary: selectedGrade.minSalary,
@@ -719,13 +719,13 @@ private setFormValues(employee: Employee | null): void {
     country: 'Bhutan',
     isCurrent: false
   };
-this.filteredPositions = this.positions.filter(p => 
+this.filteredPositions = this.positions.filter(p =>
     p.deptId === employee.deptId || // if positions have departmentId
     true // if positions are not department-specific
   );
   // Find the branch name from branchId
-  const branchName = employee.branchId 
-    ? this.branches.find(b => b.branchId === employee.branchId)?.branchName 
+  const branchName = employee.branchId
+    ? this.branches.find(b => b.branchId === employee.branchId)?.branchName
     : '';
 
   // Find the department from deptId
@@ -798,7 +798,7 @@ this.filteredPositions = this.positions.filter(p =>
   if (departmentId) {
     this.employeeForm.get('position')?.enable();
   }
-  
+
 }
 
 private formatDateForInput(dateString: string): string {

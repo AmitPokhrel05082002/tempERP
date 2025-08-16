@@ -32,7 +32,7 @@ export class JobPositionComponent implements OnInit {
   isOrgLoading = true;
   isEditing = false;
   isFilterOpen = false;
-  
+
   // Filter options
   filterOptions = {
     grades: new Set<string>(),
@@ -40,27 +40,27 @@ export class JobPositionComponent implements OnInit {
     selectedGrades: new Set<string>(),
     selectedPositionNames: new Set<string>()
   };
-  
+
   // Show all toggle states for filter dropdowns
   showAllPositionNames = false;
   showAllGrades = false;
-  
+
   // Track expanded/collapsed state of filter sections
   filterSections = {
     positionNames: true,
     grades: true
   };
-  
+
   // Error handling
   errorMessage: string | null = null;
-  
+
   // Search term
   searchTerm = '';
-  
+
   // Pagination
   currentPage = 1;
   itemsPerPage = 10;
-  
+
   currentPositionId: string | null = null;
   modalRef: any;
   positionForm: FormGroup;
@@ -93,7 +93,7 @@ export class JobPositionComponent implements OnInit {
       next: (orgs) => {
 
         this.organizations = Array.isArray(orgs) ? orgs : [];
-        
+
         if (this.organizations.length > 0) {
           // Make sure we're using the raw orgId without any prefixes
           this.orgId = this.organizations[0].orgId;
@@ -102,7 +102,7 @@ export class JobPositionComponent implements OnInit {
           // Load grades for the first organization
           this.loadGrades();
         }
-        
+
 
       },
       error: (error) => {
@@ -122,24 +122,24 @@ export class JobPositionComponent implements OnInit {
     const selectedOption = selectElement.options[selectElement.selectedIndex];
     // Get the raw value (which might include the display text)
     const rawValue = selectedOption.value;
-    
+
     // Extract just the UUID part (handle the case where it's in format "1: uuid")
-    const newOrgId = rawValue.includes(':') 
-      ? rawValue.split(':')[1].trim() 
+    const newOrgId = rawValue.includes(':')
+      ? rawValue.split(':')[1].trim()
       : rawValue;
-    
+
     // Only proceed if the organization actually changed
     if (newOrgId === this.orgId) {
       return;
     }
-    
+
     this.orgId = newOrgId;
-    
+
     // Reset the grade selection when organization changes
-    this.positionForm.patchValue({ 
+    this.positionForm.patchValue({
       gradeId: ''
     });
-    
+
     if (this.orgId && this.orgId !== 'null') {
       this.loadGrades();
     } else {
@@ -154,7 +154,7 @@ export class JobPositionComponent implements OnInit {
       this.grades = [];
       return;
     }
-    
+
 
     this.jobPositionService.getGrades(this.orgId).subscribe({
       next: (grades: any) => {
@@ -195,13 +195,13 @@ export class JobPositionComponent implements OnInit {
 
   toggleFilterOption(type: 'grades' | 'positionNames', value: string): void {
     const selectedSet = this.filterOptions[`selected${type.charAt(0).toUpperCase() + type.slice(1)}` as keyof typeof this.filterOptions] as Set<string>;
-    
+
     if (selectedSet.has(value)) {
       selectedSet.delete(value);
     } else {
       selectedSet.add(value);
     }
-    
+
     this.applyFilters();
   }
 
@@ -222,7 +222,7 @@ export class JobPositionComponent implements OnInit {
   }
 
   isFilterActive(): boolean {
-    return this.filterOptions.selectedGrades.size > 0 || 
+    return this.filterOptions.selectedGrades.size > 0 ||
            this.filterOptions.selectedPositionNames.size > 0;
   }
 
@@ -234,19 +234,19 @@ export class JobPositionComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredPositions = this.positions.filter(position => {
-      const matchesGrade = this.filterOptions.selectedGrades.size === 0 || 
+      const matchesGrade = this.filterOptions.selectedGrades.size === 0 ||
                          (position.gradeName && this.filterOptions.selectedGrades.has(position.gradeName));
-      
+
       const matchesPosition = this.filterOptions.selectedPositionNames.size === 0 ||
                             (position.positionName && this.filterOptions.selectedPositionNames.has(position.positionName));
-      
-      const matchesSearch = !this.searchTerm || 
+
+      const matchesSearch = !this.searchTerm ||
                           (position.positionName && position.positionName.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
                           (position.positionCode && position.positionCode.toLowerCase().includes(this.searchTerm.toLowerCase()));
-      
+
       return matchesGrade && matchesPosition && matchesSearch;
     });
-    
+
     this.currentPage = 1; // Reset to first page when filters change
   }
 
@@ -268,7 +268,7 @@ export class JobPositionComponent implements OnInit {
   getPages(): number[] {
     const pages: number[] = [];
     const maxPages = 5; // Show max 5 page numbers in the pagination
-    
+
     if (this.totalPages <= maxPages) {
       // If total pages are less than max pages, show all
       for (let i = 1; i <= this.totalPages; i++) {
@@ -277,41 +277,41 @@ export class JobPositionComponent implements OnInit {
     } else {
       // Always include first page
       pages.push(1);
-      
+
       // Calculate start and end of the middle section
       let start = Math.max(2, this.currentPage - 1);
       let end = Math.min(this.totalPages - 1, this.currentPage + 1);
-      
+
       // Adjust if we're near the start or end
       if (this.currentPage <= 3) {
         end = 3;
       } else if (this.currentPage >= this.totalPages - 2) {
         start = this.totalPages - 2;
       }
-      
+
       // Add ellipsis if needed after first page
       if (start > 2) {
         pages.push(-1); // -1 represents ellipsis
       }
-      
+
       // Add middle pages
       for (let i = start; i <= end; i++) {
         if (i > 1 && i < this.totalPages) {
           pages.push(i);
         }
       }
-      
+
       // Add ellipsis if needed before last page
       if (end < this.totalPages - 1) {
         pages.push(-1); // -1 represents ellipsis
       }
-      
+
       // Always include last page
       if (this.totalPages > 1) {
         pages.push(this.totalPages);
       }
     }
-    
+
     return pages;
   }
 
@@ -329,7 +329,7 @@ export class JobPositionComponent implements OnInit {
             this.positions = [];
 
           }
-          
+
           // Apply any active filters to the new data
           this.applyFilters();
         },
@@ -411,7 +411,7 @@ export class JobPositionComponent implements OnInit {
         if (this.modalRef) {
           this.modalRef.close();
         }
-        
+
         // Show success message
         Swal.fire({
           icon: 'success',

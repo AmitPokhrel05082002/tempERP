@@ -70,7 +70,7 @@ export class JobGradeComponent implements OnInit {
   form: FormGroup;
 
   constructor(
-    private fb: FormBuilder, 
+    private fb: FormBuilder,
     private jobGradeService: JobGradeService,
     private jobPositionService: JobPositionService,
     private salaryComponentService: SalaryComponentService,
@@ -103,7 +103,7 @@ toggleFilter(): void {
 }
 
 isFilterActive(): boolean {
-  return this.filterOptions.selectedGrades.size > 0 || 
+  return this.filterOptions.selectedGrades.size > 0 ||
          this.filterOptions.selectedPositionNames.size > 0;
 }
 
@@ -128,9 +128,9 @@ isSelected(set: Set<string>, value: string): boolean {
 }
 
 toggleFilterOption(type: 'positionNames' | 'grades', value: string): void {
-  const selectedSet = type === 'positionNames' ? 
+  const selectedSet = type === 'positionNames' ?
     this.filterOptions.selectedPositionNames : this.filterOptions.selectedGrades;
-  
+
   if (selectedSet.has(value)) {
     selectedSet.delete(value);
   } else {
@@ -176,12 +176,12 @@ clearFilters(): void {
 
   onOrganizationSelect(orgId: string): void {
     if (!orgId) return;
-    
+
     this.jobGradeService.getGradesByOrganization(orgId).subscribe({
       next: (grades) => {
         this.grades = grades;
         this.filteredGrades = [...grades];
-        
+
         // Clear the grade name and code when organization changes
         this.form.patchValue({
           gradeName: '',
@@ -236,8 +236,8 @@ clearFilters(): void {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(grade => 
-        (grade.gradeName?.toLowerCase().includes(searchTerm) || 
+      filtered = filtered.filter(grade =>
+        (grade.gradeName?.toLowerCase().includes(searchTerm) ||
          grade.gradeCode?.toLowerCase().includes(searchTerm) ||
          grade.organizationName?.toLowerCase().includes(searchTerm))
       );
@@ -245,14 +245,14 @@ clearFilters(): void {
 
     // Apply position name filters (mapped to gradeName)
     if (this.filterOptions.selectedPositionNames.size > 0) {
-      filtered = filtered.filter(grade => 
+      filtered = filtered.filter(grade =>
         grade.gradeName && this.filterOptions.selectedPositionNames.has(grade.gradeName)
       );
     }
 
     // Apply grade filters (mapped to gradeCode)
     if (this.filterOptions.selectedGrades.size > 0) {
-      filtered = filtered.filter(grade => 
+      filtered = filtered.filter(grade =>
         grade.gradeCode && this.filterOptions.selectedGrades.has(grade.gradeCode)
       );
     }
@@ -307,13 +307,13 @@ clearFilters(): void {
     while (this.salaryComponentsArray.length) {
       this.salaryComponentsArray.removeAt(0);
     }
-    
+
     this.showModal = true;
 
     if (grade) {
       this.isEditMode = true;
       this.currentGrade = grade;
-      
+
       // Set initial form values
       this.form.patchValue({
         orgId: grade.orgId,
@@ -323,7 +323,7 @@ clearFilters(): void {
         maxSalary: grade.maxSalary,
         salaryRangeValid: grade.salaryRangeValid || true
       });
-      
+
       // Load salary structure for the grade
       this.loadSalaryStructure(grade.gradeId);
     } else {
@@ -344,10 +344,10 @@ clearFilters(): void {
 
     // Get form values
     const gradeName = this.form.get('gradeName')?.value;
-    
+
     // Prepare the request body according to the new API endpoint
     const selectedOrg = this.organizations.find(org => org.orgId === this.form.get('orgId')?.value);
-    
+
     // Get the selected salary components with their values
     const salaryComponents = this.salaryComponentsArray.value.map((comp: any) => ({
       componentId: comp.componentId,
@@ -372,21 +372,21 @@ clearFilters(): void {
       structureName: gradeName,
       salaryComponents: salaryComponents
     };
-    
+
 
 
     const handleSuccess = (response: any) => {
       try {
         const savedGrade = response?.data || response;
-        
+
         if (!savedGrade) {
 
           this.errorMessage = 'Failed to save grade: No data received';
           return;
         }
-        
+
         const updatedGrades = [...this.grades];
-        
+
         if (this.isEditMode && this.currentGrade) {
           const index = updatedGrades.findIndex(g => g.gradeId === savedGrade.gradeId);
           if (index !== -1) {
@@ -394,7 +394,7 @@ clearFilters(): void {
           } else {
             updatedGrades.unshift(savedGrade);
           }
-          
+
           // Show success message for update
           Swal.fire({
             title: 'Success!',
@@ -409,7 +409,7 @@ clearFilters(): void {
         } else {
           updatedGrades.unshift(savedGrade);
           this.currentPage = 1;
-          
+
           // Show success message for create
           Swal.fire({
             title: 'Success!',
@@ -419,21 +419,21 @@ clearFilters(): void {
             confirmButtonText: 'OK'
           });
         }
-        
+
         this.grades = updatedGrades;
         this.filteredGrades = [...updatedGrades];
         this.errorMessage = '';
         this.closeModal();
         this.cdr.detectChanges();
-        
+
         setTimeout(() => {
           this.grades = [...updatedGrades];
           this.filteredGrades = [...updatedGrades];
           this.cdr.markForCheck();
         }, 100);
-        
+
       } catch (error) {
-  
+
         this.errorMessage = 'Failed to update grade list. Please refresh the page.';
         this.cdr.detectChanges();
       }
@@ -441,17 +441,17 @@ clearFilters(): void {
 
     const handleError = (error: any) => {
 
-      
+
       if (error.status === 400) {
         // Log the full error response for debugging
 
-        
+
         // Handle validation errors
         if (error.error) {
           // Try to extract error message from the error object
           let errorMessage = 'Validation error: ';
           const errorObj = typeof error.error === 'string' ? JSON.parse(error.error) : error.error;
-          
+
           // Check for different possible error formats
           if (errorObj.message) {
             errorMessage += errorObj.message;
@@ -462,7 +462,7 @@ clearFilters(): void {
           } else {
             errorMessage = 'Invalid data provided. Please check your inputs.';
           }
-          
+
           // If there are field-specific errors, add them to the message
           if (errorObj.errors) {
             const errorMessages = Object.entries(errorObj.errors)
@@ -474,7 +474,7 @@ clearFilters(): void {
               });
             errorMessage += '\n' + errorMessages.join('\n');
           }
-          
+
           this.errorMessage = errorMessage;
         } else {
           this.errorMessage = 'Invalid request. Please check your inputs and try again.';
@@ -488,13 +488,13 @@ clearFilters(): void {
       } else {
         this.errorMessage = error.message || 'An unexpected error occurred. Please try again.';
       }
-      
+
       // Ensure the error message is visible
       this.cdr.detectChanges();
     };
 
 
-    
+
     if (this.isEditMode && this.currentGrade?.gradeId) {
 
       this.jobGradeService.updateGrade(this.currentGrade.gradeId, requestBody).subscribe({
@@ -530,10 +530,10 @@ clearFilters(): void {
             if (this.filteredGrades) {
               this.filteredGrades = this.filteredGrades.filter((grade: Grade) => grade.gradeId !== gradeId);
             }
-            
+
             this.errorMessage = '';
             this.cdr.detectChanges();
-            
+
             // Show success message
             Swal.fire(
               'Deleted!',
@@ -545,7 +545,7 @@ clearFilters(): void {
 
             this.errorMessage = error.message || 'Failed to delete grade';
             this.cdr.detectChanges();
-            
+
             // Show error message
             Swal.fire(
               'Error!',
@@ -565,7 +565,7 @@ clearFilters(): void {
     this.currentGrade = null;
     this.viewGradeData = null;
     this.errorMessage = '';
-    
+
     if (this.form) {
       // Reset the salary components array
       while (this.salaryComponentsArray.length) {
@@ -601,13 +601,13 @@ clearFilters(): void {
 
   addSalaryComponent(): void {
     if (!this.selectedComponentId) return;
-    
+
     const selectedComponent = this.availableSalaryComponents.find(
       comp => comp.id === this.selectedComponentId
     );
-    
+
     if (!selectedComponent) return;
-    
+
     const componentGroup = this.fb.group({
       componentId: [this.selectedComponentId, Validators.required],
       componentName: [selectedComponent.name, Validators.required],
@@ -617,11 +617,11 @@ clearFilters(): void {
       revisionCycle: [''],
       componentType: [selectedComponent.type || '']
     });
-    
+
     this.salaryComponentsArray.push(componentGroup);
     this.selectedComponentId = '';
     this.showSalaryComponentForm = false;
-    
+
     this.cdr.detectChanges();
   }
 
@@ -634,14 +634,14 @@ clearFilters(): void {
    */
   private loadSalaryStructure(gradeId: string): void {
     if (!gradeId) return;
-    
+
     this.jobGradeService.getSalaryStructure(gradeId).subscribe({
       next: (gradeData: any) => {
         if (!gradeData) return;
-        
+
         // Extract salary components from different possible locations in the response
         let salaryComponents = [];
-        
+
         // Check for components in salaryStructures array
         if (Array.isArray(gradeData.salaryStructures) && gradeData.salaryStructures.length > 0) {
           // Map the salaryStructures to the expected component format
@@ -653,7 +653,7 @@ clearFilters(): void {
             performanceLinked: structure.performanceLinked,
             revisionCycle: structure.revisionCycle
           }));
-        } 
+        }
         // Fallback to other possible locations if needed
         else if (Array.isArray(gradeData.salaryComponents)) {
           salaryComponents = gradeData.salaryComponents;
@@ -664,17 +664,17 @@ clearFilters(): void {
         } else if (gradeData.data?.components) {
           salaryComponents = gradeData.data.components;
         }
-        
+
         // Ensure the salary components array is initialized
         if (!this.salaryComponentsArray) {
           this.form.setControl('salaryComponents', this.fb.array([]));
         }
-        
+
         // Clear existing salary components
         while (this.salaryComponentsArray.length > 0) {
           this.salaryComponentsArray.removeAt(0);
         }
-        
+
         // Update the form with grade data
         this.form.patchValue({
           orgId: gradeData.orgId || gradeData.data?.orgId,
@@ -688,20 +688,20 @@ clearFilters(): void {
           nextGradeId: gradeData.nextGradeId || gradeData.data?.nextGradeId || null,
           structureName: gradeData.structureName || gradeData.data?.structureName || ''
         });
-        
+
         // Add each component to the form if we have any
         if (Array.isArray(salaryComponents) && salaryComponents.length > 0) {
           salaryComponents.forEach((component: any) => {
             try {
               const componentId = component.componentId || component.id;
               const componentValue = component.componentValue || component.value || 0;
-              
+
               if (!componentId) return;
-              
+
               const componentOption = this.availableSalaryComponents.find(
                 c => c.id === componentId
               );
-              
+
               if (componentOption) {
                 const componentGroup = this.fb.group({
                   componentId: [componentId, Validators.required],
@@ -712,7 +712,7 @@ clearFilters(): void {
                   revisionCycle: [component.revisionCycle || component.revision_cycle || ''],
                   componentType: [componentOption.type || '']
                 });
-                
+
                 this.salaryComponentsArray.push(componentGroup);
               }
             } catch (error) {
@@ -720,7 +720,7 @@ clearFilters(): void {
             }
           });
         }
-        
+
         // Force change detection
         this.cdr.detectChanges();
       },
@@ -740,7 +740,7 @@ clearFilters(): void {
 
         try {
           let components: any[] = [];
-          
+
           // Handle different possible response formats
           if (Array.isArray(response)) {
             // Case 1: Response is directly an array
@@ -752,12 +752,12 @@ clearFilters(): void {
             // Case 3: Response has a data property that's a single object
             components = [response.data];
           }
-          
+
           if (components.length === 0) {
             this.useFallbackData();
             return;
           }
-          
+
           // Map the API response to the expected format
           this.availableSalaryComponents = components.map((comp: any) => ({
             id: comp.componentId || comp.id || '',
@@ -769,10 +769,10 @@ clearFilters(): void {
             statutoryRequirement: comp.statutoryRequirement || false,
             displayOrder: comp.displayOrder || 0
           }));
-          
+
           // Sort components by displayOrder
           this.availableSalaryComponents.sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
-          
+
 
           // Force UI update
           this.cdr.detectChanges();
@@ -819,19 +819,19 @@ clearFilters(): void {
   private resetForm(): void {
     // Reset the form
     this.form.reset();
-    
+
     // Clear the salary components array
     while (this.salaryComponentsArray.length !== 0) {
       this.salaryComponentsArray.removeAt(0);
     }
-    
+
     // Reset other form-related properties
     this.isEditMode = false;
     this.currentGrade = null;
     this.errorMessage = '';
     this.selectedComponentId = '';
     this.showSalaryComponentForm = false;
-    
+
     // Reset the form's validation state
     Object.keys(this.form.controls).forEach(key => {
       const control = this.form.get(key);

@@ -67,7 +67,7 @@ export class JobPositionService {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
-    
+
     return this.http.get<Organization[]>(`${API_BASE_URL}/api/v1/organizations`, { headers }).pipe(
       catchError(error => this.handleError(error))
     );
@@ -89,7 +89,7 @@ export class JobPositionService {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
-    
+
     const url = `${API_BASE_URL}api/v1/job-grades/organization/${orgId}`;
     return this.http.get<Grade[]>(url, { headers }).pipe(
       map(response => Array.isArray(response) ? response : (response as any).data || []),

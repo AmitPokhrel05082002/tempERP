@@ -1,0 +1,205 @@
+<div class="transfer-container">
+  <!-- Header Section -->
+  <div class="header">
+    <div class="title">
+      <h2>Menu Permissions</h2>
+      <p>Manage user access to application menus and actions</p>
+    </div>
+    <div class="controls">
+      <button class="add-btn" (click)="openAddModal()">
+        <i class="ti ti-plus"></i>
+        <span>New Permission</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Search and Filter Row -->
+  <div class="search-filter-row">
+    <div class="d-flex justify-content-end w-100">
+      <div class="search-filter-content">
+        <div class="search-input-wrapper">
+          <i class="bi bi-search"></i>
+          <input 
+            type="text" 
+            placeholder="Search..."
+            [(ngModel)]="searchQuery"
+            (input)="applySearch()">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Permissions Table -->
+  <div class="transfer-table">
+    <table>
+      <thead>
+        <tr>
+          <th>User ID</th>
+          <th>Permission Type</th>
+          <th>Granted By</th>
+          <th>Active</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let group of paginatedPermissions">
+          <td>{{ group.userId }}</td>
+          <td>{{ group.permissionTypes }}</td>
+          <td>{{ group.permissions[0]?.grantedByUsername || 'System' }}</td>
+          <td>
+            <span class="badge" [ngClass]="getActiveStatusClass(group.permissions)">
+              {{ getActiveStatusText(group.permissions) }}
+            </span>
+          </td>
+          <td>
+            <div class="action-buttons">
+              <button class="edit-btn" (click)="openEditModal(group.permissions[0])" title="View">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredPermissions.length === 0">
+          <td colspan="7" class="text-center">
+            <div class="text-muted">
+              <i class="bi bi-inbox"></i>
+              <p>No permission records found</p>
+              <button class="btn btn-sm btn-outline-primary" (click)="openAddModal()">
+                <i class="bi bi-plus-lg me-1"></i> Add New Permission
+              </button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="simple-pagination" *ngIf="filteredPermissions.length > 0">
+    <button 
+      (click)="onPageChange(currentPage - 1)" 
+      [disabled]="currentPage === 1">
+      <i class="bi bi-chevron-left"></i> Previous
+    </button>
+    
+    <div class="page-info">
+      Page {{ currentPage }} of {{ totalPages }}
+    </div>
+    
+    <button 
+      (click)="onPageChange(currentPage + 1)" 
+      [disabled]="currentPage === totalPages">
+      Next <i class="bi bi-chevron-right"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Add/Edit Permission Modal -->
+<ng-template #permissionModal let-modal>
+  <form [formGroup]="form" (ngSubmit)="savePermission()">
+    <div class="modal-header bg-primary text-white">
+      <h5 class="modal-title fw-bold">{{ isEditMode ? 'Edit' : 'Add New' }} Menu Permission</h5>
+      <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label for="userId" class="form-label">User ID *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="userId"
+            formControlName="userId"
+            [class.is-invalid]="form.get('userId')?.invalid && form.get('userId')?.touched">
+          <div 
+            *ngIf="form.get('userId')?.invalid && form.get('userId')?.touched" 
+            class="invalid-feedback">
+            User ID is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="menuId" class="form-label">Menu ID *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="menuId"
+            formControlName="menuId"
+            [class.is-invalid]="form.get('menuId')?.invalid && form.get('menuId')?.touched">
+          <div 
+            *ngIf="form.get('menuId')?.invalid && form.get('menuId')?.touched" 
+            class="invalid-feedback">
+            Menu ID is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="menuName" class="form-label">Menu Name *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="menuName"
+            formControlName="menuName"
+            [class.is-invalid]="form.get('menuName')?.invalid && form.get('menuName')?.touched">
+          <div 
+            *ngIf="form.get('menuName')?.invalid && form.get('menuName')?.touched" 
+            class="invalid-feedback">
+            Menu name is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="permissionType" class="form-label">Permission Type *</label>
+          <select 
+            class="form-select" 
+            id="permissionType"
+            formControlName="permissionType"
+            [class.is-invalid]="form.get('permissionType')?.invalid && form.get('permissionType')?.touched">
+            <option value="">Select Type</option>
+            <option value="Read">Read</option>
+            <option value="Write">Write</option>
+            <option value="Admin">Admin</option>
+          </select>
+          <div 
+            *ngIf="form.get('permissionType')?.invalid && form.get('permissionType')?.touched" 
+            class="invalid-feedback">
+            Permission type is required
+          </div>
+        </div>
+        
+        <div class="col-12">
+          <label for="actionNames" class="form-label">Action Names *</label>
+          <input 
+            type="text" 
+            class="form-control" 
+            id="actionNames"
+            formControlName="actionNames"
+            placeholder="Comma-separated list of actions"
+            [class.is-invalid]="form.get('actionNames')?.invalid && form.get('actionNames')?.touched">
+          <div 
+            *ngIf="form.get('actionNames')?.invalid && form.get('actionNames')?.touched" 
+            class="invalid-feedback">
+            At least one action is required
+          </div>
+        </div>
+        
+        <div class="col-md-6">
+          <label for="isActive" class="form-label">Active Status</label>
+          <select 
+            class="form-select" 
+            id="isActive"
+            formControlName="isActive">
+            <option [ngValue]="true">Active</option>
+            <option [ngValue]="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+        {{ isEditMode ? 'Update' : 'Save' }}
+      </button>
+    </div>
+  </form>
+</ng-template>

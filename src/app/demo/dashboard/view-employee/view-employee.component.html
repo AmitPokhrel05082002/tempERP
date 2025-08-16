@@ -1,0 +1,246 @@
+<div class="attendance-container">
+  <div class="attendance-container">
+    <!-- Filter Controls -->
+    <div class="filter-controls">
+      <div class="filters-container">
+        <h4 class="page-title">
+          {{ isViewAll ? 'All Employees Attendance Details' : 'Employee Attendance Details' }}
+        </h4>
+
+        <div class="filters-and-actions">
+          <div class="filter-section">
+            <div class="filter-group">
+              <label for="yearFilter">Year:</label>
+              <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
+                <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+              </select>
+            </div>
+
+            <div class="filter-group">
+              <label for="monthFilter">Month:</label>
+              <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+                <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
+              </select>
+            </div>
+
+            <div class="filter-group" *ngIf="isViewAll">
+              <label for="deptFilter">Department:</label>
+              <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
+                <option *ngFor="let dept of availableDepartments" [value]="dept === 'All' ? 'All' : dept">
+                  {{ dept }}
+                </option>
+              </select>
+            </div>
+
+            <button class="reset-btn" (click)="resetFilters()" title="Reset Filters">
+              <i class="ti ti-refresh"></i>
+            </button>
+
+            <button class="back-btn" (click)="goBack()" title="Go Back">
+              <i class="ti ti-arrow-left"></i>
+            </button>
+
+            <button (click)="exportToExcel()" class="action-btn btn btn-primary" title="Export to CSV">
+              <i class="bi bi-download"></i> Export 
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Show current data info -->
+      <div class="data-info" *ngIf="!isLoading && employees.length > 0">
+        <small class="text-muted">
+          Showing data for: <strong>{{ currentMonthName }} {{ selectedYear }}</strong>
+          <span *ngIf="selectedDepartment !== 'All'"> | Department: <strong>{{ selectedDepartment }}</strong></span>
+        </small>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-container">
+      <div class="spinner"></div>
+      <p>Loading attendance data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="errorMessage && !isLoading" class="error-message">
+      <i class="ti ti-alert-circle"></i>
+      <span>{{ errorMessage }}</span>
+    </div>
+
+    <!-- Main Attendance Table -->
+    <div class="main-attendance-section">
+      <div class="attendance-table-wrapper">
+        <table class="main-attendance-table">
+          <!-- Separate Headers - Week and Date in different rows -->
+          <thead>
+            <tr class="week-header">
+              <th class="row-label-header"></th>
+              <th *ngFor="let day of dynamicWeekHeaders; let i = index" class="day-header"
+                [class.weekend]="day === 'Sat' || day === 'Sun'">
+                {{ day }}
+              </th>
+            </tr>
+            <tr class="date-header">
+              <th class="row-label-header"></th>
+              <th *ngFor="let date of dynamicDateHeaders; let i = index" class="date-cell"
+                [class.weekend]="dynamicWeekHeaders[i] === 'Sat' || dynamicWeekHeaders[i] === 'Sun'">
+                {{ date }}
+              </th>
+            </tr>
+          </thead>
+
+          <!-- Employee Data Sections -->
+          <tbody>
+            <!-- Show employee data if available -->
+            <ng-container *ngIf="employees.length > 0">
+              <ng-container *ngFor="let person of employees; let personIndex = index">
+                <!-- Employee Name and Designation -->
+                <tr class="employee-name-row">
+                  <td [attr.colspan]="dynamicDateHeaders.length + 1" class="employee-info">
+                    <strong>{{ person.name }}</strong> &nbsp;&nbsp; 
+                    <span *ngIf="person.designation">Department: <strong>{{ person.designation }}</strong></span>
+                    <span *ngIf="!person.designation">Department: <strong>Not specified</strong></span>
+                  </td>
+                </tr>
+
+                <!-- Dashed separator line -->
+                <tr class="separator-row">
+                  <td [attr.colspan]="dynamicDateHeaders.length + 1" class="dashed-separator"></td>
+                </tr>
+
+                <!-- Shift Row -->
+                <tr class="data-row">
+                  <td class="row-label">Shift</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.shift || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Status Row -->
+                <tr class="data-row">
+                  <td class="row-label">Day Status</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index"
+                    class="data-cell {{ getStatusClass(person.records[i]?.dayStatus) }}">
+                    {{ person.records[i]?.dayStatus || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Check-in Row -->
+                <tr class="data-row">
+                  <td class="row-label">Check - in</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.checkIn || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Check-out Row -->
+                <tr class="data-row">
+                  <td class="row-label">Check - out</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.checkOut || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Break Time Row -->
+                <tr class="data-row">
+                  <td class="row-label">Break Time</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.breakTime || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Working Hours Row -->
+                <tr class="data-row">
+                  <td class="row-label">Working Hours</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.workingHours || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Extra Hours Row -->
+                <tr class="data-row">
+                  <td class="row-label">Extra Hours</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.extraHours || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Late Time Row -->
+                <tr class="data-row">
+                  <td class="row-label">Late Time</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.lateTime || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Early Time Row -->
+                <tr class="data-row">
+                  <td class="row-label">Early Time</td>
+                  <td *ngFor="let date of dynamicDateHeaders; let i = index" class="data-cell">
+                    {{ person.records[i]?.earlyTime || '--' }}
+                  </td>
+                </tr>
+
+                <!-- Space between employees -->
+                <tr class="employee-spacer" *ngIf="personIndex < employees.length - 1">
+                  <td [attr.colspan]="dynamicDateHeaders.length + 1"></td>
+                </tr>
+              </ng-container>
+            </ng-container>
+          </tbody>
+        </table>
+        
+        <!-- Pagination Controls -->
+        <div class="pagination-controls" *ngIf="totalItems > itemsPerPage">
+          <button 
+            class="page-button" 
+            [disabled]="currentPage === 1"
+            (click)="onPageChange(1)">
+            &laquo;
+          </button>
+          <button 
+            class="page-button" 
+            [disabled]="currentPage === 1"
+            (click)="onPageChange(currentPage - 1)">
+            &lsaquo;
+          </button>
+          
+          <ng-container *ngFor="let page of pageNumbers">
+            <button 
+              class="page-button" 
+              [class.active]="page === currentPage"
+              (click)="onPageChange(page)">
+              {{ page }}
+            </button>
+          </ng-container>
+          
+          <button 
+            class="page-button" 
+            [disabled]="currentPage === totalPages"
+            (click)="onPageChange(currentPage + 1)">
+            &rsaquo;
+          </button>
+          <button 
+            class="page-button" 
+            [disabled]="currentPage === totalPages"
+            (click)="onPageChange(totalPages)">
+            &raquo;
+          </button>
+          
+          <span class="page-info">
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} - 
+            {{ currentPage * itemsPerPage > totalItems ? totalItems : currentPage * itemsPerPage }} 
+            of {{ totalItems }} entries
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- No Data State -->
+    <div *ngIf="!isLoading && !errorMessage && employees.length === 0" class="no-data-message">
+      <i class="ti ti-info-circle"></i>
+      <span>No attendance data available for the selected period</span>
+    </div>
+  </div>
+</div>

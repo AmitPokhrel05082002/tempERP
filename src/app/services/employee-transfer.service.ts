@@ -219,7 +219,7 @@ export class EmployeeTransferService {
     }
 
     const url = `${environment.apiUrl}/api/v1/employees/${empId}`;
-    
+
     return this.http.get<EmployeeProfileResponse>(url).pipe(
       map(response => {
         if (response && response.employee) {
@@ -275,7 +275,7 @@ export class EmployeeTransferService {
     if (this.transferTypesCache[transferTypeId]) {
       return of(this.transferTypesCache[transferTypeId]);
     }
-    
+
     return this.http.get<TransferType>(`${this.transferTypeBaseUrl}/Transfer/${transferTypeId}`).pipe(
       tap(transferType => {
         // Cache the result
@@ -295,7 +295,7 @@ export class EmployeeTransferService {
    */
   createTransferType(transferType: Omit<TransferType, 'transferTypeId' | 'createdDate'>): Observable<TransferType> {
     const url = `${this.transferTypeBaseUrl}/transferType`;
-    
+
     // Prepare the request payload with the correct structure
     const payload = {
       orgId: transferType.orgId,
@@ -306,7 +306,7 @@ export class EmployeeTransferService {
       hasProbation: transferType.hasProbation,
       probationDays: transferType.probationDays
     };
-    
+
     return this.http.post<TransferType>(url, payload).pipe(
       tap(createdType => {
         // Add to cache
@@ -352,9 +352,9 @@ export class EmployeeTransferService {
     if (!transferType.transferTypeId) {
       return throwError(() => new Error('Transfer type ID is required for update'));
     }
-    
+
     const url = `${this.transferTypeBaseUrl}/transferType`;
-    
+
     // Prepare the request payload with the correct structure
     const payload = {
       transferTypeId: transferType.transferTypeId,
@@ -367,7 +367,7 @@ export class EmployeeTransferService {
       probationDays: transferType.probationDays,
       createdDate: transferType.createdDate
     };
-    
+
     return this.http.put<TransferType>(url, payload).pipe(
       tap(updatedType => {
         // Update cache
@@ -391,20 +391,20 @@ export class EmployeeTransferService {
    */
   getTransferTypes(): Observable<TransferType[]> {
     const url = `${this.transferTypeBaseUrl}/transferType`;
-    
+
     return this.http.get<TransferType[]>(url).pipe(
       map(transferTypes => {
         if (!Array.isArray(transferTypes)) {
           throw new Error('Invalid response format: expected array of transfer types');
         }
-        
+
         // Cache all transfer types
         transferTypes.forEach(type => {
           if (type && type.transferTypeId) {
             this.transferTypesCache[type.transferTypeId] = type;
           }
         });
-        
+
         return transferTypes;
       }),
       catchError(error => {

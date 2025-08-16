@@ -8,6 +8,7 @@ import { HttpClient } from '@angular/common/http';
 import { environment } from '../../../../environments/environment';
 import Swal from 'sweetalert2';
 import { finalize } from 'rxjs/operators';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface TrainingCategory {
   id: string;
@@ -15,8 +16,24 @@ interface TrainingCategory {
   categoryCode: string;
   description?: string;
   isActive: boolean;
+  organizationId?: string;
+  organizationName?: string;
   createdDate: string;
   modifiedDate: string;
+}
+
+interface Organization {
+  orgId: string;
+  orgName: string;
+  orgCode: string;
+  countryName: string;
+  dzongkhag: string;
+  thromde: string;
+  parentOrgId: string | null;
+  parentOrgName: string | null;
+  orgLevel: string | null;
+  childOrganizationsCount: number;
+  createdDate: string;
 }
 
 @Component({
@@ -33,30 +50,28 @@ interface TrainingCategory {
   styleUrls: ['./emp-categories.component.scss']
 })
 export class EmpCategoriesComponent implements OnInit {
-  // Data
   categories: TrainingCategory[] = [];
   filteredCategories: TrainingCategory[] = [];
+  organizations: Organization[] = [];
   currentCategory: TrainingCategory | null = null;
   private apiUrl = environment.apiUrl;
   isLoading = false;
 
-  // Search state
   searchQuery = '';
-
-  // Pagination
+  
   currentPage = 1;
   itemsPerPage = 10;
   totalPages = 1;
-
-  // UI State
+  
   isEditMode = false;
   successMessage = '';
   errorMessage = '';
+  
+  canEdit: boolean = false;
+  canViewDetails: boolean = true;
 
-  // Form
   form: FormGroup;
 
-  // Template Refs
   @ViewChild('trainingModal') trainingModal!: TemplateRef<any>;
   @ViewChild('viewModal') viewModal!: TemplateRef<any>;
   private modalRef: any;
@@ -64,27 +79,60 @@ export class EmpCategoriesComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private http: HttpClient,
-    private modalService: NgbModal
+    private modalService: NgbModal,
+    private authService: AuthService
   ) {
+    this.canEdit = this.authService.hasFullAccess() || 
+                  this.authService.hasPermissionForModule('training_categories', 'write');
+    
     this.form = this.fb.group({
-      categoryName: ['', Validators.required],
-      categoryCode: ['', [Validators.required, Validators.pattern('^[A-Za-z0-9-]+$')]],
-      description: [''],
-      status: [true, Validators.required] // Using boolean for status
+      categoryName: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100)
+      ]],
+      categoryCode: ['', [
+        Validators.required,
+        Validators.pattern('^[A-Za-z0-9-]+$'),
+        Validators.maxLength(20)
+      ]],
+      description: ['', Validators.maxLength(500)],
+      organizationId: ['', Validators.required],
+      status: [false]
     });
   }
 
   ngOnInit(): void {
+    this.loadOrganizations();
     this.loadCategories();
+  }
+
+  loadOrganizations(): void {
+    this.http.get<Organization[]>(`${this.apiUrl}/api/v1/organizations`)
+      .subscribe({
+        next: (organizations) => {
+          this.organizations = organizations || [];
+        },
+        error: (error) => {
+          console.error('Error loading organizations:', error);
+          Swal.fire('Error', 'Failed to load organizations', 'error');
+        }
+      });
   }
 
   loadCategories(): void {
     this.isLoading = true;
-    this.http.get<TrainingCategory[]>(`${this.apiUrl}/training/categories`)
+    this.http.get<TrainingCategory[]>(`${this.apiUrl}/api/v1/training/categories`)
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: (categories) => {
-          this.categories = categories;
+          this.categories = categories.map(category => {
+            const org = this.organizations.find(org => org.orgId === category.organizationId);
+            return {
+              ...category,
+              organizationName: org ? org.orgName : 'N/A'
+            };
+          });
           this.applyFilter();
         },
         error: (error) => {
@@ -94,43 +142,47 @@ export class EmpCategoriesComponent implements OnInit {
       });
   }
 
-  // Apply search filter
   applySearch(): void {
     if (!this.searchQuery.trim()) {
       this.filteredCategories = [...this.categories];
     } else {
       const query = this.searchQuery.toLowerCase().trim();
-      this.filteredCategories = this.categories.filter(category => 
+      this.filteredCategories = this.categories.filter(category =>
         category.categoryName.toLowerCase().includes(query) ||
         category.categoryCode.toLowerCase().includes(query) ||
-        (category.description?.toLowerCase().includes(query) ?? false)
+        (category.description?.toLowerCase().includes(query) ?? false) ||
+        (category.organizationName?.toLowerCase().includes(query) ?? false)
       );
     }
     this.currentPage = 1;
     this.updateTotalPages();
   }
 
-  // Alias for template compatibility
   applyFilter(): void {
     this.applySearch();
   }
 
   openAddModal(): void {
+    if (!this.canEdit) return;
+    
     this.isEditMode = false;
     this.form.reset({
-      status: true // Default to Active (true)
+      status: true
     });
     this.modalRef = this.modalService.open(this.trainingModal, { size: 'lg' });
   }
 
   openEditModal(category: TrainingCategory): void {
+    if (!this.canEdit) return;
+    
     this.isEditMode = true;
     this.currentCategory = { ...category };
     this.form.patchValue({
       categoryName: category.categoryName,
       categoryCode: category.categoryCode,
       description: category.description || '',
-      status: category.isActive // Map isActive to status form control
+      organizationId: category.organizationId || '',
+      status: category.isActive
     });
     this.modalRef = this.modalService.open(this.trainingModal, { size: 'lg' });
   }
@@ -141,21 +193,25 @@ export class EmpCategoriesComponent implements OnInit {
   }
 
   saveCategory(): void {
+    if (!this.canEdit) return;
+    
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
 
     const categoryData = {
-      ...this.form.value,
-      isActive: this.form.get('status')?.value === 'Active'
+      orgId: this.form.get('organizationId')?.value,
+      categoryName: this.form.get('categoryName')?.value,
+      categoryCode: this.form.get('categoryCode')?.value,
+      isActive: this.form.get('status')?.value === true || this.form.get('status')?.value === 'true'
     };
     
     this.isLoading = true;
 
     const request = this.isEditMode && this.currentCategory?.id
-      ? this.http.put(`${this.apiUrl}/categories/${this.currentCategory.id}`, categoryData)
-      : this.http.post(`${this.apiUrl}/categories`, categoryData);
+      ? this.http.put(`${this.apiUrl}/api/v1/training/categories/${this.currentCategory.id}`, categoryData)
+      : this.http.post(`${this.apiUrl}/api/v1/training/categories`, categoryData);
 
     request.pipe(finalize(() => this.isLoading = false))
       .subscribe({
@@ -172,6 +228,8 @@ export class EmpCategoriesComponent implements OnInit {
   }
 
   confirmDelete(id: string): void {
+    if (!this.canEdit) return;
+    
     Swal.fire({
       title: 'Are you sure?',
       text: 'You will not be able to recover this category!',
@@ -182,7 +240,7 @@ export class EmpCategoriesComponent implements OnInit {
     }).then((result) => {
       if (result.isConfirmed) {
         this.isLoading = true;
-        this.http.delete(`${this.apiUrl}/categories/${id}`)
+        this.http.delete(`${this.apiUrl}/api/v1/training/categories/${id}`)
           .pipe(finalize(() => this.isLoading = false))
           .subscribe({
             next: () => {

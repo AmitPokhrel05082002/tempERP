@@ -4,7 +4,7 @@
       <div class="card my-5">
         <div class="card-body">
           <a href="#" class="d-flex justify-content-center">
-            <img src="assets/images/logo-dark.svg" alt="logo" />
+            <img src="../../../../../assets/NGN.png" alt="logo" />
           </a>
           <div class="row">
             <div class="d-flex justify-content-center">
@@ -14,17 +14,17 @@
               </div>
             </div>
           </div>
-          
+
           <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
             <div *ngIf="error" class="alert alert-danger">
               {{ error }}
             </div>
-            
+
             <div class="form-floating mb-3">
-              <input 
-                type="text" 
-                class="form-control" 
-                id="username" 
+              <input
+                type="text"
+                class="form-control"
+                id="username"
                 formControlName="username"
                 [ngClass]="{ 'is-invalid': loginForm.get('username')?.errors && loginForm.get('username')?.touched }"
                 placeholder="Username"
@@ -34,12 +34,12 @@
                 Username is required
               </div>
             </div>
-            
+
             <div class="form-floating mb-3">
-              <input 
-                type="password" 
-                class="form-control" 
-                id="password" 
+              <input
+                type="password"
+                class="form-control"
+                id="password"
                 formControlName="password"
                 [ngClass]="{ 'is-invalid': loginForm.get('password')?.errors && loginForm.get('password')?.touched }"
                 placeholder="Password"
@@ -49,13 +49,13 @@
                 Password is required
               </div>
             </div>
-            
+
             <div class="d-flex mt-1 justify-content-between">
               <div class="form-check">
-                <input 
-                  class="form-check-input input-primary" 
-                  type="checkbox" 
-                  id="rememberMe" 
+                <input
+                  class="form-check-input input-primary"
+                  type="checkbox"
+                  id="rememberMe"
                   formControlName="rememberMe"
                 />
                 <label class="form-check-label text-muted" for="rememberMe">Remember me</label>
@@ -64,21 +64,21 @@
                 <a [routerLink]="['/auth/forgot-password']">Forgot Password?</a>
               </h5>
             </div>
-            
+
             <div class="saprator mt-3">
               <span>or</span>
             </div>
-            
+
             <div class="d-grid">
               <button type="button" class="btn mt-2 btn-light-primary bg-light text-muted">
                 <img src="assets/images/authentication/google-icon.svg" alt="google" />
                 Sign In With Google
               </button>
             </div>
-            
+
             <div class="d-grid mt-4">
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 class="btn btn-secondary"
                 [disabled]="loading || loginForm.invalid"
               >
@@ -88,7 +88,7 @@
               </button>
             </div>
           </form>
-          
+
           <hr />
         </div>
       </div>

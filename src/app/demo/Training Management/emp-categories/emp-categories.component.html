@@ -6,7 +6,7 @@
           <h2>Training Categories</h2>
           <p>Manage and organize training categories for your organization.</p>
         </div>
-        <div class="controls">
+        <div class="controls" *ngIf="canEdit">
           <button class="add-btn" (click)="openAddModal()">
             <i class="ti ti-plus"></i>
             <span>Add Category</span>
@@ -48,21 +48,23 @@
           <tr>
             <th>Category Name</th>
             <th>Code</th>
+            <th>Organization</th>
             <th>Status</th>
             <th>Created Date</th>
             <th>Modified Date</th>
-            <th style="text-align: right;">Actions</th>
+            <th style="text-align: right;" *ngIf="canEdit">Actions</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let category of paginatedCategories">
-            <td class="fw-medium">
+            <td >
               {{ category.categoryName }}
               <div *ngIf="category.description" class="text-muted small">
                 {{ category.description }}
               </div>
             </td>
             <td>{{ category.categoryCode }}</td>
+            <td>{{ category.organizationName || 'N/A' }}</td>
             <td>
               <span class="badge" [ngClass]="getStatusBadgeClass(category.isActive)">
                 {{ getStatusText(category.isActive) }}
@@ -70,7 +72,7 @@
             </td>
             <td>{{ formatDate(category.createdDate) }}</td>
             <td>{{ formatDate(category.modifiedDate) }}</td>
-            <td class="text-end">
+            <td class="text-end" *ngIf="canEdit">
               <div class="action-buttons">
                 <button class="view-btn" (click)="openViewModal(category)" title="View">
                   <i class="bi bi-eye"></i>
@@ -85,11 +87,11 @@
             </td>
           </tr>
           <tr *ngIf="filteredCategories.length === 0">
-            <td colspan="6" class="text-center py-4">
+            <td [attr.colspan]="canEdit ? 7 : 6" class="text-center py-4">
               <div class="text-muted">
                 <i class="bi bi-inbox display-6 d-block mb-2"></i>
                 <p>No training categories found</p>
-                <button class="btn btn-sm btn-outline-primary" (click)="openAddModal()">
+                <button class="btn btn-sm btn-outline-primary" (click)="openAddModal()" *ngIf="canEdit">
                   <i class="ti ti-plus me-1"></i> Add New Category
                 </button>
               </div>
@@ -128,6 +130,25 @@
       </div>
       <div class="modal-body">
         <div class="row g-3">
+          <div class="col-12">
+            <label for="organizationId" class="form-label">Organization *</label>
+            <select 
+              class="form-select" 
+              id="organizationId" 
+              formControlName="organizationId"
+              [class.is-invalid]="form.get('organizationId')?.invalid && form.get('organizationId')?.touched">
+              <option value="">Select Organization</option>
+              <option *ngFor="let org of organizations" [value]="org.orgId">
+                {{ org.orgName }}
+              </option>
+            </select>
+            <div 
+              *ngIf="form.get('organizationId')?.invalid && form.get('organizationId')?.touched" 
+              class="invalid-feedback">
+              Organization is required
+            </div>
+          </div>
+
           <div class="col-md-6">
             <label for="categoryName" class="form-label">Category Name *</label>
             <input 
@@ -159,17 +180,7 @@
           </div>
           
           <div class="col-12">
-            <label for="description" class="form-label">Description</label>
-            <textarea 
-              class="form-control" 
-              id="description" 
-              rows="3"
-              formControlName="description"
-              placeholder="Optional description for the category"></textarea>
-          </div>
-          
-          <div class="col-md-6">
-            <label for="status" class="form-label">Status *</label>
+            <label class="form-label">Status *</label>
             <div class="form-check form-check-inline">
               <label class="form-check-label" for="statusActive">
                 <input class="form-check-input" type="radio" formControlName="status" id="statusActive" value="true" [checked]="isEditMode ? currentCategory?.isActive : true">

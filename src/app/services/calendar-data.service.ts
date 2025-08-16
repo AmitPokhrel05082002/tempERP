@@ -87,7 +87,7 @@ export class CalendarDataService {
   // Get all holidays with optional filtering
   getHolidays(orgName?: string, branchName?: string, year?: number): Observable<Holiday[]> {
     const cacheKey = `${orgName || 'all'}-${branchName || 'all'}-${year || 'all'}`;
-    
+
     // Return cached data if available
     if (this.holidaysCache[cacheKey]) {
       return of(this.holidaysCache[cacheKey]);
@@ -96,11 +96,11 @@ export class CalendarDataService {
     // Use the correct endpoint /api/leave/getAllHoliday
     let url = `${this.baseUrl}/getAllHoliday`;
     const params: string[] = [];
-    
+
     if (orgName) params.push(`orgName=${encodeURIComponent(orgName)}`);
     if (branchName) params.push(`branchName=${encodeURIComponent(branchName)}`);
     if (year) params.push(`year=${year}`);
-    
+
     if (params.length > 0) {
       url += `?${params.join('&')}`;
     }
@@ -123,14 +123,14 @@ export class CalendarDataService {
    */
   getHolidaysByBranchId(branchId: string, year: number): Observable<Holiday[]> {
     const cacheKey = `branch-${branchId}-${year}`;
-    
+
     // Return cached data if available
     if (this.holidaysCache[cacheKey]) {
       return of(this.holidaysCache[cacheKey]);
     }
 
     const url = `${this.baseUrl}/getHolidayByBranch/${branchId}?year=${year}`;
-    
+
     return this.http.get<Holiday[]>(url).pipe(
       map(holidays => holidays || []),
       tap(holidays => {
@@ -215,23 +215,23 @@ export class CalendarDataService {
   }): Observable<Holiday> {
     // Include calendarId in the URL path
     const url = `${this.baseUrl}/updateHoliday/${calendarId}`;
-    
+
     // Create the updated holiday object
     const updatedHoliday: Holiday = {
       ...holidayData,
       calendarId: calendarId,
       branchId: holidayData['branchId'] || ''
     };
-    
+
     return this.http.put<Holiday>(url, holidayData).pipe(
       tap((response) => {
         // Clear the cache for this specific branch and year
         const cacheKey = `branch-${holidayData.branchName}-${holidayData.year}`;
         delete this.holidaysCache[cacheKey];
-        
+
         // Also clear any other cached data that might be affected
         this.clearHolidaysCache();
-        
+
         return response;
       }),
       catchError(error => {
@@ -251,7 +251,7 @@ export class CalendarDataService {
  */
 export function mapHolidaysToMarkedDays(holidays: Holiday[]): { [monthIndex: number]: { [day: number]: { type: 'full' | 'half', name: string, holidayType?: string, isOptional?: boolean } } } {
   const markedDaysByMonth: { [monthIndex: number]: { [day: number]: { type: 'full' | 'half', name: string, holidayType?: string, isOptional?: boolean } } } = {};
-  
+
   holidays.forEach(holiday => {
     try {
       const date = new Date(holiday.holidayDate);
@@ -261,7 +261,7 @@ export function mapHolidaysToMarkedDays(holidays: Holiday[]): { [monthIndex: num
       const leaveType = (holiday.leaveDayType || '').toLowerCase();
       const isHalf = leaveType.includes('half') || leaveType.includes('1/2') || leaveType.includes('partial') || leaveType.replace(/\s/g, '').includes('halfday');
       const type = isHalf ? 'half' : 'full';
-      
+
       if (!markedDaysByMonth[monthIndex]) {
         markedDaysByMonth[monthIndex] = {};
       }
@@ -275,6 +275,6 @@ export function mapHolidaysToMarkedDays(holidays: Holiday[]): { [monthIndex: num
       console.error('Error processing holiday:', e);
     }
   });
-  
+
   return markedDaysByMonth;
 }

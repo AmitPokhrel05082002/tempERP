@@ -3,58 +3,58 @@
   min-height: 100vh;
   padding: 1.5rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  
+
   @media (max-width: 768px) {
     padding: 1rem;
   }
-  
+
   @media (max-width: 576px) {
     padding: 0.75rem;
   }
-  
+
   .modal-body {
     padding: 2rem;
-    
+
     @media (max-width: 768px) {
       padding: 1.5rem;
     }
-    
+
     .form-control, .form-select {
       border-radius: 0.5rem;
       padding: 0.5rem 1rem;
       border: 1px solid #dee2e6;
-      
+
       &:focus {
         border-color: #22a9d3;
         box-shadow: 0 0 0 0.25rem rgba(34, 169, 211, 0.25);
       }
     }
-    
+
     .form-label {
       font-weight: 500;
       margin-bottom: 0.5rem;
     }
   }
-  
+
   .modal-footer {
     border-top: 1px solid #e9ecef;
     padding: 1.5rem 2rem;
-    
+
     .btn {
       padding: 0.5rem 1.5rem;
       border-radius: 0.5rem;
       font-weight: 500;
-      
+
       &.btn-primary {
-        background-color: #23a9d2; 
-        border-color: #23a9d2; 
-        
+        background-color: #23a9d2;
+        border-color: #23a9d2;
+
         &:hover, &:focus {
           background-color: #015b9d;
           border-color: #015b9d;
         }
       }
-      
+
       &.btn-outline-dark {
         &:hover, &:focus {
           background-color: #f8f9fa;
@@ -72,7 +72,7 @@
   align-items: flex-start;
   gap: 1rem;
   margin-bottom: 1.5rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     margin-bottom: 1.25rem;
@@ -97,7 +97,7 @@
     display: flex;
     gap: 1rem;
     align-items: center;
-    
+
     @media (max-width: 576px) {
       width: 100%;
       justify-content: space-between;
@@ -117,12 +117,12 @@
   align-items: center;
   margin-bottom: 1.5rem;
   width: 100%;
-  
+
   @media (max-width: 768px) {
     gap: 0.75rem;
     margin-bottom: 1.25rem;
   }
-  
+
   @media (max-width: 576px) {
     gap: 0.5rem;
   }
@@ -133,7 +133,7 @@
   flex: 1;
   min-width: 200px;
   max-width: 400px;
-  
+
   @media (max-width: 768px) {
     max-width: 100%;
     min-width: 150px;
@@ -206,7 +206,7 @@
   top: 100%;
   right: 0;
   width: 280px;
-  
+
   @media (max-width: 576px) {
     width: 260px;
     right: -50%;
@@ -331,7 +331,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: #23a9d2; 
+  background-color: #23a9d2;
   color: white;
   border: none;
   border-radius: 6px;
@@ -340,20 +340,20 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     background-color: #015b9d;
     transform: translateY(-1px);
   }
-  
+
   &:active {
     transform: translateY(0);
   }
-  
+
   i {
     font-size: 1rem;
   }
-  
+
   @media (max-width: 576px) {
     padding: 0.5rem 0.75rem;
     font-size: 0.85rem;
@@ -369,11 +369,11 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.5rem;
-  
+
   @media (max-width: 768px) {
     border-radius: 6px;
   }
-  
+
   @media (max-width: 576px) {
     border-radius: 4px;
   }
@@ -387,7 +387,7 @@
 
   thead {
     background-color: #f8f9fa;
-    
+
     th {
       font-size: 0.875rem;
       font-weight: 600;
@@ -397,33 +397,33 @@
       border-bottom: 2px solid #dee2e6;
       vertical-align: middle;
       white-space: nowrap;
-      
+
       @media (max-width: 768px) {
         padding: 0.75rem 0.5rem;
       }
     }
   }
-  
+
   tbody {
     tr {
       border-bottom: 1px solid #f1f3f4;
-      
+
       &:hover {
         background-color: #f8f9fa;
       }
-      
+
       td {
         padding: 1rem 0.75rem;
         vertical-align: middle;
         font-size: 0.875rem;
-        
+
         /* Make position name wrap if longer than two words */
         &:first-child {
           white-space: normal;
           word-break: break-word;
           min-width: 150px;
         }
-        
+
         /* Increase job description font size */
         &:nth-child(2) {
           font-size: 0.9375rem;
@@ -431,11 +431,11 @@
           word-break: break-word;
           line-height: 1.5;
         }
-        
+
         @media (max-width: 768px) {
           padding: 0.75rem 0.5rem;
           font-size: 0.8125rem;
-          
+
           &:nth-child(2) {
             font-size: 0.875rem;
           }
@@ -452,12 +452,12 @@
   justify-content: flex-start; /* Changed from flex-end to flex-start */
   min-width: 100%; /* Changed from fixed width to 100% */
   padding: 5px 0; /* Added some vertical padding */
-  
+
   @media (max-width: 768px) {
     gap: 0.4rem;
     min-width: 100%;
   }
-  
+
   @media (max-width: 576px) {
     gap: 0.3rem;
     min-width: 100%;
@@ -480,19 +480,19 @@
     font-size: 1rem;
     position: relative; /* For tooltip positioning if needed */
     color: white;
-    
+
     @media (max-width: 768px) {
       width: 30px;
       height: 30px;
       font-size: 0.9rem;
     }
-    
+
     @media (max-width: 576px) {
       width: 28px;
       height: 28px;
       font-size: 0.85rem;
     }
-    
+
     i {
       display: flex;
       align-items: center;
@@ -501,23 +501,23 @@
 
     &.view-btn {
       background-color: #f59e0b;
-      
+
       &:hover {
         background-color: #e69000;
       }
     }
-    
+
     &.edit-btn {
       background-color: #0d6efd;
-      
+
       &:hover {
         background-color: #0b5ed7;
       }
     }
-    
+
     &.delete-btn {
       background-color: #dc3545;
-      
+
       &:hover {
         background-color: #bb2d3b;
       }
@@ -529,19 +529,19 @@
 .emp-att-empty {
   text-align: center;
   padding: 3rem 0;
-  
+
   i {
     font-size: 3rem;
     color: #d1d5db;
     margin-bottom: 1rem;
     display: block;
   }
-  
+
   p {
     color: #6c757d;
     margin-bottom: 1rem;
   }
-  
+
   .emp-att-add-record-btn {
     padding: 0.375rem 0.75rem;
     font-size: 0.875rem;
@@ -555,7 +555,7 @@
   justify-content: center;
   margin: 2rem 0;
   padding: 0 1rem;
-  
+
   .simple-pagination {
     display: inline-flex;
     justify-content: center;
@@ -566,17 +566,17 @@
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
     margin: 0 auto;
-    
+
     @media (max-width: 768px) {
       gap: 1rem;
       padding: 0.75rem 1.5rem;
     }
-    
+
     @media (max-width: 576px) {
       gap: 0.75rem;
       padding: 0.75rem 1rem;
     }
-    
+
     button {
       padding: 0.5rem 1.25rem;
       border: 1px solid #dee2e6;
@@ -592,12 +592,12 @@
       transition: all 0.2s ease;
       min-width: 100px;
       justify-content: center;
-      
+
       @media (max-width: 768px) {
         min-width: 80px;
         padding: 0.5rem 1rem;
       }
-      
+
       @media (max-width: 576px) {
         min-width: auto;
         padding: 0.5rem 0.75rem;
@@ -619,7 +619,7 @@
 
       i {
         font-size: 1rem;
-        
+
         @media (max-width: 768px) {
           font-size: 0.875rem;
         }
@@ -633,12 +633,12 @@
       min-width: 120px;
       text-align: center;
       margin: 0 1rem;
-      
+
       @media (max-width: 768px) {
         min-width: 100px;
         margin: 0 0.75rem;
       }
-      
+
       @media (max-width: 576px) {
         min-width: auto;
         margin: 0 0.5rem;
@@ -666,17 +666,17 @@
   overflow-y: auto;
   outline: 0;
   display: none;
-  
+
   &.show {
     display: block;
   }
-  
+
   .modal-content {
     border-radius: 1rem;
     border: none;
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
   }
-  
+
   .modal-header {
     background-color: #22a9d3 !important;
     color: white;
@@ -687,14 +687,14 @@
     min-height: 4.5rem;
     display: flex;
     align-items: center;
-    
+
     .modal-title {
       font-size: 1.25rem;
       font-weight: 600;
       margin: 0;
       flex: 1;
     }
-    
+
     .btn-close {
       filter: brightness(0) invert(1);
       opacity: 1;
@@ -713,7 +713,7 @@
       background-repeat: no-repeat;
       transition: opacity 0.2s ease;
       border: none;
-      
+
       &:hover, &:focus {
         opacity: 0.75;
         outline: none;

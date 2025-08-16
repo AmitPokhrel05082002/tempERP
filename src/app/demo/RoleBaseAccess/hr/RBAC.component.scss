@@ -1,0 +1,415 @@
+// Variables
+$primary-color: #4361ee;
+$secondary-color: #3a0ca3;
+$background-color: #f8f9fa;
+$card-bg: #ffffff;
+$border-color: #e9ecef;
+$text-color: #212529;
+$light-text: #6c757d;
+$success-color: #2ecc71;
+$danger-color: #dc3545;
+$hover-color: #f1f3f5;
+$shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+$radius: 8px;
+
+// Base styles
+.rbac-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  color: $text-color;
+  background-color: $background-color;
+  min-height: 100vh;
+
+  @media (max-width: 768px) {
+    padding: 1rem;
+  }
+}
+
+// Header styles
+.dashboard-header {
+  margin-bottom: 2rem;
+  text-align: left;
+
+  .header-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: $primary-color;
+  margin: 0;
+
+  @media (max-width: 576px) {
+    font-size: 1.5rem;
+  }
+}
+
+.dashboard-subtitle {
+  font-size: 1rem;
+  color: $light-text;
+  margin: 0;
+}
+
+// Permission controls
+.permission-controls {
+  background: $card-bg;
+  padding: 1.5rem;
+  border-radius: $radius;
+  box-shadow: $shadow;
+  margin-bottom: 2rem;
+
+  .control-row {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 1rem;
+    }
+  }
+
+  .control-group {
+    flex: 1;
+    min-width: 200px;
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: $text-color;
+      font-size: 0.9rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid $border-color;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      background: white;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+
+      &:focus {
+        border-color: $primary-color;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+      }
+    }
+
+    .selected-menu-display {
+      padding: 0.5rem 0.75rem;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid $border-color;
+      min-height: 38px;
+      display: flex;
+      align-items: center;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+// Date picker styles
+.date-picker {
+  position: relative;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%236c757d' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 16px 16px;
+  padding-right: 2.5rem;
+  cursor: pointer;
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+  }
+
+  &::-webkit-calendar-picker-indicator {
+    position: absolute;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  &::-webkit-datetime-edit-fields-wrapper {
+    padding: 0.25rem;
+  }
+
+  &::-webkit-datetime-edit-text {
+    padding: 0 0.15rem;
+  }
+}
+
+// Permission groups container
+.permission-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// Loading and error messages
+.loading-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+  color: $light-text;
+}
+
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
+  color: $danger-color;
+}
+
+// Permission group styles
+.permission-group {
+  background-color: $card-bg;
+  border-radius: $radius;
+  box-shadow: $shadow;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  background-color: lighten($primary-color, 45%);
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: lighten($primary-color, 40%);
+  }
+}
+
+.group-title-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.group-icon {
+  color: $primary-color;
+  display: flex;
+  align-items: center;
+}
+
+.group-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: $primary-color;
+}
+
+.toggle-icon {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: $primary-color;
+}
+
+.group-content {
+  padding: 1.5rem;
+}
+
+// Sub-group styles
+.sub-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.sub-group-item {
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid $border-color;
+
+  &:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+}
+
+.sub-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  cursor: pointer;
+}
+
+.sub-group-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: $text-color;
+}
+
+.select-all-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: $light-text;
+  cursor: pointer;
+  transition: color 0.2s;
+
+  &:hover {
+    color: $primary-color;
+  }
+
+  input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: $primary-color;
+  }
+}
+
+.toggle-label {
+  font-weight: 500;
+}
+
+// Permission options
+.permission-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 1rem;
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.permission-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  transition: all 0.2s;
+  cursor: pointer;
+  background-color: $hover-color;
+
+  &:hover {
+    background-color: darken($hover-color, 2%);
+  }
+
+  input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: $primary-color;
+  }
+}
+
+.option-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+// Direct permissions (for groups without sub-groups)
+.direct-permissions {
+  .permission-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+// Action buttons
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.edit-button, .save-button, .cancel-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: $radius;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  border: none;
+  box-shadow: $shadow;
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.edit-button {
+  background-color: $primary-color;
+  color: white;
+  
+  &:hover {
+    background-color: darken($primary-color, 5%);
+    transform: translateY(-1px);
+  }
+}
+
+.save-button {
+  background-color: $success-color;
+  color: white;
+  
+  &:hover {
+    background-color: darken($success-color, 5%);
+    transform: translateY(-1px);
+  }
+}
+
+.cancel-button {
+  background-color: white;
+  border: 1px solid $border-color;
+  color: $text-color;
+  
+  &:hover {
+    background-color: $hover-color;
+    transform: translateY(-1px);
+  }
+}
+
+.edit-mode-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+// Disabled state for checkboxes when viewing user permissions
+.permission-option input:disabled + .option-label {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+// Responsive adjustments
+@media (max-width: 576px) {
+  .permission-controls {
+    padding: 1rem;
+  }
+
+  .group-header, .group-content {
+    padding: 1rem;
+  }
+
+  .permission-options {
+    grid-template-columns: 1fr;
+  }
+}

@@ -13,10 +13,10 @@
     <div class="search-filter-row">
       <div class="search-input-wrapper">
         <i class="ti ti-search"></i>
-        <input type="text" placeholder="Search positions..." 
+        <input type="text" placeholder="Search positions..."
                (input)="applyFilters()" [(ngModel)]="searchTerm" />
       </div>
-      
+
       <div class="filter-container">
         <button class="filter-icon" (click)="toggleFilter()" [class.active]="isFilterActive()">
           <i class="ti ti-filter-2"></i>
@@ -25,7 +25,7 @@
             {{ (filterOptions.selectedGrades.size + filterOptions.selectedPositionNames.size) || '' }}
           </span>
         </button>
-            
+
         <div class="filter-dropdown" *ngIf="isFilterOpen">
           <div class="filter-section">
             <h4>Position Name</h4>
@@ -33,7 +33,7 @@
               <div class="filter-options-scroll">
                 <div *ngFor="let name of (setToArray(filterOptions.positionNames) | slice:0:showAllPositionNames ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                            [checked]="isSelected(filterOptions.selectedPositionNames, name)"
                            (change)="toggleFilterOption('positionNames', name)">
                     <span>{{ name }}</span>
@@ -47,7 +47,7 @@
               </div>
             </div>
           </div>
-              
+
           <!-- Grade Filter -->
           <div class="filter-section">
             <h4>Grade</h4>
@@ -55,7 +55,7 @@
               <div class="filter-options-scroll">
                 <div *ngFor="let grade of (setToArray(filterOptions.grades) | slice:0:showAllGrades ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                            [checked]="isSelected(filterOptions.selectedGrades, grade)"
                            (change)="toggleFilterOption('grades', grade)">
                     <span>{{ grade }}</span>
@@ -69,7 +69,7 @@
               </div>
             </div>
           </div>
-          
+
           <!-- Filter Actions -->
           <div class="filter-actions">
             <button class="clear-btn" (click)="clearFilters()">
@@ -135,7 +135,7 @@
     </div>
   </div>
 
-      
+
   <!-- Pagination Wrapper -->
   <div class="pagination-wrapper">
     <div class="simple-pagination" *ngIf="filteredPositions.length > itemsPerPage && !isLoading">
@@ -168,7 +168,7 @@
         <div class="row mb-3">
           <div class="col-12">
             <label for="orgId" class="form-label">Organization <span class="text-danger">*</span></label>
-            
+
             <!-- Organization loading state -->
             <div *ngIf="isOrgLoading" class="d-flex align-items-center text-muted">
               <div class="spinner-border spinner-border-sm me-2" role="status">
@@ -176,40 +176,40 @@
               </div>
               <small>Loading organizations...</small>
             </div>
-            
+
             <!-- Organization select -->
-            <select *ngIf="!isOrgLoading" 
-                    class="form-select" 
-                    id="orgId" 
-                    formControlName="orgId" 
-                    (change)="onOrganizationChange($event)" 
+            <select *ngIf="!isOrgLoading"
+                    class="form-select"
+                    id="orgId"
+                    formControlName="orgId"
+                    (change)="onOrganizationChange($event)"
                     [class.is-invalid]="positionForm.get('orgId')?.invalid && positionForm.get('orgId')?.touched">
               <option [ngValue]="null" disabled>Select an organization</option>
               <option *ngFor="let org of organizations" [value]="org.orgId">
                 {{ org.orgName }}
               </option>
             </select>
-            
+
             <!-- Error message -->
             <div *ngIf="positionForm.get('orgId')?.invalid && positionForm.get('orgId')?.touched" class="invalid-feedback d-block">
               <small>Please select an organization</small>
             </div>
-            
+
             <!-- No organizations message -->
             <div *ngIf="!isOrgLoading && organizations.length === 0" class="alert alert-warning mt-2 py-1 small">
               <i class="bi bi-exclamation-triangle me-1"></i> No organizations found. Please add an organization first.
             </div>
           </div>
         </div>
-        
+
         <!-- Position Name & Code -->
         <div class="row mb-3">
           <div class="col-md-6 mb-3">
             <label for="positionName" class="form-label">Position Name <span class="text-danger">*</span></label>
-            <input type="text" 
-                   class="form-control" 
-                   id="positionName" 
-                   formControlName="positionName" 
+            <input type="text"
+                   class="form-control"
+                   id="positionName"
+                   formControlName="positionName"
                    placeholder="Enter position name"
                    [class.is-invalid]="positionForm.get('positionName')?.invalid && positionForm.get('positionName')?.touched">
             <div *ngIf="positionForm.get('positionName')?.invalid && positionForm.get('positionName')?.touched" class="invalid-feedback">
@@ -217,13 +217,13 @@
               <small *ngIf="positionForm.get('positionName')?.errors?.['minlength']">Minimum 3 characters required</small>
             </div>
           </div>
-          
+
           <div class="col-md-6 mb-3">
             <label for="positionCode" class="form-label">Position Code <span class="text-danger">*</span></label>
-            <input type="text" 
-                   class="form-control" 
-                   id="positionCode" 
-                   formControlName="positionCode" 
+            <input type="text"
+                   class="form-control"
+                   id="positionCode"
+                   formControlName="positionCode"
                    placeholder="e.g., DEV-001"
                    [class.is-invalid]="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched">
             <div *ngIf="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched" class="invalid-feedback">
@@ -232,15 +232,15 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Grade & Manager -->
         <div class="row mb-3">
           <!-- Grade Dropdown -->
           <div class="col-md-6 mb-3" *ngIf="orgId; else noOrgSelectedForGrade">
             <label for="gradeId" class="form-label">Grade <span class="text-danger">*</span></label>
-            <select class="form-select" 
-                    id="gradeId" 
-                    formControlName="gradeId" 
+            <select class="form-select"
+                    id="gradeId"
+                    formControlName="gradeId"
                     [class.is-invalid]="positionForm.get('gradeId')?.invalid && positionForm.get('gradeId')?.touched">
               <option [ngValue]="null" disabled>Select a grade</option>
               <option *ngFor="let grade of grades" [ngValue]="grade.gradeId">
@@ -254,7 +254,7 @@
               <i class="bi bi-exclamation-triangle me-1"></i> No grades available for the selected organization.
             </div>
           </div>
-          
+
           <!-- No organization selected template for grades -->
           <ng-template #noOrgSelectedForGrade>
             <div class="col-md-6 mb-3">
@@ -262,23 +262,23 @@
               <input type="text" class="form-control" placeholder="Select organization to enable" disabled>
             </div>
           </ng-template>
-          
+
           <div class="col-md-6 mb-3">
             <label for="reportingManagerPosition" class="form-label">Reporting Manager Position ID</label>
-            <input type="text" 
-                   class="form-control" 
-                   id="reportingManagerPosition" 
-                   formControlName="reportingManagerPosition" 
+            <input type="text"
+                   class="form-control"
+                   id="reportingManagerPosition"
+                   formControlName="reportingManagerPosition"
                    placeholder="Enter manager's position ID (optional)">
           </div>
         </div>
-        
+
         <!-- Skill Requirements -->
         <div class="mb-3">
           <label for="skillRequirements" class="form-label">Skill Requirements <span class="text-danger">*</span></label>
-          <textarea class="form-control" 
-                    id="skillRequirements" 
-                    formControlName="skillRequirements" 
+          <textarea class="form-control"
+                    id="skillRequirements"
+                    formControlName="skillRequirements"
                     rows="2"
                     [class.is-invalid]="positionForm.get('skillRequirements')?.invalid && positionForm.get('skillRequirements')?.touched"
                     placeholder="Enter required skills and qualifications"></textarea>
@@ -286,13 +286,13 @@
             <small>Skill requirements are required</small>
           </div>
         </div>
-        
+
         <!-- Job Description -->
         <div class="mb-4">
           <label for="jobDescription" class="form-label">Job Description <span class="text-danger">*</span></label>
-          <textarea class="form-control" 
-                    id="jobDescription" 
-                    formControlName="jobDescription" 
+          <textarea class="form-control"
+                    id="jobDescription"
+                    formControlName="jobDescription"
                     rows="3"
                     [class.is-invalid]="positionForm.get('jobDescription')?.invalid && positionForm.get('jobDescription')?.touched"
                     placeholder="Enter detailed job description"></textarea>
@@ -300,7 +300,7 @@
             <small>Job description is required</small>
           </div>
         </div>
-        
+
 
         </div>
         <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">

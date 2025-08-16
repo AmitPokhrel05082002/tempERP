@@ -96,7 +96,7 @@ export class LeaveService {
    */
   getLeaveAllocations(empId: string): Observable<LeaveAllocation[]> {
     const endpoint = `${this.leaveApiUrl}/getAllocationByEmpId/${empId}`;
-    
+
     return this.http.get<LeaveAllocation[]>(endpoint, { headers: this.getHeaders() }).pipe(
       catchError(error => {
         console.error('Error fetching leave allocations:', error);
@@ -108,8 +108,8 @@ export class LeaveService {
 
   // Get leave requests
   getLeaveRequests(type: LeaveType = 'current'): Observable<LeaveRequest[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
-    
+    const endpoint = `${this.leaveApiUrl}/applications/recent/${type}`;
+
     return this.http.get<any>(endpoint, { headers: this.getHeaders() }).pipe(
       map((response: any) => {
         if (!Array.isArray(response)) {
@@ -137,29 +137,28 @@ export class LeaveService {
       catchError(this.handleError)
     );
   }
-  
+
   // Get all leave requests (convenience method)
   getAllLeaveRequests(type: LeaveType = 'all'): Observable<LeaveRequest[]> {
-    const endpoint = `${this.apiUrl}/api/leave/applications/recent/${type}`;
+    const endpoint = `${this.leaveApiUrl}/applications/recent/${type}`;
 
-    
-    return this.http.get<LeaveRequest[]>(endpoint).pipe(
+    return this.http.get<LeaveRequest[]>(endpoint, { headers: this.getHeaders() }).pipe(
       map((response: any) => {
         // Ensure we have a valid response
         if (!Array.isArray(response)) {
           return [];
         }
         return response.map((item: any): LeaveRequest => ({
-          id: item.id,
-          empId: item.empId,
-          empCode: item.empCode,
-          name: item.name,
-          division: item.division,
-          fromDate: item.fromDate,
-          toDate: item.toDate,
-          status: item.status,
-          totalDays: item.totalDays,
-          reason: item.reason,
+          id: item.id || '',
+          empId: item.empId || '',
+          empCode: item.empCode || '',
+          name: item.name || '',
+          division: item.division || '',
+          fromDate: item.fromDate || '',
+          toDate: item.toDate || '',
+          status: item.status || 'PENDING',
+          totalDays: item.totalDays || 0,
+          reason: item.reason || '',
           cid: item.cid || '',
           leaveName: item.leaveName || '',
           medicalCertificateAttached: item.medicalCertificateAttached || false,
@@ -170,12 +169,12 @@ export class LeaveService {
       catchError(this.handleError)
     );
   }
-  
+
 
   // Get all employees
   getAllEmployees(mode: string = 'all'): Observable<Employee[]> {
     const endpoint = `${this.apiUrl}/api/leave/applications/recent/${mode}`;
-    
+
     return this.http.get<Employee[]>(endpoint, { headers: this.getHeaders() }).pipe(
       map((response: any) => {
         // Transform the response to match the Employee interface
@@ -209,7 +208,7 @@ export class LeaveService {
   // Get all leave types
   getAllLeaveTypes(): Observable<{id: string, name: string}[]> {
     const endpoint = `${this.leaveApiUrl}/getAllLeaveType`;
-    
+
     return this.http.get<{id: string, name: string}[]>(endpoint, { headers: this.getHeaders() }).pipe(
       tap(data => data),
       catchError(this.handleError)
@@ -219,7 +218,7 @@ export class LeaveService {
   // Submit a new leave request
   requestLeave(leaveData: LeaveRequestPayload): Observable<LeaveRequest> {
     const endpoint = `${this.leaveApiUrl}/requestLeave`;
-    
+
     return this.http.post<LeaveRequest>(endpoint, leaveData).pipe(
       tap(response => response),
       catchError(error => {
@@ -236,7 +235,7 @@ export class LeaveService {
   // Get employee leave details
   getEmployeeLeaveDetails(empid: string): Observable<any> {
     const endpoint = `${this.leaveApiUrl}/employee/${empid}`;
-    
+
     return this.http.get<any>(endpoint, { headers: this.getHeaders() }).pipe(
       tap(data => data),
       catchError(this.handleError)
@@ -250,16 +249,16 @@ export class LeaveService {
    * @param reason Optional reason for the status update
    * @returns Observable with the update result
    */
-  updateLeaveStatus(updateData: { 
-    empCode: string; 
-    id: string; 
+  updateLeaveStatus(updateData: {
+    empCode: string;
+    id: string;
     approved: boolean;
     reason?: string;
   } | string, approved?: boolean, reason?: string): Observable<any> {
 
     let id: string;
-    let isApproved: boolean; 
-    
+    let isApproved: boolean;
+
     try {
       // Handle both parameter styles for backward compatibility
       if (typeof updateData === 'string') {
@@ -272,20 +271,20 @@ export class LeaveService {
         isApproved = updateData.approved;
         reason = updateData.reason || reason;
       }
-      
+
       if (!id) {
         throw new Error('Leave ID is required');
       }
-      
+
       // Endpoint for approving/rejecting leave requests - using the leave ID in the URL
       const endpoint = `${this.leaveApiUrl}/leave/${id}/approve`;
-      
+
       // Prepare the request body with approval status and reason
       const body = {
         approved: isApproved,
         reason: reason || (isApproved ? 'Approved by manager' : 'Rejected by manager')
       };
-      
+
       // Make the API call
       return this.http.post<any>(endpoint, body, {
         headers: {
@@ -308,7 +307,7 @@ export class LeaveService {
   // Submit a new leave request
   submitLeaveRequest(leaveData: any): Observable<any> {
     const endpoint = `${this.leaveApiUrl}/requestLeave`;
-    
+
     return this.http.post(endpoint, leaveData).pipe(
       tap(() => {}),
       catchError(this.handleError)
@@ -318,7 +317,7 @@ export class LeaveService {
   // Get leave balance for an employee
   getLeaveBalance(empCode: string): Observable<any> {
     const endpoint = `${this.leaveApiUrl}/employee/${empCode}`;
-    
+
     return this.http.get<any>(endpoint, { headers: this.getHeaders() }).pipe(
       tap(data => data),
       map((response: any) => {
@@ -347,7 +346,7 @@ export class LeaveService {
   // Get leave history for an employee
   getLeaveHistory(empCode: string): Observable<any[]> {
     const endpoint = `${this.leaveApiUrl}/employee/${empCode}`;
-    
+
     return this.http.get<any>(endpoint, { headers: this.getHeaders() }).pipe(
       tap(data => data),
       map((response: any) => {

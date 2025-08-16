@@ -1,0 +1,213 @@
+<div class="rbac-dashboard">
+  <header class="dashboard-header">
+    <div class="header-actions">
+      <h1 class="dashboard-title">Permission Management</h1>
+      <div *ngIf="userId" class="action-buttons">
+        <button class="edit-button" (click)="toggleEditMode()" *ngIf="!isEditMode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25ZM20.71 7.04C21.1 6.65 21.1 6.02 20.71 5.63L18.37 3.29C17.98 2.9 17.35 2.9 16.96 3.29L15.13 5.12L18.88 8.87L20.71 7.04Z" fill="currentColor"/>
+          </svg>
+          Edit Permissions
+        </button>
+        <div *ngIf="isEditMode" class="edit-mode-actions">
+          <button class="save-button" (click)="savePermissions()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M17 3H5C3.89 3 3 3.9 3 5V19C3 20.1 3.89 21 5 21H19C20.1 21 21 20.1 21 19V7L17 3ZM19 19H5V5H16.17L19 7.83V19ZM12 12C10.34 12 9 13.34 9 15C9 16.66 10.34 18 12 18C13.66 18 15 16.66 15 15C15 13.34 13.66 12 12 12ZM6 6H15V10H6V6Z" fill="currentColor"/>
+            </svg>
+            Save Changes
+          </button>
+          <button class="cancel-button" (click)="toggleEditMode()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" fill="currentColor"/>
+            </svg>
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+    <p class="dashboard-subtitle" *ngIf="userId">Configure access controls for User ID: {{userId}}</p>
+  </header>
+
+  <!-- Permission Controls -->
+  <div *ngIf="isEditMode" class="permission-controls">
+    <div class="control-row">
+      <div class="control-group">
+        <label for="permissionType">Permission Type</label>
+        <select id="permissionType" [(ngModel)]="permissionType" class="form-control" (change)="onPermissionTypeChange()">
+          <option value="GRANT">Grant</option>
+          <option value="TEMPORARY">Temporary</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Selected Menu</label>
+        <div class="selected-menu-display">
+          {{selectedMenuId ? getMenuName(selectedMenuId) : 'No menu selected'}}
+        </div>
+      </div>
+
+      <div class="control-group" *ngIf="showExpiryDate">
+        <label for="expiryDate">Expiry Date *</label>
+        <input type="date" id="expiryDate" [(ngModel)]="expiryDate" class="form-control date-picker" 
+               [min]="minDate" [required]="permissionType === 'TEMPORARY'">
+        <div *ngIf="permissionType === 'TEMPORARY' && !expiryDate" class="text-danger small">
+          Expiry date is required
+        </div>
+      </div>
+
+      <div class="control-group" *ngIf="showExpiryDate">
+        <label for="expiryTime">Expiry Time *</label>
+        <input type="time" id="expiryTime" [(ngModel)]="expiryTime" class="form-control time-picker"
+               [required]="permissionType === 'TEMPORARY'">
+        <div *ngIf="permissionType === 'TEMPORARY' && !expiryTime" class="text-danger small">
+          Expiry time is required
+        </div>
+      </div>
+
+      <div class="control-group">
+        <label for="isActive">Status</label>
+        <select id="isActive" [(ngModel)]="isActive" class="form-control">
+          <option [ngValue]="true">Active</option>
+          <option [ngValue]="false">Inactive</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <main class="permission-container">
+    <div *ngIf="loading()" class="loading-message">Loading permissions...</div>
+    <div *ngIf="error()" class="error-message">{{error()}}</div>
+
+    <div class="permission-group" *ngFor="let group of permissionGroups()">
+      <div class="group-header" (click)="toggleGroup(group.id); selectedMenuId = group.id">
+        <div class="group-title-container">
+          <span class="group-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20Z" fill="currentColor"/>
+              <path d="M12 7C11.45 7 11 7.45 11 8V12C11 12.55 11.45 13 12 13H16C16.55 13 17 12.55 17 12C17 11.45 16.55 11 16 11H13V8C13 7.45 12.55 7 12 7Z" fill="currentColor"/>
+            </svg>
+          </span>
+          <h2 class="group-title">{{ group.name }}</h2>
+        </div>
+        <span class="toggle-icon">{{ group.expanded ? '−' : '+' }}</span>
+      </div>
+
+      <div class="group-content" *ngIf="group.expanded">
+        <div class="sub-group" *ngIf="group.subGroups">
+          <div class="sub-group-item" *ngFor="let subGroup of group.subGroups">
+            <div class="sub-group-header" (click)="selectedMenuId = subGroup.id">
+              <h3 class="sub-group-title">{{ subGroup.name }}</h3>
+              <label class="select-all-toggle">
+                <input type="checkbox" 
+                  [checked]="areAllPermissionsChecked(subGroup.permissions)"
+                  (change)="toggleAllPermissions(group.id, subGroup.id, $event.target.checked)"
+                  [disabled]="userId !== null && !isEditMode">
+                <span class="toggle-label">Select All</span>
+              </label>
+            </div>
+
+            <div class="permission-options">
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.view" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">View</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.create" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Create</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.update" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Update</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.delete" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Delete</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.export" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Export</span>
+              </label>
+              
+              <label class="permission-option" *ngIf="subGroup.permissions.approve !== undefined">
+                <input type="checkbox" 
+                       [(ngModel)]="subGroup.permissions.approve" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Approve</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="direct-permissions" *ngIf="!group.subGroups && group.permissions">
+          <div class="permission-controls">
+            <label class="select-all-toggle">
+              <input type="checkbox" 
+                [checked]="areAllPermissionsChecked(group.permissions)"
+                (change)="toggleAllPermissions(group.id, undefined, $event.target.checked)"
+                [disabled]="userId !== null && !isEditMode">
+              <span class="toggle-label">Select All</span>
+            </label>
+
+            <div class="permission-options">
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.view" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">View</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.create" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Create</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.update" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Update</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.delete" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Delete</span>
+              </label>
+              
+              <label class="permission-option">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.export" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Export</span>
+              </label>
+              
+              <label class="permission-option" *ngIf="group.permissions.approve !== undefined">
+                <input type="checkbox" 
+                       [(ngModel)]="group.permissions.approve" 
+                       [disabled]="userId !== null && !isEditMode">
+                <span class="option-label">Approve</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>

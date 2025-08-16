@@ -15,10 +15,10 @@
     <div class="search-filter-row">
       <div class="search-input-wrapper">
         <i class="ti ti-search"></i>
-        <input type="text" placeholder="Search grades..." 
+        <input type="text" placeholder="Search grades..."
                (input)="onSearchInput($event)" [value]="searchQuery" />
       </div>
-      
+
       <div class="filter-container">
         <button class="filter-icon" (click)="toggleFilter()" [class.active]="isFilterActive()">
           <i class="ti ti-filter-2"></i>
@@ -27,7 +27,7 @@
             {{ (filterOptions.selectedGrades.size + filterOptions.selectedPositionNames.size) || '' }}
           </span>
         </button>
-        
+
         <div class="filter-dropdown" *ngIf="isFilterOpen">
           <div class="filter-section">
             <h4>Grade Name</h4>
@@ -35,7 +35,7 @@
               <div class="filter-options-scroll">
                 <div *ngFor="let name of (setToArray(filterOptions.positionNames) | slice:0:showAllPositionNames ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                            [checked]="isSelected(filterOptions.selectedPositionNames, name)"
                            (change)="toggleFilterOption('positionNames', name)">
                     <span>{{ name }}</span>
@@ -49,14 +49,14 @@
               </div>
             </div>
           </div>
-          
+
           <div class="filter-section">
             <h4>Grade Code</h4>
             <div class="filter-options">
               <div class="filter-options-scroll">
                 <div *ngFor="let grade of (setToArray(filterOptions.grades) | slice:0:showAllGrades ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox" 
+                    <input type="checkbox"
                            [checked]="isSelected(filterOptions.selectedGrades, grade)"
                            (change)="toggleFilterOption('grades', grade)">
                     <span>{{ grade }}</span>
@@ -70,7 +70,7 @@
               </div>
             </div>
           </div>
-          
+
           <div class="filter-actions">
             <button class="clear-btn" (click)="clearFilters()">
               Clear All
@@ -81,7 +81,7 @@
           </div>
         </div>
       </div>
-      
+
       <button class="add-grade-btn" (click)="openModal()">
         <i class="ti ti-plus"></i>
         <span>Add Grade</span>
@@ -166,7 +166,7 @@
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
                                 <label class="emp-att-form-label form-label fw-medium">Organization</label>
-                                <select formControlName="orgId" class="form-control" 
+                                <select formControlName="orgId" class="form-control"
                                     (change)="onOrganizationSelect(form.get('orgId')?.value)">
                                     <option value="">Select Organization</option>
                                     <option *ngFor="let org of organizations" [value]="org.orgId">
@@ -227,7 +227,7 @@
                         <!-- Salary Components Section -->
                         <div class="mb-4">
                             <h6 class="mb-3">Salary Components</h6>
-                            
+
                             <!-- List of added components -->
                             <div *ngFor="let component of salaryComponentsArray.controls; let i = index" class="card mb-3">
                                 <div class="card-body">
@@ -238,8 +238,8 @@
                                     <div class="row g-3">
                                         <div class="col-md-6">
                                             <label class="form-label">Amount</label>
-                                            <input type="number" class="form-control" 
-                                                [formControl]="getFormControl(component, 'componentValue')" 
+                                            <input type="number" class="form-control"
+                                                [formControl]="getFormControl(component, 'componentValue')"
                                                 min="0">
                                         </div>
 
@@ -311,7 +311,7 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
                 </div>
-                
+
                 <div class="emp-att-modal-body modal-body p-4" *ngIf="viewGradeData">
                     <!-- Grade Details -->
                     <div class="mb-4">
@@ -384,8 +384,8 @@
             </div>
         </div>
     </div>
-    
-    <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showViewModal" 
+
+    <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showViewModal"
         [style.display]="showViewModal ? 'block' : 'none'" (click)="closeModal()">
     </div>
 </div>

@@ -146,7 +146,7 @@ export class TrainingService {
     if (!program.programId) {
       throw new Error('Cannot update program without programId');
     }
-    
+
     return this.http.put<TrainingProgram>(
       `${this.apiUrl}/api/v1/training/programs/${program.programId}`,
       program
@@ -163,7 +163,7 @@ export class TrainingService {
     if (!nominationId) {
       throw new Error('Cannot update nomination status without nominationId');
     }
-    
+
     return this.http.patch<TrainingNomination>(
       `${this.apiUrl}/api/v1/training/nominations/${nominationId}/status`,
       { status }
