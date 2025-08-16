@@ -1,0 +1,295 @@
+<div class="job-position-container">
+    <div class="header">
+      <div class="title">
+        <h2>Branches</h2>
+        <p>Manage and organize branches for your organization.</p>
+      </div>
+    </div>
+  
+    <div class="filter-row-container">
+      <!-- Search and Filters -->
+      <div class="search-filter-row">
+        <div class="search-input-wrapper">
+          <i class="ti ti-search"></i>
+          <input type="text" placeholder="Search branches..."
+                 (input)="applyFilters()" [(ngModel)]="searchTerm" />
+        </div>
+  
+        <div class="filter-container">
+          <button class="filter-icon" (click)="toggleFilter()" [class.active]="isFilterActive()">
+            <i class="ti ti-filter-2"></i>
+            <span>Filters</span>
+            <span class="filter-count" *ngIf="isFilterActive()">
+              {{ (filterOptions.selectedDzongkhags.size + filterOptions.selectedThromdes.size + filterOptions.selectedStatuses.size) || '' }}
+            </span>
+          </button>
+  
+          <div class="filter-dropdown" *ngIf="isFilterOpen">
+            <!-- Dzongkhag Filter -->
+            <div class="filter-section">
+              <h4>Dzongkhag</h4>
+              <div class="filter-options">
+                <div class="filter-options-scroll">
+                  <div *ngFor="let dzongkhag of (setToArray(filterOptions.dzongkhags) | slice:0:showAllDzongkhags ? undefined : 5)">
+                    <label class="filter-option">
+                      <input type="checkbox"
+                             [checked]="isSelected(filterOptions.selectedDzongkhags, dzongkhag)"
+                             (change)="toggleFilterOption('dzongkhags', dzongkhag)">
+                      <span>{{ dzongkhag }}</span>
+                    </label>
+                  </div>
+                </div>
+                <div *ngIf="filterOptions.dzongkhags.size > 5" class="text-end mt-2">
+                  <button class="show-more-btn" (click)="toggleShowAll('dzongkhags')">
+                    {{ showAllDzongkhags ? 'Show less' : 'Show more...' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+  
+            <!-- Thromde Filter -->
+            <div class="filter-section">
+              <h4>Thromde</h4>
+              <div class="filter-options">
+                <div class="filter-options-scroll">
+                  <div *ngFor="let thromde of (setToArray(filterOptions.thromdes) | slice:0:showAllThromdes ? undefined : 5)">
+                    <label class="filter-option">
+                      <input type="checkbox"
+                             [checked]="isSelected(filterOptions.selectedThromdes, thromde)"
+                             (change)="toggleFilterOption('thromdes', thromde)">
+                      <span>{{ thromde }}</span>
+                    </label>
+                  </div>
+                </div>
+                <div *ngIf="filterOptions.thromdes.size > 5" class="text-end mt-2">
+                  <button class="show-more-btn" (click)="toggleShowAll('thromdes')">
+                    {{ showAllThromdes ? 'Show less' : 'Show more...' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+  
+            <!-- Status Filter -->
+            <div class="filter-section">
+              <h4>Status</h4>
+              <div class="filter-options">
+                <div class="filter-options-scroll">
+                  <div *ngFor="let status of setToArray(filterOptions.statuses)">
+                    <label class="filter-option">
+                      <input type="checkbox"
+                             [checked]="isSelected(filterOptions.selectedStatuses, status)"
+                             (change)="toggleFilterOption('statuses', status)">
+                      <span>{{ status }}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+  
+            <!-- Filter Actions -->
+            <div class="filter-actions">
+              <button class="clear-btn" (click)="clearFilters()">
+                Clear All
+              </button>
+              <button class="apply-btn" (click)="isFilterOpen = false">
+                Apply
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <button class="emp-att-add-btn" (click)="openAddModal(branchModal)">
+          <i class="bi bi-plus-lg me-1"></i>
+          <span>Add Branch</span>
+        </button>
+      </div>
+    </div>
+  
+    <!-- Branches Table -->
+    <div class="attendance-table" *ngIf="!isLoading && filteredBranches.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Organization</th>
+            <th>Branch Name</th>
+            <th>Branch Code</th>
+            <th>Dzongkhag</th>
+            <th>Thromde</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let branch of paginatedBranches">
+            <td>{{ branch.organizationName || '--' }}</td>
+            <td>{{ branch.branchName || '--' }}</td>
+            <td>{{ branch.branchCode || '--' }}</td>
+            <td>{{ branch.dzongkhag || '--' }}</td>
+            <td>{{ branch.thromde || '--' }}</td>
+            <td>
+              <span class="badge" [ngClass]="{'bg-success': branch.operationalStatus, 'bg-secondary': !branch.operationalStatus}">
+                {{ branch.operationalStatus ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>
+              <div class="action-buttons">
+                <button class="view-btn" (click)="viewBranch(branch)" title="View">
+                  <i class="ti ti-eye"></i>
+                </button>
+                <button class="edit-btn" (click)="openEditModal(branchModal, branch)" title="Edit">
+                  <i class="ti ti-edit"></i>
+                </button>
+                <button class="delete-btn" 
+                        (click)="deleteBranch(branch)" 
+                        title="Delete">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && filteredBranches.length === 0" class="text-center py-5">
+      <div class="text-muted">
+        <i class="bi bi-inbox display-4 d-block mb-3"></i>
+        <p class="mb-2">No branches found.</p>
+        <button class="btn btn-primary btn-sm" (click)="openAddModal(branchModal)">
+          Add new branch
+        </button>
+      </div>
+    </div>
+  
+    <!-- Pagination Wrapper -->
+    <div class="pagination-wrapper">
+      <div class="simple-pagination" *ngIf="filteredBranches.length > itemsPerPage && !isLoading">
+        <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">
+          <i class="ti ti-chevron-left"></i> Previous
+        </button>
+        <span class="page-info">
+          Page {{ currentPage }} of {{ totalPages }}
+        </span>
+        <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">
+          Next <i class="ti ti-chevron-right"></i>
+        </button>
+      </div>
+    </div>
+  
+    <!-- Add/Edit Branch Modal -->
+    <ng-template #branchModal let-modal>
+      <div class="emp-att-modal modal fade" [class.show]="true" [style.display]="'block'" [class.d-block]="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+          <div class="emp-att-modal-content modal-content border-0 shadow">
+            <div class="emp-att-modal-header modal-header bg-warning text-white border-0">
+              <h5 class="modal-title fw-bold">
+                {{ isEditing ? 'Edit' : 'Add' }} Branch
+              </h5>
+              <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
+            </div>
+            <form [formGroup]="branchForm" (ngSubmit)="saveBranch()">
+              <div class="emp-att-modal-body modal-body p-4">
+                <!-- Organization Dropdown -->
+                <div class="row mb-3">
+                  <div class="col-md-12 mb-3">
+                    <label for="orgId" class="form-label">Organization <span class="text-danger">*</span></label>
+                    <select class="form-select" id="orgId" formControlName="orgId"
+                            [class.is-invalid]="branchForm.get('orgId')?.invalid && branchForm.get('orgId')?.touched">
+                      <option value="" disabled selected>Select Organization</option>
+                      <option *ngFor="let org of organizations" [value]="org.orgId">
+                        {{ org.orgName }}
+                      </option>
+                    </select>
+                    <div *ngIf="branchForm.get('orgId')?.invalid && branchForm.get('orgId')?.touched" class="invalid-feedback">
+                      <small>Organization is required</small>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Branch Name & Code -->
+                <div class="row mb-3">
+                  <div class="col-md-6 mb-3">
+                    <label for="branchName" class="form-label">Branch Name <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control"
+                           id="branchName"
+                           formControlName="branchName"
+                           placeholder="Enter branch name"
+                           [class.is-invalid]="branchForm.get('branchName')?.invalid && branchForm.get('branchName')?.touched">
+                    <div *ngIf="branchForm.get('branchName')?.invalid && branchForm.get('branchName')?.touched" class="invalid-feedback">
+                      <small *ngIf="branchForm.get('branchName')?.errors?.['required']">Branch name is required</small>
+                      <small *ngIf="branchForm.get('branchName')?.errors?.['minlength']">Minimum 3 characters required</small>
+                    </div>
+                  </div>
+  
+                  <div class="col-md-6 mb-3">
+                    <label for="branchCode" class="form-label">Branch Code <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control"
+                           id="branchCode"
+                           formControlName="branchCode"
+                           placeholder="e.g., TPH"
+                           [class.is-invalid]="branchForm.get('branchCode')?.invalid && branchForm.get('branchCode')?.touched">
+                    <div *ngIf="branchForm.get('branchCode')?.invalid && branchForm.get('branchCode')?.touched" class="invalid-feedback">
+                      <small *ngIf="branchForm.get('branchCode')?.errors?.['required']">Branch code is required</small>
+                      <small *ngIf="branchForm.get('branchCode')?.errors?.['pattern']">Only alphanumeric characters and hyphens allowed</small>
+                    </div>
+                  </div>
+                </div>
+  
+                <!-- Dzongkhag & Thromde -->
+                <div class="row mb-3">
+                  <div class="col-md-6 mb-3">
+                    <label for="dzongkhag" class="form-label">Dzongkhag <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control"
+                           id="dzongkhag"
+                           formControlName="dzongkhag"
+                           placeholder="Enter dzongkhag"
+                           [class.is-invalid]="branchForm.get('dzongkhag')?.invalid && branchForm.get('dzongkhag')?.touched">
+                    <div *ngIf="branchForm.get('dzongkhag')?.invalid && branchForm.get('dzongkhag')?.touched" class="invalid-feedback">
+                      <small>Dzongkhag is required</small>
+                    </div>
+                  </div>
+  
+                  <div class="col-md-6 mb-3">
+                    <label for="thromde" class="form-label">Thromde <span class="text-danger">*</span></label>
+                    <input type="text"
+                           class="form-control"
+                           id="thromde"
+                           formControlName="thromde"
+                           placeholder="Enter thromde"
+                           [class.is-invalid]="branchForm.get('thromde')?.invalid && branchForm.get('thromde')?.touched">
+                    <div *ngIf="branchForm.get('thromde')?.invalid && branchForm.get('thromde')?.touched" class="invalid-feedback">
+                      <small>Thromde is required</small>
+                    </div>
+                  </div>
+                </div>
+  
+                <!-- Status -->
+                <div class="mb-4">
+                  <label class="form-label">Status <span class="text-danger">*</span></label>
+                  <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="operationalStatus" formControlName="operationalStatus">
+                    <label class="form-check-label" for="operationalStatus">
+                      {{ branchForm.get('operationalStatus')?.value ? 'Active' : 'Inactive' }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
+                <button type="button" class="emp-att-cancel-btn btn btn-outline-dark" (click)="closeModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="branchForm.invalid">
+                  {{ isEditing ? 'Update' : 'Save' }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+      <div class="emp-att-modal-backdrop fade show" [style.display]="'block'" (click)="closeModal()"></div>
+    </ng-template>
+  </div>

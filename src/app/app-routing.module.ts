@@ -160,6 +160,11 @@ export const routes: Routes = [
       },
 
       {
+        path: 'branches',
+        loadComponent: () => import('./demo/branches/branches.component').then((c) => c.BranchesComponent)
+      },
+
+      {
         path: 'job-management',
         children: [
           { path: '', redirectTo: 'job-grade', pathMatch: 'full' },
