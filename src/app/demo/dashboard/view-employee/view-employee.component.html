@@ -9,21 +9,21 @@
 
         <div class="filters-and-actions">
           <div class="filter-section">
-            <div class="filter-group">
+            <div class="filter-group" *ngIf="canViewAllEmployees()">
               <label for="yearFilter">Year:</label>
               <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
                 <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
               </select>
             </div>
 
-            <div class="filter-group">
+            <div class="filter-group" *ngIf="canViewAllEmployees()">
               <label for="monthFilter">Month:</label>
               <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
                 <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
               </select>
             </div>
 
-            <div class="filter-group" *ngIf="isViewAll">
+            <div class="filter-group" *ngIf="isViewAll && canViewAllEmployees()">
               <label for="deptFilter">Department:</label>
               <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
                 <option *ngFor="let dept of availableDepartments" [value]="dept === 'All' ? 'All' : dept">
@@ -32,7 +32,7 @@
               </select>
             </div>
 
-            <button class="reset-btn" (click)="resetFilters()" title="Reset Filters">
+            <button class="reset-btn" (click)="resetFilters()" title="Reset Filters" *ngIf="canViewAllEmployees()">
               <i class="ti ti-refresh"></i>
             </button>
 
@@ -52,6 +52,7 @@
         <small class="text-muted">
           Showing data for: <strong>{{ currentMonthName }} {{ selectedYear }}</strong>
           <span *ngIf="selectedDepartment !== 'All'"> | Department: <strong>{{ selectedDepartment }}</strong></span>
+          <span *ngIf="isEmployeeRole()"> | Employee: <strong>{{ getCurrentEmployeeName() }}</strong></span>
         </small>
       </div>
     </div>
@@ -94,7 +95,7 @@
           <tbody>
             <!-- Show employee data if available -->
             <ng-container *ngIf="employees.length > 0">
-              <ng-container *ngFor="let person of employees; let personIndex = index">
+              <ng-container *ngFor="let person of paginatedEmployees; let personIndex = index">
                 <!-- Employee Name and Designation -->
                 <tr class="employee-name-row">
                   <td [attr.colspan]="dynamicDateHeaders.length + 1" class="employee-info">
@@ -183,7 +184,7 @@
                 </tr>
 
                 <!-- Space between employees -->
-                <tr class="employee-spacer" *ngIf="personIndex < employees.length - 1">
+                <tr class="employee-spacer" *ngIf="personIndex < paginatedEmployees.length - 1">
                   <td [attr.colspan]="dynamicDateHeaders.length + 1"></td>
                 </tr>
               </ng-container>
@@ -240,7 +241,7 @@
     <!-- No Data State -->
     <div *ngIf="!isLoading && !errorMessage && employees.length === 0" class="no-data-message">
       <i class="ti ti-info-circle"></i>
-      <span>No attendance data available for the selected period</span>
+      <span>{{ isEmployeeRole() ? 'No attendance data available for your account' : 'No attendance data available for the selected period' }}</span>
     </div>
   </div>
 </div>

@@ -62,13 +62,33 @@ export class AttendanceSheetService {
 
   constructor(private http: HttpClient) { }
 
-  getEmployeeAttendance(employeeId: string, year?: number, month?: number): Observable<AttendanceRecord[]> {
-    let url = `${this.apiUrl}/employee-attendance/employee/${employeeId}`;
-    let params = new HttpParams();
+  /**
+   * Get attendance data for a specific employee - for Employee role or specific employee view
+   */
+  getEmployeeAttendanceData(employeeId: string, year: number, month: number): Observable<EmployeeAttendance | null> {
+    return this.getAllAttendanceData(year, month).pipe(
+      map(allData => {
+        // Find the specific employee's data
+        const employeeData = allData.find(emp => emp.employeeId === employeeId);
+        return employeeData || null;
+      }),
+      catchError(error => {
+        console.error(`Error fetching attendance data for employee ${employeeId}:`, error);
+        return of(null);
+      })
+    );
+  }
 
+  /**
+   * Get attendance for a single employee by making direct API call
+   */
+  getEmployeeAttendance(employeeId: string, year?: number, month?: number): Observable<AttendanceRecord[]> {
+    let url = `${environment.apiUrl}/api/v1/employee-attendance/employee/${employeeId}`;
+    let params = new HttpParams();
+    
     if (year) params = params.set('year', year.toString());
     if (month) params = params.set('month', month.toString());
-
+    
     return this.http.get<AttendanceRecord[]>(url, { params }).pipe(
       catchError(error => {
         console.error('Error fetching employee attendance:', error);
@@ -77,6 +97,9 @@ export class AttendanceSheetService {
     );
   }
 
+  /**
+   * Get all attendance data - for HR, Manager, Admin roles
+   */
   getAllAttendanceData(year: number, month: number, attendanceGroup?: string): Observable<EmployeeAttendance[]> {
     return new Observable(subscriber => {
       let allData: EmployeeAttendance[] = [];
@@ -96,9 +119,9 @@ export class AttendanceSheetService {
               if (response.content && response.content.length > 0) {
                 allData = [...allData, ...response.content];
               }
-
+              
               hasMore = !response.last && response.content && response.content.length > 0;
-
+              
               if (hasMore) {
                 fetchPage(page + 1);
               } else {
@@ -141,12 +164,12 @@ export class AttendanceSheetService {
           };
           return of(emptyResponse);
         }
-
+        
         // For other errors, log once and return empty response
         if (!environment.production && error.status !== 404) {
           console.warn(`API Error (${error.status}):`, error.message);
         }
-
+        
         const errorResponse: ApiResponse = {
           content: [],
           pageable: { pageNumber: 0, pageSize: 0, sort: { empty: true, sorted: false, unsorted: true }, offset: 0, paged: true, unpaged: false },
@@ -158,6 +181,9 @@ export class AttendanceSheetService {
     );
   }
 
+  /**
+   * Get available dates (years and months) for filters
+   */
   getAvailableDates(): Observable<{ years: number[], months: { value: number, name: string }[] }> {
     const currentYear = new Date().getFullYear();
     const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
@@ -170,6 +196,9 @@ export class AttendanceSheetService {
     return of({ years, months });
   }
 
+  /**
+   * Get attendance groups/departments for filter dropdown
+   */
   getAttendanceGroups(year: number, month: number): Observable<string[]> {
     return this.getAllAttendanceData(year, month).pipe(
       map(data => {

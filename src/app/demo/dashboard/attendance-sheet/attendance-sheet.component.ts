@@ -4,9 +4,10 @@ import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AttendanceSheetService } from '../../../services/attendance-sheet.service';
+import { CsvExportService } from '../../../demo/dashboard/csv-export.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Subscription, of, from } from 'rxjs';
 import { catchError, finalize, tap, filter, take, map, concatMap } from 'rxjs/operators';
-import { CsvExportService } from '../csv-export.service';
 
 Chart.register(...registerables);
 
@@ -14,6 +15,7 @@ interface EmployeeSummary {
   employeeId: string;
   name: string;
   designation: string;
+  department: string; // Add department field
   totals: {
     fullDay: number;
     halfDay: number;
@@ -57,6 +59,10 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   selectedYear = this.currentYear;
   selectedMonth = new Date().getMonth() + 1;
 
+  // Search properties
+  searchName = '';
+  searchDepartment = '';
+
   // Available filter options
   availableYears: number[] = [];
   availableMonths: { value: number, name: string }[] = [];
@@ -71,15 +77,28 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   // Summary data
   summary: any = {};
   employees: EmployeeSummary[] = [];
+  filteredEmployees: EmployeeSummary[] = [];
 
   // Pagination
   currentPage = 1;
   itemsPerPage = 6;
   totalItems = 0;
 
-  constructor(private attendanceService: AttendanceSheetService, private csvExportService: CsvExportService, private router: Router) {}
+  // Current user info
+  currentUser: any = null;
+  currentUserRoleBasedId: string | null = null;
+
+  constructor(
+    private attendanceService: AttendanceSheetService, 
+    private csvExportService: CsvExportService, 
+    private router: Router,
+    private authService: AuthService
+  ) {}
 
   ngOnInit(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    this.currentUserRoleBasedId = this.authService.roleBasedId;
+    
     this.initializeFilters();
     this.loadAvailableDates();
     this.loadAttendanceData();
@@ -97,13 +116,28 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.subscription.unsubscribe();
   }
 
+  // Role-based access control methods
+  canViewAllEmployees(): boolean {
+    if (!this.currentUser) return false;
+    const role = this.currentUser.roleName;
+    return ['Admin', 'HR', 'Manager'].includes(role);
+  }
+
+  isEmployeeRole(): boolean {
+    if (!this.currentUser) return false;
+    return this.currentUser.roleName === 'Employee';
+  }
+
   private initializeFilters(): void {
     const currentDate = new Date();
-    this.selectedYear = currentDate.getFullYear();
-    this.selectedMonth = currentDate.getMonth() + 1;
+    // Set to previous month by default to show historical data
+    const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    
+    this.selectedYear = previousMonth.getFullYear();
+    this.selectedMonth = previousMonth.getMonth() + 1;
     this.selectedDepartment = 'All';
     this.currentYear = this.selectedYear;
-    this.currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+    this.currentMonth = previousMonth.toLocaleString('default', { month: 'long' });
   }
 
   private loadAvailableDates(): void {
@@ -111,20 +145,20 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
       next: (data) => {
         this.availableYears = data.years;
         this.availableMonths = data.months;
-
+        
         if (!this.selectedYear && this.availableYears.length > 0) {
           this.selectedYear = this.availableYears[this.availableYears.length - 1];
         }
-
+        
         if (!this.selectedMonth && this.availableMonths.length > 0) {
           this.selectedMonth = this.availableMonths[0].value;
         }
-
+        
         const selectedMonthObj = this.availableMonths.find(m => m.value === this.selectedMonth);
         this.currentMonth = selectedMonthObj ? selectedMonthObj.name : this.currentMonth;
       },
       error: () => {
-        this.availableYears = [this.currentYear - 1, this.currentYear, this.currentYear + 1];
+        this.availableYears = [this.currentYear - 3, this.currentYear - 2, this.currentYear - 1, this.currentYear, this.currentYear + 1];
         this.availableMonths = [
           { value: 1, name: 'January' }, { value: 2, name: 'February' }, { value: 3, name: 'March' },
           { value: 4, name: 'April' }, { value: 5, name: 'May' }, { value: 6, name: 'June' },
@@ -146,10 +180,48 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
 
   resetFilters(): void {
     const currentDate = new Date();
-    this.selectedYear = currentDate.getFullYear();
-    this.selectedMonth = currentDate.getMonth() + 1;
+    // Reset to previous month instead of current month
+    const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    
+    this.selectedYear = previousMonth.getFullYear();
+    this.selectedMonth = previousMonth.getMonth() + 1;
     this.selectedDepartment = 'All';
+    this.clearSearch();
     this.onFilterChange();
+  }
+
+  // Search functionality
+  onSearchChange(): void {
+    this.currentPage = 1; // Reset to first page when searching
+    this.applyFilters();
+  }
+
+  clearSearch(): void {
+    this.searchName = '';
+    this.searchDepartment = '';
+    this.applyFilters();
+  }
+
+  private applyFilters(): void {
+    this.filteredEmployees = this.employees.filter(employee => {
+      const nameMatch = !this.searchName || 
+        employee.name.toLowerCase().includes(this.searchName.toLowerCase());
+      
+      const deptMatch = !this.searchDepartment || 
+        employee.designation.toLowerCase().includes(this.searchDepartment.toLowerCase()) ||
+        employee.department.toLowerCase().includes(this.searchDepartment.toLowerCase());
+      
+      return nameMatch && deptMatch;
+    });
+    
+    this.totalItems = this.filteredEmployees.length;
+  }
+
+  // Pagination for filtered employees
+  get paginatedEmployees(): EmployeeSummary[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredEmployees.slice(startIndex, endIndex);
   }
 
   private loadAttendanceData(): void {
@@ -158,27 +230,52 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.errorMessage = '';
     this.currentPage = 1;
     this.employees = [];
+    this.filteredEmployees = [];
     this.summary = {};
-
+    
     // Always generate headers first
     this.generateMonthHeaders(this.selectedMonth, this.selectedYear);
 
-    const loadData$ = this.attendanceService.getAllAttendanceData(
-      this.selectedYear,
-      this.selectedMonth,
-      this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
-    ).pipe(
-      catchError(error => {
-        console.warn('API call failed:', error);
-        return of([]); // Return empty array on error
-      })
-    );
+    // Determine what data to load based on role
+    let loadData$;
+    
+    if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
+      // Employee role - load only their data
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.currentUserRoleBasedId,
+        this.selectedYear,
+        this.selectedMonth
+      ).pipe(
+        map(data => data ? [data] : []), // Wrap single employee data in array
+        catchError(error => {
+          console.warn('Employee API call failed:', error);
+          return of([]);
+        })
+      );
+    } else if (this.canViewAllEmployees()) {
+      // HR, Manager, Admin roles - load all data
+      loadData$ = this.attendanceService.getAllAttendanceData(
+        this.selectedYear,
+        this.selectedMonth,
+        this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+      ).pipe(
+        catchError(error => {
+          console.warn('API call failed:', error);
+          return of([]);
+        })
+      );
+    } else {
+      // No access
+      this.errorMessage = 'You do not have permission to view attendance data.';
+      this.isLoading = false;
+      return;
+    }
 
     const sub = loadData$.subscribe({
       next: (data) => {
         if (data && data.length > 0) {
           this.processAttendanceData(data);
-          this.totalItems = this.employees.length;
+          this.applyFilters(); // Apply search filters after loading data
           this.updateChartData();
           this.hasError = false;
         } else {
@@ -192,14 +289,14 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         this.loadLatestAvailableData();
       }
     });
-
+    
     this.subscription.add(sub);
   }
 
   private loadLatestAvailableData(): void {
     // Always generate headers for current selection first
     this.generateMonthHeaders(this.selectedMonth, this.selectedYear);
-
+    
     const currentDate = new Date();
     const monthsToCheck = Array.from({ length: 12 }, (_, i) => {
       const checkDate = new Date();
@@ -208,39 +305,57 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     });
 
     const sub = from(monthsToCheck).pipe(
-      concatMap(({ year, month }) =>
-        this.attendanceService.getAllAttendanceData(
-          year,
-          month,
-          this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
-        ).pipe(
-          map(data => ({ data, year, month })),
-          catchError(() => of({ data: [], year, month }))
-        )
-      ),
-      filter(({ data }) => data && data.length > 0),
+      concatMap(({ year, month }) => {
+        let loadData$;
+        
+        if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
+          loadData$ = this.attendanceService.getEmployeeAttendanceData(
+            this.currentUserRoleBasedId,
+            year,
+            month
+          ).pipe(
+            map(data => ({ data: data ? [data] : [], year, month })),
+            catchError(() => of({ data: [], year, month }))
+          );
+        } else {
+          loadData$ = this.attendanceService.getAllAttendanceData(
+            year, 
+            month, 
+            this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+          ).pipe(
+            map(data => ({ data, year, month })),
+            catchError(() => of({ data: [], year, month }))
+          );
+        }
+        
+        return loadData$;
+      }),
+      filter((result: { data: any[], year: number, month: number }) => result.data && result.data.length > 0),
       take(1)
     ).subscribe({
-      next: ({ data, year, month }) => {
+      next: (result: { data: any[], year: number, month: number }) => {
         // Found data! Update to show the actual month with data
-        this.selectedYear = year;
-        this.selectedMonth = month;
-        this.currentYear = year;
-
-        const monthObj = this.availableMonths.find(m => m.value === month);
-        this.currentMonth = monthObj ? monthObj.name : new Date(year, month - 1, 1).toLocaleString('default', { month: 'long' });
-
-        this.generateMonthHeaders(month, year);
-        this.processAttendanceData(data);
-        this.totalItems = this.employees.length;
+        this.selectedYear = result.year;
+        this.selectedMonth = result.month;
+        this.currentYear = result.year;
+        
+        const monthObj = this.availableMonths.find(m => m.value === result.month);
+        this.currentMonth = monthObj ? monthObj.name : new Date(result.year, result.month - 1, 1).toLocaleString('default', { month: 'long' });
+        
+        this.generateMonthHeaders(result.month, result.year);
+        this.processAttendanceData(result.data);
+        this.applyFilters();
         this.updateChartData();
         this.hasError = false;
       },
       error: () => {
         // Even on error, show the headers with empty data
         this.hasError = true;
-        this.errorMessage = 'No attendance data available for any recent months.';
+        this.errorMessage = this.isEmployeeRole() 
+          ? 'No attendance data available for your account in recent months.'
+          : 'No attendance data available for any recent months.';
         this.employees = [];
+        this.filteredEmployees = [];
         this.updateChartData();
       },
       complete: () => this.isLoading = false
@@ -251,10 +366,10 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
 
   private processAttendanceData(data: any[]) {
     this.employees = [];
-
+    
     if (data && data.length > 0) {
       const uniqueAttendanceGroups = new Set<string>();
-
+      
       data.forEach(employeeData => {
         if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
           const attendanceGroup = employeeData.attendanceList[0]?.attendanceGroup;
@@ -270,12 +385,22 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
       data.forEach(employeeData => {
         if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
           const attendanceGroup = employeeData.attendanceList[0]?.attendanceGroup?.trim() || '';
-          const shouldInclude = !this.selectedDepartment ||
-            this.selectedDepartment === 'All' ||
-            attendanceGroup === this.selectedDepartment;
+          
+          // For employees, they can only see their own data
+          if (this.isEmployeeRole()) {
+            const employeeId = employeeData.employeeId || employeeData.attendanceList[0]?.employeeId || '';
+            if (employeeId === this.currentUserRoleBasedId) {
+              this.processEmployeeAttendance(employeeData);
+            }
+          } else {
+            // For HR, Manager, Admin - apply department filter
+            const shouldInclude = !this.selectedDepartment || 
+              this.selectedDepartment === 'All' || 
+              attendanceGroup === this.selectedDepartment;
 
-          if (shouldInclude) {
-            this.processEmployeeAttendance(employeeData);
+            if (shouldInclude) {
+              this.processEmployeeAttendance(employeeData);
+            }
           }
         }
       });
@@ -287,10 +412,29 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   private processEmployeeAttendance(employeeData: any) {
+    // Extract department information - prioritize attendanceGroup, then department field
+    let departmentName = 'Not specified';
+    if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
+      const attendance = employeeData.attendanceList[0];
+      
+      // Debug: Log available fields to understand data structure
+      console.log('Employee Data Structure:', {
+        attendanceGroup: attendance.attendanceGroup,
+        department: attendance.department,
+        firstName: attendance.firstName,
+        lastName: attendance.lastName
+      });
+      
+      departmentName = attendance.attendanceGroup || 
+                     attendance.department || 
+                     'Not specified';
+    }
+
     const employee: EmployeeSummary = {
       employeeId: employeeData.employeeId || employeeData.attendanceList[0]?.employeeId || '',
       name: `${employeeData.attendanceList[0]?.firstName || ''} ${employeeData.attendanceList[0]?.lastName || ''}`.trim(),
       designation: employeeData.attendanceList[0]?.department?.split('>').pop() || '',
+      department: departmentName,
       totals: {
         fullDay: 0, halfDay: 0, presentDay: 0, absentDay: 0, leaves: 0,
         lateDays: 0, holidays: 0, earlyDays: 0, latePenalty: 0, penalty: 0,
@@ -299,12 +443,12 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     };
 
     const daysInMonth = new Date(this.selectedYear, this.selectedMonth, 0).getDate();
-
+    
     if (employeeData.attendanceList && Array.isArray(employeeData.attendanceList)) {
       employeeData.attendanceList.forEach(attendance => {
         const attendanceDate = new Date(attendance.attendanceDate);
         const dayOfWeek = attendanceDate.getDay();
-
+        
         if (dayOfWeek === 0) { // Sunday
           employee.totals.holidays++;
           return;
@@ -314,7 +458,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         if (attendance.actualCheckInTime && attendance.actualCheckOutTime &&
             attendance.actualCheckInTime !== '00:00:00' && attendance.actualCheckOutTime !== '00:00:00') {
           const workingHours = this.parseTimeToMinutes(attendance.totalDuration);
-
+          
           if (dayOfWeek === 6) { // Saturday
             dayStatus = workingHours >= 240 ? 'PP' : 'AA';
           } else {
@@ -395,12 +539,12 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     const totalWorkingDays = this.calculateWorkingDays(this.selectedMonth, this.selectedYear);
     const presentDays = this.summary.presentDays;
     const totalPossibleDays = totalWorkingDays * Math.max(1, this.employees.length);
-
+    
     let ratio = 0;
     if (totalPossibleDays > 0 && !isNaN(presentDays)) {
       ratio = (presentDays / totalPossibleDays) * 100;
     }
-
+    
     this.attendanceRatio = isNaN(ratio) ? 0 : Math.min(Math.max(0, Math.round(ratio)), 100);
   }
 
@@ -427,7 +571,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
 
   private updateChartData() {
     this.dailyAttendanceData = [];
-
+    
     for (let i = 0; i < this.daysInMonth; i++) {
       let dailyCount = 0;
       this.employees.forEach(employee => {
@@ -517,23 +661,30 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     return penaltyDays > 0 ? (penaltyDays === 1 ? '1 Day' : `${penaltyDays} Days`) : '--';
   }
 
-  exportToExcel() {
-    if (!this.employees || this.employees.length === 0) {
+  exportToExcel() { 
+    if (!this.filteredEmployees || this.filteredEmployees.length === 0) {
       alert('No data available to export');
       return;
     }
 
     const monthName = this.availableMonths[this.selectedMonth - 1]?.name || 'Unknown';
-
+    
+    // Export filtered employees based on search
     this.csvExportService.exportSummaryToCSV(
-      this.employees,
+      this.filteredEmployees,
       monthName,
       this.selectedYear,
       this.selectedDepartment
     );
   }
-  exportToPDF() { console.log('Exporting to PDF...'); }
-  printReport() { window.print(); }
+
+  exportToPDF() { 
+    console.log('Exporting to PDF...'); 
+  }
+
+  printReport() { 
+    window.print(); 
+  }
 
   // Pagination
   get totalPages(): number {
@@ -546,7 +697,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
     const endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
     startPage = Math.max(1, endPage - maxVisiblePages + 1);
-
+    
     for (let i = startPage; i <= endPage; i++) {
       pages.push(i);
     }
