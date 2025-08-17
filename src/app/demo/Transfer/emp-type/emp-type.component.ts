@@ -38,7 +38,7 @@ interface TransferType {
 }
 
 @Component({
-  selector: 'app-emp-transfer',
+  selector: 'app-transfer-types',
   standalone: true,
   imports: [
     CommonModule,

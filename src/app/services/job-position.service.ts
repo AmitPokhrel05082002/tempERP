@@ -3,6 +3,7 @@ import { environment } from 'src/environments/environment';
 import { HttpClient, HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { Observable, catchError, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { AuthService } from '../core/services/auth.service';
 
 const API_BASE_URL = environment.apiUrl;
 
@@ -59,15 +60,22 @@ export interface Position {
 export class JobPositionService {
   private apiUrl = `${API_BASE_URL}/api/v1/job-positions`;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) { }
 
   getOrganizations(): Observable<Organization[]> {
-    const token = localStorage.getItem('token');
+    const token = this.authService.getToken();
+    if (!token) {
+      return throwError(() => new Error('No authentication token found'));
+    }
+
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
-
+    
     return this.http.get<Organization[]>(`${API_BASE_URL}/api/v1/organizations`, { headers }).pipe(
       catchError(error => this.handleError(error))
     );
@@ -84,16 +92,34 @@ export class JobPositionService {
   }
 
   getGrades(orgId: string): Observable<Grade[]> {
-    const token = localStorage.getItem('token');
+    if (!orgId) {
+      console.error('Organization ID is required to fetch grades');
+      return new Observable(subscriber => {
+        subscriber.next([]);
+        subscriber.complete();
+      });
+    }
+
+    const token = this.authService.getToken();
+    if (!token) {
+      console.error('No authentication token found');
+      return throwError(() => new Error('Authentication required'));
+    }
+
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
     });
-
-    const url = `${API_BASE_URL}api/v1/job-grades/organization/${orgId}`;
-    return this.http.get<Grade[]>(url, { headers }).pipe(
-      map(response => Array.isArray(response) ? response : (response as any).data || []),
-      catchError(error => this.handleError(error))
+    
+    const url = `${API_BASE_URL}/api/v1/job-grades/organization/${orgId}`.replace(/([^:]\/)\/+/g, '$1');
+    
+    return this.http.get<Grade[] | { data: Grade[] }>(url, { headers }).pipe(
+      map(response => {
+        return Array.isArray(response) ? response : (response?.data || []);
+      }),
+      catchError(error => {
+        return this.handleError(error);
+      })
     );
   }
 

@@ -202,8 +202,9 @@
           </div>
         </div>
 
-        <!-- Position Name & Code -->
+        <!-- Position Name & Grade -->
         <div class="row mb-3">
+          <!-- Position Name -->
           <div class="col-md-6 mb-3">
             <label for="positionName" class="form-label">Position Name <span class="text-danger">*</span></label>
             <input type="text"
@@ -218,23 +219,6 @@
             </div>
           </div>
 
-          <div class="col-md-6 mb-3">
-            <label for="positionCode" class="form-label">Position Code <span class="text-danger">*</span></label>
-            <input type="text"
-                   class="form-control"
-                   id="positionCode"
-                   formControlName="positionCode"
-                   placeholder="e.g., DEV-001"
-                   [class.is-invalid]="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched">
-            <div *ngIf="positionForm.get('positionCode')?.invalid && positionForm.get('positionCode')?.touched" class="invalid-feedback">
-              <small *ngIf="positionForm.get('positionCode')?.errors?.['required']">Position code is required</small>
-              <small *ngIf="positionForm.get('positionCode')?.errors?.['pattern']">Only alphanumeric characters and hyphens allowed</small>
-            </div>
-          </div>
-        </div>
-
-        <!-- Grade & Manager -->
-        <div class="row mb-3">
           <!-- Grade Dropdown -->
           <div class="col-md-6 mb-3" *ngIf="orgId; else noOrgSelectedForGrade">
             <label for="gradeId" class="form-label">Grade <span class="text-danger">*</span></label>
@@ -262,15 +246,6 @@
               <input type="text" class="form-control" placeholder="Select organization to enable" disabled>
             </div>
           </ng-template>
-
-          <div class="col-md-6 mb-3">
-            <label for="reportingManagerPosition" class="form-label">Reporting Manager Position ID</label>
-            <input type="text"
-                   class="form-control"
-                   id="reportingManagerPosition"
-                   formControlName="reportingManagerPosition"
-                   placeholder="Enter manager's position ID (optional)">
-          </div>
         </div>
 
         <!-- Skill Requirements -->

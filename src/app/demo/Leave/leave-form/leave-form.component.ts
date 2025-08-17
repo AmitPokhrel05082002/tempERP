@@ -8,6 +8,13 @@ import { EmployeeTransferService } from '../../../services/employee-transfer.ser
 import Swal from 'sweetalert2';
 import { AuthService } from '../../../core/services/auth.service';
 
+// Add this enum (or use your existing role definitions)
+enum UserRole {
+  EMPLOYEE = 'employee',
+  HR_MANAGER = 'hr_manager',
+  ADMIN = 'admin'
+}
+
 @Component({
   selector: 'app-leave-form',
   standalone: true,
@@ -25,6 +32,9 @@ export class LeaveFormComponent implements OnInit {
   today = new Date().toISOString().split('T')[0];
   
   leaveTypes: { id: string; name: string }[] = [];
+  isEmployee = false;
+  isHrManager = false;
+  isAdmin = false;
 
   constructor(
     private fb: FormBuilder, 
@@ -34,7 +44,7 @@ export class LeaveFormComponent implements OnInit {
     private router: Router
   ) {
     this.leaveForm = this.fb.group({
-      cid: [{value: '', disabled: true}, [Validators.required]],
+      cid: ['', [Validators.required]], // Start with enabled field
       leaveTypeId: ['', [Validators.required]],
       leaveName: ['', [Validators.required]],
       fromDate: ['', [Validators.required]],
@@ -46,31 +56,51 @@ export class LeaveFormComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.checkUserRole();
     this.fetchEmployeeCid();
     this.fetchLeaveTypes();
   }
 
-  private fetchEmployeeCid(): void {
+  private checkUserRole(): void {
     const currentUser = this.authService.currentUserValue;
-    if (currentUser && currentUser.empId) {
-      this.employeeTransferService.getEmployeeProfile(currentUser.empId).subscribe({
-        next: (profile) => {
-          if (profile.cidNumber) {
-            this.leaveForm.patchValue({ cid: profile.cidNumber });
-          } else {
-            this.errorMessage = 'Could not retrieve your CID. Please contact HR.';
-          }
-        },
-        error: (error) => {
-          console.error('Error fetching employee profile:', error);
-          this.errorMessage = 'Failed to load your profile. Please try again later.';
-        }
-      });
-    } else {
-      this.errorMessage = 'User not authenticated. Please log in again.';
+    if (currentUser) {
+      const userRole = currentUser.roleName?.toLowerCase();
+      this.isEmployee = userRole === UserRole.EMPLOYEE;
+      this.isHrManager = userRole === UserRole.HR_MANAGER;
+      this.isAdmin = userRole === UserRole.ADMIN;
     }
   }
-  
+
+  private fetchEmployeeCid(): void {
+    const currentUser = this.authService.currentUserValue;
+    if (!currentUser) {
+      this.errorMessage = 'User not authenticated. Please log in again.';
+      return;
+    }
+
+    if (this.isEmployee) {
+      // For employees, disable and fetch CID
+      this.leaveForm.get('cid')?.disable();
+      if (currentUser.empId) {
+        this.employeeTransferService.getEmployeeProfile(currentUser.empId).subscribe({
+          next: (profile) => {
+            if (profile.cidNumber) {
+              this.leaveForm.patchValue({ cid: profile.cidNumber });
+            } else {
+              this.errorMessage = 'Could not retrieve your CID. Please contact HR.';
+            }
+          },
+          error: (error) => {
+            console.error('Error fetching employee profile:', error);
+            this.errorMessage = 'Failed to load your profile. Please try again later.';
+          }
+        });
+      }
+    } else {
+      // For HR/Admin, keep field enabled
+      this.leaveForm.get('cid')?.enable();
+    }
+  }
 
   async onSubmit() {
     if (this.leaveForm.invalid) {
@@ -81,14 +111,12 @@ export class LeaveFormComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
 
-    // Get the raw form value including disabled fields
     const formValue = {
       ...this.leaveForm.getRawValue(), // This includes disabled fields
       fromDate: this.formatDate(this.leaveForm.get('fromDate')?.value),
       toDate: this.formatDate(this.leaveForm.get('toDate')?.value)
     };
 
-    // Prepare the form data with all required fields
     const formData = {
       cid: formValue.cid,
       leaveTypeId: formValue.leaveTypeId,
