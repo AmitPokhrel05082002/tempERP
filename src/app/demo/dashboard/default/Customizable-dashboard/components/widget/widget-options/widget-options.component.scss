@@ -1,0 +1,300 @@
+:host {
+  position: absolute;
+  z-index: 2;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.95));
+  backdrop-filter: blur(10px);
+  color: #334155;
+  top: 0;
+  left: 0;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  box-sizing: border-box;
+  padding: 8px;
+  --mat-standard-button-toggle-height: 28px;
+
+  > div {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #475569;
+    width: 100%;
+    justify-content: center;
+    min-height: 28px;
+    flex-wrap: wrap;
+  }
+}
+
+/* When container is wider than 200px */
+:host[style*="width"] {
+  padding: 12px;
+  --mat-standard-button-toggle-height: 32px;
+}
+
+:host[style*="width"] > div {
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  min-height: 32px;
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+/* Close button styling */
+.close-button {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+}
+
+.close-button:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* Move buttons styling */
+.move-forward-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 4px;
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+}
+
+.move-forward-button:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-50%) translateX(1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+.move-backward-button {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  left: 4px;
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(59, 130, 246, 0.1) !important;
+  color: #2563eb !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+}
+
+.move-backward-button:hover {
+  background: rgba(59, 130, 246, 0.15) !important;
+  transform: translateY(-50%) translateX(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+
+/* Remove button styling */
+.remove-widget-button {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px !important;
+  height: 24px !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+  color: #dc2626 !important;
+  border: 1px solid rgba(239, 68, 68, 0.2) !important;
+  border-radius: 6px !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 24px !important;
+}
+
+.remove-widget-button:hover {
+  background: rgba(239, 68, 68, 0.15) !important;
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
+}
+
+/* Button toggle group styling */
+mat-button-toggle-group {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  flex-shrink: 0;
+  height: 28px;
+}
+
+mat-button-toggle {
+  background: rgba(255, 255, 255, 0.8) !important;
+  color: #475569 !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+  font-weight: 500 !important;
+  backdrop-filter: blur(5px);
+  min-width: 20px !important;
+  width: 20px !important;
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+  font-size: 10px !important;
+  padding: 0 !important;
+}
+
+mat-button-toggle:hover {
+  background: rgba(248, 250, 252, 0.9) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+mat-button-toggle.mat-button-toggle-checked {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+  color: white !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+mat-button-toggle.mat-button-toggle-checked:hover {
+  background: linear-gradient(135deg, #2563eb, #1e40af) !important;
+}
+
+/* Icon styling */
+mat-icon {
+  font-size: 14px !important;
+  width: 14px !important;
+  height: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: 1 !important;
+}
+
+/* Focus states for accessibility */
+.close-button:focus,
+.move-forward-button:focus,
+.move-backward-button:focus,
+.remove-widget-button:focus {
+  outline: 1px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+mat-button-toggle:focus {
+  outline: 1px solid #3b82f6;
+  outline-offset: 1px;
+}
+
+/* Subtle animation on component load */
+:host {
+  animation: fadeInScale 0.2s ease-out;
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Better handling for very small containers */
+:host {
+  min-width: 120px;
+  min-height: 80px;
+}
+
+/* When there's more space available */
+@media (min-width: 300px) and (min-height: 200px) {
+  :host {
+    padding: 16px;
+    --mat-standard-button-toggle-height: 32px;
+  }
+
+  > div {
+    gap: 16px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    min-height: 32px;
+    justify-content: flex-start;
+  }
+
+  .close-button,
+  .remove-widget-button {
+    top: 8px;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+  }
+
+  .close-button {
+    right: 8px;
+  }
+
+  .remove-widget-button {
+    left: 8px;
+  }
+
+  .move-forward-button,
+  .move-backward-button {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 8px !important;
+  }
+
+  .move-forward-button {
+    right: 8px;
+  }
+
+  .move-backward-button {
+    left: 8px;
+  }
+
+  mat-button-toggle {
+    min-width: 26px !important;
+    width: 26px !important;
+    height: 29px !important;
+    font-size: 10px !important;
+  }
+
+  mat-icon {
+    font-size: 20px !important;
+    width: 20px !important;
+    height: 20px !important;
+  }
+}

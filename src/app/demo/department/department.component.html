@@ -14,52 +14,66 @@
       <div class="search-filter-row">
         <div class="search-input-wrapper">
           <i class="ti ti-search"></i>
-          <input type="text" placeholder="Search positions..." disabled />
+          <input 
+            type="text" 
+            placeholder="Search departments..." 
+            [(ngModel)]="searchQuery" 
+            (input)="applyFilters()"
+            (keyup.enter)="applyFilters()"
+          />
         </div>
 
         <div class="filter-container">
           <button class="filter-icon" (click)="toggleFilters($event)" [class.active]="showFilters">
             <i class="ti ti-filter-2"></i>
             <span>Filters</span>
-            <span class="filter-count">2</span>
+            <span class="filter-count" *ngIf="activeFilterCount > 0">{{ activeFilterCount }}</span>
           </button>
 
           <div class="filter-dropdown" [class.show]="showFilters">
             <div class="filter-section">
-              <h4>Position Name</h4>
+              <h4>Organization</h4>
               <div class="filter-options">
                 <div class="filter-options-scroll">
-                  <label class="filter-option">
-                    <input type="checkbox" checked disabled />
-                    <span>Developer</span>
-                  </label>
-                  <label class="filter-option">
-                    <input type="checkbox" disabled />
-                    <span>Manager</span>
+                  <label class="filter-option" *ngFor="let org of organizations">
+                    <input 
+                      type="checkbox" 
+                      [checked]="selectedOrganizations.includes(org.orgId)"
+                      (change)="toggleOrganization(org.orgId); applyFilters()"
+                    />
+                    <span>{{ org.orgName }}</span>
                   </label>
                 </div>
               </div>
             </div>
 
             <div class="filter-section">
-              <h4>Grade</h4>
+              <h4>Status</h4>
               <div class="filter-options">
                 <div class="filter-options-scroll">
                   <label class="filter-option">
-                    <input type="checkbox" checked disabled />
-                    <span>G1</span>
+                    <input 
+                      type="checkbox" 
+                      [checked]="selectedStatus === 'active'"
+                      (change)="toggleStatus('active'); applyFilters()"
+                    />
+                    <span>Active</span>
                   </label>
                   <label class="filter-option">
-                    <input type="checkbox" disabled />
-                    <span>G2</span>
+                    <input 
+                      type="checkbox" 
+                      [checked]="selectedStatus === 'inactive'"
+                      (change)="toggleStatus('inactive'); applyFilters()"
+                    />
+                    <span>Inactive</span>
                   </label>
                 </div>
               </div>
             </div>
 
             <div class="filter-actions">
-              <button class="clear-btn" (click)="closeFilters()">Clear All</button>
-              <button class="apply-btn" (click)="closeFilters()">Apply</button>
+              <button type="button" class="clear-btn" (click)="clearFilters()">Clear All</button>
+              <button type="button" class="apply-btn" (click)="showFilters = false">Close</button>
             </div>
           </div>
         </div>
@@ -152,7 +166,7 @@
           <div class="col-12">
             <h6 class="border-bottom pb-2 mb-3">Department Information</h6>
           </div>
-
+      
           <div class="col-md-6">
             <label for="dept_name" class="form-label">Department Name <span class="text-danger">*</span></label>
             <input
@@ -167,21 +181,7 @@
               <div *ngIf="departmentForm.get('dept_name')?.hasError('minlength')">Department name must be at least 3 characters</div>
             </div>
           </div>
-
-          <div class="col-md-6">
-            <label for="dept_code" class="form-label">Department Code <span class="text-danger">*</span></label>
-            <input
-              type="text"
-              class="form-control"
-              id="dept_code"
-              formControlName="dept_code"
-              [ngClass]="{ 'is-invalid': departmentForm.get('dept_code')?.invalid && departmentForm.get('dept_code')?.touched }"
-              placeholder="e.g., HR_001">
-            <div *ngIf="departmentForm.get('dept_code')?.invalid && departmentForm.get('dept_code')?.touched" class="invalid-feedback">
-              Department code is required
-            </div>
-          </div>
-
+      
           <div class="col-md-6">
             <label for="org_id" class="form-label">Organization <span class="text-danger">*</span></label>
             <div *ngIf="isLoadingOrganizations" class="form-control">
@@ -205,7 +205,7 @@
               Please select an organization
             </div>
           </div>
-
+      
           <div class="col-md-6">
             <label for="branch_id" class="form-label">Branch <span class="text-danger">*</span></label>
             <div *ngIf="isLoadingBranches" class="form-control">
@@ -229,77 +229,13 @@
               Please select a branch
             </div>
           </div>
-
-          <div class="col-md-6">
-            <label for="parent_dept_id" class="form-label">Parent Department ID</label>
-            <input
-              type="text"
-              class="form-control"
-              id="parent_dept_id"
-              formControlName="parent_dept_id"
-              placeholder="Enter parent department ID">
-          </div>
-
-          <div class="col-md-6">
-            <label for="dept_head_id" class="form-label">Department Head ID</label>
-            <input
-              type="text"
-              class="form-control"
-              id="dept_head_id"
-              formControlName="dept_head_id"
-              placeholder="Enter department head ID">
-          </div>
-
-          <div class="col-md-6">
-            <label for="budget_allocation" class="form-label">Budget Allocation</label>
-            <div class="input-group">
-              <input
-                type="number"
-                class="form-control"
-                id="budget_allocation"
-                formControlName="budget_allocation"
-                min="0"
-                step="0.01"
-                [ngClass]="{ 'is-invalid': departmentForm.get('budget_allocation')?.invalid && departmentForm.get('budget_allocation')?.touched }"
-                placeholder="Enter budget allocation">
-            </div>
-            <div *ngIf="departmentForm.get('budget_allocation')?.invalid && departmentForm.get('budget_allocation')?.touched" class="invalid-feedback d-block">
-              Budget must be a positive number
-            </div>
-          </div>
-
-          <div class="col-12">
-            <h6 class="border-bottom pb-2 mb-3 mt-4">Additional Information</h6>
-          </div>
-
-          <div class="col-md-6">
-            <label for="approval_hierarchy" class="form-label">Approval Hierarchy</label>
-            <input
-              type="text"
-              class="form-control"
-              id="approval_hierarchy"
-              formControlName="approval_hierarchy"
-              placeholder="Enter approval hierarchy">
-            <small class="form-text text-muted">Enter the approval hierarchy details</small>
-          </div>
-
-          <div class="col-md-6">
-            <label for="reporting_structure" class="form-label">Reporting Structure</label>
-            <input
-              type="text"
-              class="form-control"
-              id="reporting_structure"
-              formControlName="reporting_structure"
-              placeholder="Enter reporting structure">
-            <small class="form-text text-muted">Enter the reporting structure details</small>
-          </div>
         </div>
-
         <!-- Error Message -->
         <div *ngIf="error" class="alert alert-danger mt-3 mb-0">
           <i class="ti ti-alert-circle me-2"></i> {{ error }}
         </div>
       </div>
+      
       <div class="modal-footer">
         <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()" [disabled]="isSubmitting">
           Cancel

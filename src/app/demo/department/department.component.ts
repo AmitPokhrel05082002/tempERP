@@ -32,6 +32,12 @@ export class DepartmentComponent implements OnInit {
   organizations: Partial<Organization>[] = [];
   branches: Partial<Branch>[] = [];
   showFilters = false;
+  
+  // Filter properties
+  searchQuery = '';
+  selectedOrganizations: string[] = [];
+  selectedStatus: string | null = null;
+  activeFilterCount = 0;
   currentPage = 1;
   itemsPerPage = 10;
   private _totalPages = 1;
@@ -55,12 +61,8 @@ export class DepartmentComponent implements OnInit {
   ) {
     this.departmentForm = this.fb.group({
       dept_name: ['', [Validators.required, Validators.minLength(3)]],
-      dept_code: ['', [Validators.required]],
       org_id: ['', [Validators.required]],
       branch_id: ['', [Validators.required]],
-      parent_dept_id: [''],
-      dept_head_id: [''],
-      budget_allocation: [0, [Validators.min(0)]]
     });
   }
 
@@ -75,23 +77,22 @@ export class DepartmentComponent implements OnInit {
   initializeForm() {
     this.departmentForm = this.fb.group({
       dept_name: ['', [Validators.required, Validators.minLength(3)]],
-      dept_code: ['', [Validators.required]],
       org_id: ['', [Validators.required]],
       branch_id: ['', [Validators.required]],
-      parent_dept_id: [''],  // Empty string instead of null for consistency
-      dept_head_id: [''],    // Empty string instead of null for consistency
-      budget_allocation: [100000, [Validators.min(0)]],
-      approval_hierarchy: [null],
-      reporting_structure: [null]
     });
   }
 
   private updatePagination() {
+    if (!this.filteredDepartments) {
+      this._paginatedDepartments = [];
+      this._totalPages = 0;
+      return;
+    }
+    
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const endIndex = startIndex + this.itemsPerPage;
-    this.filteredDepartments = [...this.departments];
     this._paginatedDepartments = this.filteredDepartments.slice(startIndex, endIndex);
-    this._totalPages = Math.ceil(this.filteredDepartments.length / this.itemsPerPage);
+    this._totalPages = Math.ceil(this.filteredDepartments.length / this.itemsPerPage) || 1;
   }
 
   loadDepartments(): void {
@@ -107,7 +108,7 @@ export class DepartmentComponent implements OnInit {
             branch_name: dept.branch?.branchName || 'N/A',
             sub_departments_count: dept.sub_departments?.length || 0
           }));
-          this.updatePagination();
+          this.applyFilters();
         } else {
           this.error = response?.message || 'Failed to load departments';
         }
@@ -119,6 +120,58 @@ export class DepartmentComponent implements OnInit {
         console.error('Error loading departments:', err);
       }
     });
+  }
+
+  applyFilters(): void {
+    if (!this.departments) return;
+    
+    this.filteredDepartments = this.departments.filter(dept => {
+      // Search filter - check if search query matches dept_name or dept_code
+      const searchMatch = !this.searchQuery || 
+                         (dept.dept_name && dept.dept_name.toLowerCase().includes(this.searchQuery.trim().toLowerCase())) ||
+                         (dept.dept_code && dept.dept_code.toLowerCase().includes(this.searchQuery.trim().toLowerCase()));
+      
+      // Organization filter - check if department's orgId is in selectedOrganizations
+      const orgMatch = this.selectedOrganizations.length === 0 || 
+                      (dept.organization && this.selectedOrganizations.includes(dept.organization.orgId));
+      
+      // Status filter - check if status matches the selected status
+      const statusMatch = this.selectedStatus === null || 
+                         (this.selectedStatus === 'active' && dept.status === true) || 
+                         (this.selectedStatus === 'inactive' && dept.status === false);
+      
+      return searchMatch && orgMatch && statusMatch;
+    });
+
+    // Update filter count
+    this.activeFilterCount = 
+      (this.searchQuery.trim() ? 1 : 0) + 
+      this.selectedOrganizations.length + 
+      (this.selectedStatus !== null ? 1 : 0);
+
+    // Reset to first page and update pagination
+    this.currentPage = 1;
+    this.updatePagination();
+  }
+
+  toggleOrganization(orgId: string): void {
+    const index = this.selectedOrganizations.indexOf(orgId);
+    if (index === -1) {
+      this.selectedOrganizations.push(orgId);
+    } else {
+      this.selectedOrganizations.splice(index, 1);
+    }
+  }
+
+  toggleStatus(status: string): void {
+    this.selectedStatus = this.selectedStatus === status ? null : status;
+  }
+
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.selectedOrganizations = [];
+    this.selectedStatus = null;
+    this.applyFilters();
   }
 
   get totalPages(): number {
@@ -143,9 +196,23 @@ export class DepartmentComponent implements OnInit {
     }
   }
 
-  toggleFilters(event: Event) {
+  toggleFilters(event: Event): void {
     event.stopPropagation();
     this.showFilters = !this.showFilters;
+    
+    // Close filter dropdown when clicking outside
+    if (this.showFilters) {
+      setTimeout(() => {
+        const clickHandler = (e: MouseEvent) => {
+          const target = e.target as HTMLElement;
+          if (!target.closest('.filter-dropdown') && !target.closest('.filter-icon')) {
+            this.showFilters = false;
+            document.removeEventListener('click', clickHandler);
+          }
+        };
+        document.addEventListener('click', clickHandler);
+      });
+    }
   }
 
   closeFilters() {

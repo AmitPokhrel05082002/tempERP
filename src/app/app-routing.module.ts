@@ -160,6 +160,11 @@ export const routes: Routes = [
       },
 
       {
+        path: 'branches',
+        loadComponent: () => import('./demo/branches/branches.component').then((c) => c.BranchesComponent)
+      },
+
+      {
         path: 'job-management',
         children: [
           { path: '', redirectTo: 'job-grade', pathMatch: 'full' },
@@ -207,6 +212,12 @@ export const routes: Routes = [
          {
         path: 'emp-type',
         loadComponent: () => import('./demo/Transfer/emp-type/emp-type.component').then((c) => c.EmpTypeComponent)
+      },
+      // Redirect transfer-types to emp-type
+      {
+        path: 'transfer-types',
+        redirectTo: 'emp-type',
+        pathMatch: 'full'
       },
        {
         path: 'emp-separation',

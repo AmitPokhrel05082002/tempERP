@@ -1,0 +1,51 @@
+<!-- employee-status.component.html -->
+<div class="employee-status-card">
+  <!-- Total Employees -->
+  <div class="total-section">
+    <div class="total-label">Total Employee</div>
+    <div class="total-count">{{totalEmployees}}</div>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <div *ngFor="let status of employeeStatuses"
+         class="status-segment"
+         [style.width.%]="status.percentage"
+         [style.background-color]="status.color">
+    </div>
+  </div>
+
+  <!-- Status Details Grid -->
+  <div class="status-grid">
+    <!-- First Row -->
+    <div class="status-cell">
+      <div class="status-indicator" [style.background-color]="employeeStatuses[0].color"></div>
+      <div class="status-label">{{employeeStatuses[0].category}} ({{employeeStatuses[0].percentage}}%)</div>
+      <div class="status-value">{{employeeStatuses[0].count}}</div>
+    </div>
+
+    <div class="status-cell">
+      <div class="status-indicator" [style.background-color]="employeeStatuses[1].color"></div>
+      <div class="status-label">{{employeeStatuses[1].category}} ({{employeeStatuses[1].percentage}}%)</div>
+      <div class="status-value">{{employeeStatuses[1].count}}</div>
+    </div>
+
+    <!-- Second Row -->
+    <div class="status-cell">
+      <div class="status-indicator" [style.background-color]="employeeStatuses[2].color"></div>
+      <div class="status-label">{{employeeStatuses[2].category}} ({{employeeStatuses[2].percentage}}%)</div>
+      <div class="status-value">{{employeeStatuses[2].count}}</div>
+    </div>
+
+    <div class="status-cell">
+      <div class="status-indicator" [style.background-color]="employeeStatuses[3].color"></div>
+      <div class="status-label">{{employeeStatuses[3].category}} ({{employeeStatuses[3].percentage}}%)</div>
+      <div class="status-value">{{employeeStatuses[3].count}}</div>
+    </div>
+  </div>
+
+  <!-- View All Link -->
+  <div class="view-all-section">
+    <a href="#" class="view-all-link">View All Employees</a>
+  </div>
+</div>

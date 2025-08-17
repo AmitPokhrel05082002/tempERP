@@ -21,7 +21,7 @@ export interface Organization {
   providedIn: 'root'
 })
 export class OrganizationService {
-  private readonly apiUrl = `${environment.apiUrl}/v1/organizations`;
+  private readonly apiUrl = `${environment.apiUrl}/api/v1/organizations`;
 
   constructor(private http: HttpClient) {}
 

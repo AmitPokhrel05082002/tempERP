@@ -9,13 +9,14 @@
 
   <form [formGroup]="leaveForm" (ngSubmit)="onSubmit()" class="leave-form">
     <div class="form-group">
-      <label for="cid">Employee ID *</label>
+      <label for="cid">{{ isEmployee ? 'Your Employee ID' : 'Employee ID' }} *</label>
       <input 
         type="text" 
         id="cid" 
         formControlName="cid" 
-        placeholder="Enter your employee CID"
+        [placeholder]="isEmployee ? 'Your employee CID' : 'Enter employee CID'"
         [class.is-invalid]="leaveForm.get('cid')?.invalid && leaveForm.get('cid')?.touched"
+        [disabled]="isEmployee"
       >
       <div *ngIf="leaveForm.get('cid')?.invalid && leaveForm.get('cid')?.touched" class="error-message">
         Employee ID is required
@@ -114,7 +115,6 @@
     <div *ngIf="errorMessage" class="error-message">
       {{ errorMessage }}
     </div>
-
 
     <div class="form-actions">
       <button type="button" class="btn btn-secondary" (click)="navigateBack()">Cancel</button>

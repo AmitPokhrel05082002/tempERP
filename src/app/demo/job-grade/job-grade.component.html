@@ -1,4 +1,3 @@
-
 <div class="job-grade-container">
   <div class="header">
     <div class="title">
@@ -15,8 +14,7 @@
     <div class="search-filter-row">
       <div class="search-input-wrapper">
         <i class="ti ti-search"></i>
-        <input type="text" placeholder="Search grades..."
-               (input)="onSearchInput($event)" [value]="searchQuery" />
+        <input type="text" placeholder="Search grades..." (input)="onSearchInput($event)" [value]="searchQuery" />
       </div>
 
       <div class="filter-container">
@@ -33,11 +31,11 @@
             <h4>Grade Name</h4>
             <div class="filter-options">
               <div class="filter-options-scroll">
-                <div *ngFor="let name of (setToArray(filterOptions.positionNames) | slice:0:showAllPositionNames ? undefined : 5)">
+                <div
+                  *ngFor="let name of (setToArray(filterOptions.positionNames) | slice:0:showAllPositionNames ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox"
-                           [checked]="isSelected(filterOptions.selectedPositionNames, name)"
-                           (change)="toggleFilterOption('positionNames', name)">
+                    <input type="checkbox" [checked]="isSelected(filterOptions.selectedPositionNames, name)"
+                      (change)="toggleFilterOption('positionNames', name)">
                     <span>{{ name }}</span>
                   </label>
                 </div>
@@ -56,9 +54,8 @@
               <div class="filter-options-scroll">
                 <div *ngFor="let grade of (setToArray(filterOptions.grades) | slice:0:showAllGrades ? undefined : 5)">
                   <label class="filter-option">
-                    <input type="checkbox"
-                           [checked]="isSelected(filterOptions.selectedGrades, grade)"
-                           (change)="toggleFilterOption('grades', grade)">
+                    <input type="checkbox" [checked]="isSelected(filterOptions.selectedGrades, grade)"
+                      (change)="toggleFilterOption('grades', grade)">
                     <span>{{ grade }}</span>
                   </label>
                 </div>
@@ -149,86 +146,80 @@
     </button>
   </div>
 
-    <!-- Add/Edit Modal -->
-    <div class="emp-att-modal modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="emp-att-modal-content modal-content border-0 shadow">
-                <div class="emp-att-modal-header modal-header bg-warning text-white border-0">
-                    <h5 class="modal-title fw-bold">
-                        {{ isEditMode ? 'Edit' : 'Add' }} Job Grade
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+  <!-- Add/Edit Modal -->
+  <div class="emp-att-modal modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="emp-att-modal-content modal-content border-0 shadow">
+        <div class="emp-att-modal-header modal-header bg-warning text-white border-0">
+          <h5 class="modal-title fw-bold">
+            {{ isEditMode ? 'Edit' : 'Add' }} Job Grade
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+        </div>
+
+        <div class="emp-att-modal-body modal-body p-4">
+          <form [formGroup]="form" (ngSubmit)="saveGrade()">
+            <!-- Row 1 -->
+            <div class="row g-3 mb-3">
+              <div class="col-md-6">
+                <label class="emp-att-form-label form-label fw-medium">Organization</label>
+                <select formControlName="orgId" class="form-control"
+                  (change)="onOrganizationSelect(form.get('orgId')?.value)">
+                  <option value="">Select Organization</option>
+                  <option *ngFor="let org of organizations" [value]="org.orgId">
+                    {{ org.orgName }}
+                  </option>
+                </select>
+                <div *ngIf="form.get('orgId')?.invalid && form.get('orgId')?.touched"
+                  class="emp-att-form-error text-danger small mt-1">
+                  Organization is required
                 </div>
+              </div>
+              <div class="col-md-6">
+                <label class="emp-att-form-label form-label fw-medium">Grade Name</label>
+                <input type="text" class="form-control" formControlName="gradeName" placeholder="Enter grade name">
+                <div *ngIf="form.get('gradeName')?.invalid && form.get('gradeName')?.touched"
+                  class="emp-att-form-error text-danger small mt-1">
+                  Grade name is required
+                </div>
+              </div>
+            </div>
 
-                <div class="emp-att-modal-body modal-body p-4">
-                    <form [formGroup]="form" (ngSubmit)="saveGrade()">
-                        <!-- Row 1 -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="emp-att-form-label form-label fw-medium">Organization</label>
-                                <select formControlName="orgId" class="form-control"
-                                    (change)="onOrganizationSelect(form.get('orgId')?.value)">
-                                    <option value="">Select Organization</option>
-                                    <option *ngFor="let org of organizations" [value]="org.orgId">
-                                        {{ org.orgName }}
-                                    </option>
-                                </select>
-                                <div *ngIf="form.get('orgId')?.invalid && form.get('orgId')?.touched"
-                                    class="emp-att-form-error text-danger small mt-1">
-                                    Organization is required
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="emp-att-form-label form-label fw-medium">Grade Name</label>
-                                <input type="text" class="form-control" formControlName="gradeName"
-                                    placeholder="Enter grade name">
-                                <div *ngIf="form.get('gradeName')?.invalid && form.get('gradeName')?.touched"
-                                    class="emp-att-form-error text-danger small mt-1">
-                                    Grade name is required
-                                </div>
-                            </div>
-                        </div>
+            <!-- Row 2 -->
+            <div class="row g-3 mb-3">
+              <!-- <div class="col-md-6">
+                <label class="emp-att-form-label form-label fw-medium">Grade Code</label>
+                <input type="text" class="form-control" formControlName="gradeCode" placeholder="Enter grade code">
+                <div *ngIf="form.get('gradeCode')?.invalid && form.get('gradeCode')?.touched"
+                  class="emp-att-form-error text-danger small mt-1">
+                  Grade code is required
+                </div>
+              </div> -->
+              <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                  <label class="emp-att-form-label form-label fw-medium">Min Salary</label>
+                  <input type="number" class="form-control" formControlName="minSalary" placeholder="Enter min salary">
+                  <div *ngIf="form.get('minSalary')?.invalid && form.get('minSalary')?.touched"
+                    class="emp-att-form-error text-danger small mt-1">
+                    Min salary is required and must be a positive number
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <label class="emp-att-form-label form-label fw-medium">Max Salary</label>
+                  <input type="number" class="form-control" formControlName="maxSalary" placeholder="Enter max salary">
+                  <div *ngIf="form.get('maxSalary')?.invalid && form.get('maxSalary')?.touched"
+                    class="emp-att-form-error text-danger small mt-1">
+                    Max salary is required and must be a positive number
+                  </div>
+                </div>
+              </div>
+            </div>
 
-                        <!-- Row 2 -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="emp-att-form-label form-label fw-medium">Grade Code</label>
-                                <input type="text" class="form-control" formControlName="gradeCode"
-                                    placeholder="Enter grade code">
-                                <div *ngIf="form.get('gradeCode')?.invalid && form.get('gradeCode')?.touched"
-                                    class="emp-att-form-error text-danger small mt-1">
-                                    Grade code is required
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <label class="emp-att-form-label form-label fw-medium">Min Salary</label>
-                                <input type="number" class="form-control" formControlName="minSalary"
-                                    placeholder="Enter min salary">
-                                <div *ngIf="form.get('minSalary')?.invalid && form.get('minSalary')?.touched"
-                                    class="emp-att-form-error text-danger small mt-1">
-                                    Min salary is required and must be a positive number
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Row 3 -->
-                        <div class="row g-3 mb-3">
-                            <div class="col-md-6">
-                                <label class="emp-att-form-label form-label fw-medium">Max Salary</label>
-                                <input type="number" class="form-control" formControlName="maxSalary"
-                                    placeholder="Enter max salary">
-                                <div *ngIf="form.get('maxSalary')?.invalid && form.get('maxSalary')?.touched"
-                                    class="emp-att-form-error text-danger small mt-1">
-                                    Max salary is required and must be a positive number
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Salary Components Section -->
+            <!-- Salary Components Section - Commented Out -->
+            <!--
                         <div class="mb-4">
                             <h6 class="mb-3">Salary Components</h6>
 
-                            <!-- List of added components -->
                             <div *ngFor="let component of salaryComponentsArray.controls; let i = index" class="card mb-3">
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-center mb-2">
@@ -242,17 +233,14 @@
                                                 [formControl]="getFormControl(component, 'componentValue')"
                                                 min="0">
                                         </div>
-
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Add Component Button -->
                             <button type="button" class="btn btn-outline-primary btn-sm" (click)="showSalaryComponentForm = !showSalaryComponentForm" *ngIf="!showSalaryComponentForm">
                                 <i class="bi bi-plus-lg me-1"></i> Add Salary Component
                             </button>
 
-                            <!-- Add Component Form -->
                             <div class="card mt-3" *ngIf="showSalaryComponentForm">
                                 <div class="card-body">
                                     <h6 class="card-title mb-3">Add Salary Component</h6>
@@ -277,80 +265,84 @@
                                 </div>
                             </div>
                         </div>
+                        -->
 
-                        <!-- Salary Range Validation -->
-                        <div *ngIf="form.hasError('invalidSalaryRange')" class="alert alert-danger">
-                            Max salary must be greater than min salary
-                        </div>
-                    </form>
-                </div>
-
-                <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="emp-att-cancel-btn btn btn-outline-dark" (click)="closeModal()">
-                        Cancel
-                    </button>
-                    <button type="button" class="emp-att-save-btn btn btn-warning"
-                        [disabled]="form.invalid || form.hasError('invalidSalaryRange')" (click)="saveGrade()">
-                        {{ isEditMode ? 'Update' : 'Save' }} Grade
-                    </button>
-                </div>
+            <!-- Salary Range Validation -->
+            <div *ngIf="form.hasError('invalidSalaryRange')" class="alert alert-danger">
+              Max salary must be greater than min salary
             </div>
+          </form>
         </div>
-    </div>
-    <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showModal"
-        [style.display]="showModal ? 'block' : 'none'" (click)="closeModal()">
-    </div>
 
-    <!-- View Grade Modal -->
-    <div class="emp-att-modal modal fade" [class.show]="showViewModal" [style.display]="showViewModal ? 'block' : 'none'">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="emp-att-modal-content modal-content border-0 shadow">
-                <div class="emp-att-modal-header modal-header bg-primary text-white border-0">
-                    <h5 class="modal-title fw-bold">
-                        <i class="bi bi-info-circle me-2"></i>Grade Details
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
+        <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
+          <button type="button" class="emp-att-cancel-btn btn btn-outline-dark" (click)="closeModal()">
+            Cancel
+          </button>
+          <button type="button" class="emp-att-save-btn btn btn-warning"
+            [disabled]="form.invalid || form.hasError('invalidSalaryRange')" (click)="saveGrade()">
+            {{ isEditMode ? 'Update' : 'Save' }} Grade
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showModal"
+    [style.display]="showModal ? 'block' : 'none'" (click)="closeModal()">
+  </div>
+
+  <!-- View Grade Modal -->
+  <div class="emp-att-modal modal fade" [class.show]="showViewModal" [style.display]="showViewModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="emp-att-modal-content modal-content border-0 shadow">
+        <div class="emp-att-modal-header modal-header bg-primary text-white border-0">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-info-circle me-2"></i>Grade Details
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="closeModal()" aria-label="Close"></button>
+        </div>
+
+        <div class="emp-att-modal-body modal-body p-4" *ngIf="viewGradeData">
+          <!-- Grade Details -->
+          <div class="mb-4">
+            <h6 class="mb-3">Grade Information</h6>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="form-label fw-medium">Grade Name</label>
+                  <div class="form-control-plaintext">{{ viewGradeData.gradeName || 'N/A' }}</div>
                 </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="form-label fw-medium">Grade Code</label>
+                  <div class="form-control-plaintext">{{ viewGradeData.gradeCode || 'N/A' }}</div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="form-label fw-medium">Min Salary</label>
+                  <div class="form-control-plaintext">{{ viewGradeData.minSalary | currency:'Nu. ':'symbol':'1.0-0' }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label class="form-label fw-medium">Max Salary</label>
+                  <div class="form-control-plaintext">{{ viewGradeData.maxSalary | currency:'Nu. ':'symbol':'1.0-0' }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-12" *ngIf="viewGradeData.progressionRules">
+                <div class="form-group">
+                  <label class="form-label fw-medium">Progression Rules</label>
+                  <div class="form-control-plaintext">{{ viewGradeData.progressionRules }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
 
-                <div class="emp-att-modal-body modal-body p-4" *ngIf="viewGradeData">
-                    <!-- Grade Details -->
-                    <div class="mb-4">
-                        <h6 class="mb-3">Grade Information</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-medium">Grade Name</label>
-                                    <div class="form-control-plaintext">{{ viewGradeData.gradeName || 'N/A' }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-medium">Grade Code</label>
-                                    <div class="form-control-plaintext">{{ viewGradeData.gradeCode || 'N/A' }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-medium">Min Salary</label>
-                                    <div class="form-control-plaintext">{{ viewGradeData.minSalary | currency:'Nu. ':'symbol':'1.0-0' }}</div>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label class="form-label fw-medium">Max Salary</label>
-                                    <div class="form-control-plaintext">{{ viewGradeData.maxSalary | currency:'Nu. ':'symbol':'1.0-0' }}</div>
-                                </div>
-                            </div>
-                            <div class="col-12" *ngIf="viewGradeData.progressionRules">
-                                <div class="form-group">
-                                    <label class="form-label fw-medium">Progression Rules</label>
-                                    <div class="form-control-plaintext">{{ viewGradeData.progressionRules }}</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Salary Structure -->
+          <!-- Salary Structure - Commented Out -->
+          <!--
                     <div class="mb-4" *ngIf="viewGradeData.salaryStructures && viewGradeData.salaryStructures.length > 0">
                         <h6 class="mb-3">Salary Components</h6>
                         <div class="table-responsive">
@@ -374,18 +366,19 @@
                     <div class="alert alert-info" *ngIf="!viewGradeData.salaryStructures || viewGradeData.salaryStructures.length === 0">
                         No salary components found for this grade.
                     </div>
-                </div>
-
-                <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
-                    <button type="button" class="btn btn-secondary" (click)="closeModal()">
-                        <i class="bi bi-x-lg me-1"></i> Close
-                    </button>
-                </div>
-            </div>
+                    -->
         </div>
-    </div>
 
-    <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showViewModal"
-        [style.display]="showViewModal ? 'block' : 'none'" (click)="closeModal()">
+        <div class="emp-att-modal-footer modal-footer border-0 p-4 pt-0">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">
+            <i class="bi bi-x-lg me-1"></i> Close
+          </button>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <div class="emp-att-modal-backdrop modal-backdrop fade" [class.show]="showViewModal"
+    [style.display]="showViewModal ? 'block' : 'none'" (click)="closeModal()">
+  </div>
 </div>

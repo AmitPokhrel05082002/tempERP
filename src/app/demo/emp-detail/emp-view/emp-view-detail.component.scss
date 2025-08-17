@@ -879,7 +879,90 @@
       }
     }
   }
+/* Documents Tab Styles */
+.documents-tab-container {
+  padding: 15px;
+}
 
+.file-upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 30px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  
+  &:hover {
+    border-color: #0d6efd;
+    background-color: #f8f9fa;
+  }
+}
+
+.upload-icon {
+  font-size: 48px;
+  color: #6c757d;
+  margin-bottom: 15px;
+}
+
+.upload-text {
+  p {
+    margin-bottom: 5px;
+    font-weight: 500;
+  }
+}
+
+.selected-files {
+  .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    
+    .file-info {
+      display: flex;
+      align-items: center;
+      
+      i {
+        font-size: 24px;
+        margin-right: 10px;
+      }
+    }
+  }
+}
+
+.existing-documents {
+  margin-top: 30px;
+}
+
+.document-list {
+  .document-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 5px;
+    margin-bottom: 8px;
+    
+    .document-info {
+      display: flex;
+      align-items: center;
+      
+      i {
+        font-size: 24px;
+        margin-right: 10px;
+      }
+    }
+    
+    .document-actions {
+      display: flex;
+      gap: 5px;
+    }
+  }
+}
   /* Modal Footer */
   .emp-det-modal-footer {
     padding: 1rem 1.25rem;
