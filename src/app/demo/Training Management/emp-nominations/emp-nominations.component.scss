@@ -1,5 +1,5 @@
 /* Employee Training Component Styles */
-@import "~@ng-select/ng-select/themes/default.theme.css";
+// @import "~@ng-select/ng-select/themes/default.theme.css";
 
 /* Custom styles for ng-select */
 .ng-select {
@@ -7,17 +7,17 @@
     min-height: 38px;
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
-    
+
     &:hover, &.ng-select-focused {
       border-color: #86b7fe;
       box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
     }
-    
+
     .ng-value-container {
       padding: 0.375rem 0.75rem;
     }
   }
-  
+
   &.ng-select-multiple {
     .ng-select-container .ng-value-container .ng-value {
       background-color: #e9ecef;
@@ -27,12 +27,12 @@
       margin-bottom: 0.25rem;
     }
   }
-  
+
   &.ng-select-opened > .ng-select-container {
     border-color: #86b7fe;
     box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
   }
-  
+
   &.ng-select-disabled > .ng-select-container {
     background-color: #e9ecef;
     opacity: 1;
@@ -44,28 +44,28 @@
   border: 1px solid #ced4da;
   border-radius: 0.25rem;
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-  
+
   .ng-dropdown-panel-items {
     .ng-option {
       padding: 0.5rem 0.75rem;
-      
+
       &.ng-option-marked {
         background-color: #f8f9fa;
         color: #212529;
       }
-      
+
       &.ng-option-selected {
         background-color: #0d6efd;
         color: white;
       }
-      
+
       &.ng-option-disabled {
         color: #6c757d;
         cursor: not-allowed;
       }
     }
   }
-  
+
   .ng-dropdown-footer {
     padding: 0.5rem 0.75rem;
     border-top: 1px solid #e9ecef;
@@ -81,11 +81,11 @@
   min-height: 100vh;
   padding: 2rem;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  
+
   @media (max-width: 768px) {
     padding: 1.5rem;
   }
-  
+
   @media (max-width: 576px) {
     padding: 1rem;
   }
@@ -98,7 +98,7 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 2rem;
-  
+
   @media (max-width: 768px) {
     flex-direction: column;
     gap: 1rem;
@@ -110,7 +110,7 @@
       font-size: 1.75rem;
       font-weight: 600;
       margin: 0 0 0.5rem 0;
-      
+
       @media (max-width: 576px) {
         font-size: 1.5rem;
       }
@@ -130,7 +130,7 @@
     display: flex;
     gap: 1rem;
     align-items: center;
-    
+
     @media (max-width: 576px) {
       width: 100%;
       justify-content: space-between;
@@ -144,19 +144,19 @@
   justify-content: flex-end;
   margin-bottom: 1.5rem;
   width: 100%;
-  
+
   .search-filter-content {
     display: flex;
     gap: 1rem;
     align-items: center;
-    
+
     @media (max-width: 768px) {
       width: 100%;
       flex-direction: column;
       align-items: stretch;
     }
   }
-  
+
   @media (max-width: 768px) {
     justify-content: flex-start;
   }
@@ -167,7 +167,7 @@
   flex: 1;
   min-width: 200px;
   max-width: 400px;
-  
+
   @media (max-width: 768px) {
     max-width: 100%;
   }
@@ -354,12 +354,12 @@
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s;
-  
+
   &:hover {
     background-color: #1e96b9;
     transform: translateY(-1px);
   }
-  
+
 
   &:active {
     transform: translateY(0);
@@ -379,11 +379,11 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 1.5rem;
-  
+
   @media (max-width: 768px) {
     border-radius: 6px;
   }
-  
+
   @media (max-width: 576px) {
     border-radius: 4px;
   }
@@ -397,7 +397,7 @@ table {
 
   thead {
     background-color: #f8f9fa;
-    
+
     th {
       font-size: 0.875rem;
       font-weight: 600;
@@ -408,27 +408,27 @@ table {
       text-align: left;
       vertical-align: middle;
       white-space: nowrap;
-      
+
       @media (max-width: 768px) {
         padding: 0.75rem 0.5rem;
       }
     }
   }
-  
+
   tbody {
     tr {
       border-bottom: 1px solid #f1f3f4;
-      
+
       &:hover {
         background-color: #f8f9fa;
       }
-      
+
       td {
         padding: 1rem 0.75rem;
         vertical-align: middle;
         font-size: 0.875rem;
         white-space: nowrap;
-        
+
         @media (max-width: 768px) {
           padding: 0.75rem 0.5rem;
           font-size: 0.8125rem;
@@ -445,20 +445,20 @@ table {
   font-weight: 600;
   border-radius: 4px;
   letter-spacing: 0.5px;
-  
+
   &.bg-info {
     background-color: #0dcaf0 !important;
   }
-  
+
   &.bg-warning {
     background-color: #ffc107 !important;
     color: #000 !important;
   }
-  
+
   &.bg-success {
     background-color: #198754 !important;
   }
-  
+
   &.bg-danger {
     background-color: #dc3545 !important;
   }
@@ -471,11 +471,11 @@ table {
   justify-content: flex-start;
   min-width: 100%;
   padding: 5px 0;
-  
+
   @media (max-width: 768px) {
     gap: 0.4rem;
   }
-  
+
   @media (max-width: 576px) {
     gap: 0.3rem;
   }
@@ -491,41 +491,41 @@ table {
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 0.9rem;
-    
+
     @media (max-width: 768px) {
       width: 28px;
       height: 28px;
       font-size: 0.85rem;
     }
-    
+
     i {
       display: flex;
       align-items: center;
       justify-content: center;
     }
-    
+
     &.view-btn {
       background-color: #f59e0b;
       color: white;
-      
+
       &:hover {
         background-color: #e69000;
       }
     }
-    
+
     &.edit-btn {
       background-color: #0d6efd;
       color: white;
-      
+
       &:hover {
         background-color: #0b5ed7;
       }
     }
-    
+
     &.delete-btn {
       background-color: #dc3545;
       color: white;
-      
+
       &:hover {
         background-color: #bb2d3b;
       }
@@ -537,21 +537,21 @@ table {
 .text-center {
   text-align: center;
   padding: 3rem 0;
-  
+
   .text-muted {
     color: #6c757d;
-    
+
     i {
       font-size: 3rem;
       color: #d1d5db;
       margin-bottom: 1rem;
       display: block;
     }
-    
+
     p {
       margin-bottom: 1rem;
     }
-    
+
     .btn-sm {
       padding: 0.375rem 0.75rem;
       font-size: 0.875rem;
@@ -570,12 +570,12 @@ table {
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  
+
   @media (max-width: 768px) {
     gap: 0.75rem;
     padding: 0.75rem;
   }
-  
+
   @media (max-width: 576px) {
     gap: 0.5rem;
     padding: 0.75rem 0.5rem;
@@ -595,12 +595,12 @@ table {
     min-width: 100px;
     transition: all 0.2s ease;
     font-size: 0.875rem;
-    
+
     @media (max-width: 768px) {
       min-width: 80px;
       padding: 0.5rem 0.75rem;
     }
-    
+
     @media (max-width: 576px) {
       min-width: auto;
       padding: 0.5rem;
@@ -622,7 +622,7 @@ table {
 
     i {
       font-size: 1rem;
-      
+
       @media (max-width: 768px) {
         font-size: 0.875rem;
       }
@@ -636,12 +636,12 @@ table {
     min-width: 120px;
     text-align: center;
     margin: 0 1rem;
-    
+
     @media (max-width: 768px) {
       min-width: 100px;
       margin: 0 0.5rem;
     }
-    
+
     @media (max-width: 576px) {
       min-width: 100%;
       order: -1;
@@ -656,42 +656,42 @@ table {
     border-radius: 1rem;
     border: none;
     box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-    
+
     @media (max-width: 768px) {
       border-radius: 0.75rem;
     }
   }
-  
+
   .modal-header {
     background-color: #22a9d3 !important;
     color: white;
     border-radius: 1rem 1rem 0 0;
     padding: 1.5rem 2rem;
     border-bottom: none;
-    
+
     @media (max-width: 768px) {
       padding: 1.25rem 1.5rem;
     }
-    
+
     .modal-title {
       font-weight: 700;
       font-size: 1.25rem;
     }
-    
+
     .btn-close {
       filter: brightness(0) invert(1);
       opacity: 1;
     }
   }
-  
+
   .modal-body {
     padding: 2rem;
-    
+
     @media (max-width: 768px) {
       padding: 1.5rem;
     }
   }
-  
+
   .emp-att-form-label {
     color: #374151;
     margin-bottom: 0.5rem;
@@ -699,56 +699,56 @@ table {
     font-weight: 500;
     display: block;
   }
-  
+
   .emp-att-form-input {
     border: 1px solid #d1d5db;
     border-radius: 0.5rem;
     padding: 0.75rem;
     font-size: 0.875rem;
     width: 100%;
-    
+
     &:focus {
       border-color: #3b82f6;
       box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
     }
   }
-  
+
   textarea.emp-att-form-input {
     min-height: 6.25rem;
     resize: vertical;
   }
-  
+
   .emp-att-form-error {
     font-size: 0.75rem;
     color: #dc3545;
     margin-top: 0.25rem;
   }
-  
+
   .modal-footer {
     padding: 1.5rem 2rem;
     background-color: #eceff1;
     border-top: 1px solid #dee2e6;
     border-radius: 0 0 1rem 1rem;
-    
+
     @media (max-width: 768px) {
       padding: 1.25rem 1.5rem;
     }
-    
+
     .emp-att-cancel-btn {
       border: 1px solid #212529;
       color: #212529;
-      
+
       &:hover {
         background-color: #f8f9fa;
       }
     }
-    
+
     .emp-att-save-btn {
       background-color: #23a9d2;
       border-color: #23a9d2;
       color: #212529;
       font-weight: 500;
-      
+
       &:hover {
         background-color: #015b9d;
         border-color: #015b9d;
@@ -770,11 +770,11 @@ table {
 .table-responsive {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  
+
   table {
     width: 100%;
     min-width: 400px;
-    
+
     th, td {
       padding: 0.75rem;
       vertical-align: middle;
@@ -786,25 +786,25 @@ table {
 .alert {
   padding: 0.75rem 1.25rem;
   border-radius: 0.375rem;
-  
+
   &.alert-info {
     background-color: #e7f5ff;
     border-color: #d0ebff;
     color: #1864ab;
   }
-  
+
   &.alert-success {
     background-color: #ebfbee;
     border-color: #d3f9d8;
     color: #2b8a3e;
   }
-  
+
   &.alert-danger {
     background-color: #fff5f5;
     border-color: #ffc9c9;
     color: #c92a2a;
   }
-  
+
   &.alert-warning {
     background-color: #fff9db;
     border-color: #ffec99;
@@ -817,11 +817,11 @@ table {
   border: 1px solid #dee2e6;
   border-radius: 0.5rem;
   margin-bottom: 1rem;
-  
+
   .card-body {
     padding: 1.25rem;
   }
-  
+
   .card-title {
     margin-bottom: 1rem;
     font-size: 1rem;
@@ -845,7 +845,7 @@ table {
 .searchable-dropdown {
   position: relative;
   width: 100%;
-  
+
   .dropdown-menu {
     width: 100%;
     max-height: 250px;
@@ -855,27 +855,27 @@ table {
     border-radius: 0.25rem;
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
     display: none;
-    
+
     &.show {
       display: block;
     }
-    
+
     .dropdown-item {
       padding: 0.5rem 1rem;
       cursor: pointer;
       white-space: normal;
-      
+
       &:hover, &:focus {
         background-color: #f8f9fa;
         color: #16181b;
       }
-      
+
       &.active, &:active {
         background-color: #007bff;
         color: white;
       }
     }
-    
+
     .text-muted {
       padding: 0.5rem 1rem;
       font-size: 0.875rem;

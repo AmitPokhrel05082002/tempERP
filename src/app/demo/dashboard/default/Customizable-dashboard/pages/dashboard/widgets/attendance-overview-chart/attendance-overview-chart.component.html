@@ -1,0 +1,26 @@
+<!-- attendance-overview.component.html -->
+<div class="attendance-card">
+  <!-- Chart Section -->
+  <div class="chart-section">
+    <div class="chart-container">
+      <canvas #attendanceChart></canvas>
+      <div class="chart-center-text">
+        <div class="center-text-label">Total Attendance</div>
+        <div class="center-text-value">{{totalAttendance}}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status List -->
+  <div class="status-section">
+    <h3 class="section-title">Status</h3>
+
+    <div class="status-list">
+      <div class="status-item" *ngFor="let status of attendanceStatuses">
+        <div class="status-indicator" [style.background-color]="status.color"></div>
+        <div class="status-label">{{status.label}}</div>
+        <div class="status-percentage">{{status.percentage}}%</div>
+      </div>
+    </div>
+  </div>
+</div>
