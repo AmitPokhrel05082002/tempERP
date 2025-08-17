@@ -213,6 +213,12 @@ export const routes: Routes = [
         path: 'emp-type',
         loadComponent: () => import('./demo/Transfer/emp-type/emp-type.component').then((c) => c.EmpTypeComponent)
       },
+      // Redirect transfer-types to emp-type
+      {
+        path: 'transfer-types',
+        redirectTo: 'emp-type',
+        pathMatch: 'full'
+      },
        {
         path: 'emp-separation',
           loadComponent: () => import('./demo/emp-separation/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)

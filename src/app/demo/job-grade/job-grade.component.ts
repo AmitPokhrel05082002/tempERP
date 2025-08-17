@@ -79,7 +79,6 @@ export class JobGradeComponent implements OnInit {
     this.form = this.fb.group({
       orgId: ['', Validators.required],
       gradeName: ['', Validators.required],
-      gradeCode: ['', Validators.required],
       minSalary: ['', [Validators.required, Validators.min(0)]],
       maxSalary: ['', [Validators.required, Validators.min(0)]],
       salaryRangeValid: [true],

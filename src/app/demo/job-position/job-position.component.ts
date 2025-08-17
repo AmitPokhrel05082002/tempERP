@@ -74,7 +74,6 @@ export class JobPositionComponent implements OnInit {
     this.positionForm = this.fb.group({
       orgId: [{value: this.orgId, disabled: false}, Validators.required],
       positionName: ['', [Validators.required, Validators.minLength(3)]],
-      positionCode: ['', [Validators.required, Validators.pattern('^[A-Za-z0-9-]+$')]],
       gradeId: ['', Validators.required],
       skillRequirements: ['', Validators.required],
       reportingManagerPosition: [''],

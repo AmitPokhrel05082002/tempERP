@@ -448,8 +448,14 @@
             color: #444;
           }
 
-          .leave-status {
+          .leave-reason{
             order: 5;
+            font-size: 14px;
+            color:#444;
+          }
+
+          .leave-status {
+            order: 6;
             display: flex;
             justify-content: center;
             align-items: center;

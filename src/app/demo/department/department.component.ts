@@ -61,12 +61,8 @@ export class DepartmentComponent implements OnInit {
   ) {
     this.departmentForm = this.fb.group({
       dept_name: ['', [Validators.required, Validators.minLength(3)]],
-      dept_code: ['', [Validators.required]],
       org_id: ['', [Validators.required]],
       branch_id: ['', [Validators.required]],
-      parent_dept_id: [''],
-      dept_head_id: [''],
-      budget_allocation: [0, [Validators.min(0)]]
     });
   }
 
@@ -81,14 +77,8 @@ export class DepartmentComponent implements OnInit {
   initializeForm() {
     this.departmentForm = this.fb.group({
       dept_name: ['', [Validators.required, Validators.minLength(3)]],
-      dept_code: ['', [Validators.required]],
       org_id: ['', [Validators.required]],
       branch_id: ['', [Validators.required]],
-      parent_dept_id: [''],  // Empty string instead of null for consistency
-      dept_head_id: [''],    // Empty string instead of null for consistency
-      budget_allocation: [100000, [Validators.min(0)]],
-      approval_hierarchy: [null],
-      reporting_structure: [null]
     });
   }
 
