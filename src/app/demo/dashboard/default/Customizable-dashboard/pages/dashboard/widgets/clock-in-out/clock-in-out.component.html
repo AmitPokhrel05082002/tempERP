@@ -1,0 +1,108 @@
+<!-- clock-in-out.component.html -->
+<div class="clock-in-out-card">
+  <!-- Employee List -->
+  <div class="employee-list">
+    <!-- On-Time Employees -->
+    <div class="employee-group">
+      <div class="employee-item" *ngFor="let employee of employees | slice:0:3">
+        <div class="employee-row" (click)="toggleEmployeeDetails(employee)">
+          <div class="employee-avatar">
+            <img [src]="employee.avatar" [alt]="employee.name" onerror="this.src='assets/avatars/default.jpg'">
+          </div>
+
+          <div class="employee-info">
+            <div class="employee-name">{{ employee.name }}</div>
+            <div class="employee-position">{{ employee.position }}</div>
+          </div>
+
+          <div class="time-indicator">
+            <div class="clock-icon"></div>
+          </div>
+
+          <div class="clock-in-time" [ngClass]="{'on-time': !employee.isLate, 'late': employee.isLate}">
+            {{ employee.clockInTime }}
+          </div>
+        </div>
+
+        <!-- Expanded Details -->
+        <div class="employee-details" *ngIf="employee.isExpanded">
+          <div class="details-item">
+            <div class="detail-dot green-dot"></div>
+            <div class="detail-label">Clock In</div>
+            <div class="detail-value">{{ employee.clockInTime }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="detail-dot orange-dot"></div>
+            <div class="detail-label">Clock Out</div>
+            <div class="detail-value">{{ employee.clockOutTime }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="detail-dot yellow-dot"></div>
+            <div class="detail-label">Production</div>
+            <div class="detail-value">{{ employee.productionTime }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Late Employees Section -->
+    <div class="section-divider">
+      <h3 class="section-title">Late</h3>
+    </div>
+
+    <div class="employee-group">
+      <div class="employee-item" *ngFor="let employee of employees | slice:3">
+        <div class="employee-row" (click)="toggleEmployeeDetails(employee)">
+          <div class="employee-avatar">
+            <img [src]="employee.avatar" [alt]="employee.name" onerror="this.src='assets/avatars/default.jpg'">
+          </div>
+
+          <div class="employee-info">
+            <div class="employee-name">{{ employee.name }}</div>
+            <div class="employee-position">{{ employee.position }}</div>
+          </div>
+
+          <div class="late-badge" *ngIf="employee.isLate">
+            {{ employee.lateMinutes }} Min
+          </div>
+
+          <div class="time-indicator">
+            <div class="clock-icon"></div>
+          </div>
+
+          <div class="clock-in-time" [ngClass]="{'on-time': !employee.isLate, 'late': employee.isLate}">
+            {{ employee.clockInTime }}
+          </div>
+        </div>
+
+        <!-- Expanded Details -->
+        <div class="employee-details" *ngIf="employee.isExpanded">
+          <div class="details-item">
+            <div class="detail-dot green-dot"></div>
+            <div class="detail-label">Clock In</div>
+            <div class="detail-value">{{ employee.clockInTime }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="detail-dot orange-dot"></div>
+            <div class="detail-label">Clock Out</div>
+            <div class="detail-value">{{ employee.clockOutTime }}</div>
+          </div>
+
+          <div class="details-item">
+            <div class="detail-dot yellow-dot"></div>
+            <div class="detail-label">Production</div>
+            <div class="detail-value">{{ employee.productionTime }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- View All Link -->
+  <div class="view-all-section">
+    <a href="#" class="view-all-link">View All Attendance</a>
+  </div>
+</div>

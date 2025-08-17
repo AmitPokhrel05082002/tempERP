@@ -1,0 +1,93 @@
+/* employees-chart.component.css */
+.chart-container {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: white;
+  border-radius: 8px;
+  // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 20px;
+  max-width: 800px;
+}
+
+.chart-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.chart-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.time-filter {
+  display: flex;
+}
+
+.period-btn {
+  display: flex;
+  align-items: center;
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.period-btn.active {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+.period-btn i {
+  margin-right: 6px;
+}
+
+.chart-body {
+  height: 300px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.chart-footer {
+  padding-top: 10px;
+  border-top: 1px dashed #eee;
+}
+
+.growth-indicator {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.indicator-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #FF6831;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.growth-value {
+  color: #10b981;
+  font-weight: 600;
+}
+
+/* Make sure we render properly on smaller screens */
+@media (max-width: 576px) {
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .time-filter {
+    margin-top: 10px;
+  }
+}

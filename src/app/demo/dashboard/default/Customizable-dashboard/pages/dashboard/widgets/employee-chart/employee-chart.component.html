@@ -1,0 +1,22 @@
+<!-- employees-chart.component.html -->
+<div class="chart-container">
+  <!-- <div class="chart-header">
+    <h2>Employees By Department</h2>
+    <div class="time-filter">
+      <button class="period-btn active" (click)="updateTimePeriod('This Week')">
+        <i class="fa fa-calendar"></i> This Week
+      </button>
+    </div>
+  </div> -->
+
+  <div class="chart-body">
+    <canvas #employeeChart></canvas>
+  </div>
+
+  <div class="chart-footer">
+    <div class="growth-indicator">
+      <span class="indicator-dot"></span>
+      <span class="indicator-text">No of Employees increased by <span class="growth-value">+20%</span> from last Week</span>
+    </div>
+  </div>
+</div>
