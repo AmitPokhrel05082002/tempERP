@@ -22,11 +22,11 @@ $info-color: #0d6efd;
   min-width: 150px;
   max-width: 100%;
   flex: 1 0 auto;
-
+  
   @media (max-width: 767.98px) {
     min-width: 100%;
   }
-
+  
   @media (min-width: 768px) and (max-width: 991.98px) {
     min-width: calc(50% - 0.5rem);
   }
@@ -37,28 +37,28 @@ $info-color: #0d6efd;
   min-width: 250px;
   flex: 1 0 auto;
   max-width: 350px;
-
+  
   @media (max-width: 767.98px) {
     min-width: 100%;
     max-width: 100%;
   }
-
+  
   .input-group {
     height: 40px;
-
+    
     .input-group-text {
       background-color: $light-gray;
       border: 1px solid #e9ecef;
       border-right: none;
       border-radius: 0.5rem 0 0 0.5rem;
     }
-
+    
     .form-control {
       border-left: none;
       border-radius: 0 0.5rem 0.5rem 0;
       background-color: $light-gray;
       height: 100%;
-
+      
       &:focus {
         border-color: $primary-color;
         box-shadow: 0 0 0 0.25rem rgba($primary-color, 0.15);
@@ -81,19 +81,19 @@ $info-color: #0d6efd;
   display: flex;
   align-items: center;
   white-space: nowrap;
-
+  
   i {
     margin-right: 0.5rem;
     color: #6c757d;
   }
-
+  
   &:hover, &:focus, &:active {
     background-color: white !important;
     color: #212529 !important;
     border-color: $primary-color !important;
     box-shadow: 0 0 0 0.25rem rgba($primary-color, 0.15) !important;
   }
-
+  
   @media (max-width: 575.98px) {
     width: 100%;
     justify-content: center;

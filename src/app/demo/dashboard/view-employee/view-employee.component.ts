@@ -4,8 +4,9 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AttendanceSheetService } from 'src/app/services/attendance-sheet.service';
 import { CsvExportService } from 'src/app/demo/dashboard/csv-export.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { Subscription, of } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { catchError, map } from 'rxjs/operators';
 
 interface AttendanceRecord {
   id: string;
@@ -96,23 +97,48 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
     { name: 'October', value: 10 }, { name: 'November', value: 11 }, { name: 'December', value: 12 }
   ];
 
+  // Current user info
+  currentUser: any = null;
+  currentUserRoleBasedId: string | null = null;
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private attendanceService: AttendanceSheetService,
-    private csvExportService: CsvExportService
+    private csvExportService: CsvExportService,
+    private authService: AuthService
   ) {
-    // Initialize available years
+    // Initialize available years - include more previous years for historical data
     const currentYear = new Date().getFullYear();
-    for (let year = currentYear - 5; year <= currentYear + 1; year++) {
+    for (let year = currentYear - 3; year <= currentYear + 1; year++) {
       this.availableYears.push(year);
     }
   }
 
   ngOnInit(): void {
+    // Get current user info
+    this.currentUser = this.authService.getCurrentUser();
+    this.currentUserRoleBasedId = this.authService.roleBasedId;
+
     // Get route parameters
     this.employeeId = this.route.snapshot.paramMap.get('id') || '';
     this.isViewAll = this.employeeId === 'all';
+    
+    // For employees, they can only view their own data
+    if (this.isEmployeeRole() && this.employeeId !== this.currentUserRoleBasedId) {
+      if (this.isViewAll) {
+        // Redirect to their own data instead of all employees
+        this.router.navigate(['/employees', this.currentUserRoleBasedId], {
+          queryParams: this.route.snapshot.queryParams
+        });
+        return;
+      } else {
+        // They're trying to view someone else's data
+        this.errorMessage = 'You can only view your own attendance data.';
+        this.isLoading = false;
+        return;
+      }
+    }
     
     // Get query parameters
     const queryParams = this.route.snapshot.queryParams;
@@ -139,21 +165,83 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Role-based access control methods
+  canViewAllEmployees(): boolean {
+    if (!this.currentUser) return false;
+    const role = this.currentUser.roleName;
+    return ['Admin', 'HR', 'Manager'].includes(role);
+  }
+
+  isEmployeeRole(): boolean {
+    if (!this.currentUser) return false;
+    return this.currentUser.roleName === 'Employee';
+  }
+
+  getCurrentEmployeeName(): string {
+    if (this.employees.length > 0) {
+      return this.employees[0].name;
+    }
+    return 'Unknown';
+  }
+
+  // Pagination for employees
+  get paginatedEmployees(): EmployeeAttendanceData[] {
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.employees.slice(startIndex, endIndex);
+  }
+
   private loadAttendanceDataWithFallback(): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Try to load data for the selected month/year first (same as attendance sheet)
-    const loadData$ = this.attendanceService.getAllAttendanceData(
-      this.selectedYear, 
-      this.selectedMonth, 
-      this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
-    ).pipe(
-      catchError(error => {
-        console.warn('API call failed for selected month:', error);
-        return of([]); // Return empty array instead of throwing error
-      })
-    );
+    // Determine what data to load based on role and route
+    let loadData$;
+    
+    if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
+      // Employee role - load only their data
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.currentUserRoleBasedId,
+        this.selectedYear,
+        this.selectedMonth
+      ).pipe(
+        map(data => data ? [data] : []),
+        catchError(error => {
+          console.warn('Employee API call failed:', error);
+          return of([]);
+        })
+      );
+    } else if (this.isViewAll && this.canViewAllEmployees()) {
+      // Load all employees data
+      loadData$ = this.attendanceService.getAllAttendanceData(
+        this.selectedYear, 
+        this.selectedMonth, 
+        this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+      ).pipe(
+        catchError(error => {
+          console.warn('API call failed for selected month:', error);
+          return of([]);
+        })
+      );
+    } else if (!this.isViewAll && this.canViewAllEmployees()) {
+      // Load specific employee data
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.employeeId,
+        this.selectedYear,
+        this.selectedMonth
+      ).pipe(
+        map(data => data ? [data] : []),
+        catchError(error => {
+          console.warn('API call failed for specific employee:', error);
+          return of([]);
+        })
+      );
+    } else {
+      // No access
+      this.errorMessage = 'You do not have permission to view this attendance data.';
+      this.isLoading = false;
+      return;
+    }
 
     const sub = loadData$.subscribe({
       next: (data: any[]) => {
@@ -161,7 +249,7 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
           this.processLoadedData(data);
           this.isLoading = false;
         } else {
-          // No data for selected month, try to find latest available data (same logic as attendance sheet)
+          // No data for selected month, try to find latest available data
           this.loadLatestAvailableDataLikeSheet();
         }
       },
@@ -225,17 +313,53 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.errorMessage = '';
 
-    // Try to load data for the selected month/year first
-    const loadData$ = this.attendanceService.getAllAttendanceData(
-      this.selectedYear, 
-      this.selectedMonth, 
-      this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
-    ).pipe(
-      catchError(error => {
-        console.warn('API call failed for selected month:', error);
-        return of([]); // Return empty array instead of throwing error
-      })
-    );
+    // Determine what data to load based on role and route
+    let loadData$;
+    
+    if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
+      // Employee role - load only their data
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.currentUserRoleBasedId,
+        this.selectedYear,
+        this.selectedMonth
+      ).pipe(
+        map(data => data ? [data] : []),
+        catchError(error => {
+          console.warn('Employee API call failed:', error);
+          return of([]);
+        })
+      );
+    } else if (this.isViewAll && this.canViewAllEmployees()) {
+      // Load all employees data
+      loadData$ = this.attendanceService.getAllAttendanceData(
+        this.selectedYear, 
+        this.selectedMonth, 
+        this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+      ).pipe(
+        catchError(error => {
+          console.warn('API call failed for selected month:', error);
+          return of([]);
+        })
+      );
+    } else if (!this.isViewAll && this.canViewAllEmployees()) {
+      // Load specific employee data
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.employeeId,
+        this.selectedYear,
+        this.selectedMonth
+      ).pipe(
+        map(data => data ? [data] : []),
+        catchError(error => {
+          console.warn('API call failed for specific employee:', error);
+          return of([]);
+        })
+      );
+    } else {
+      // No access
+      this.errorMessage = 'You do not have permission to view this attendance data.';
+      this.isLoading = false;
+      return;
+    }
 
     const sub = loadData$.subscribe({
       next: (data: any[]) => {
@@ -274,9 +398,11 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
   private tryLoadMonthData(monthsToCheck: {year: number, month: number}[], index: number): void {
     if (index >= monthsToCheck.length) {
       // No data found in any month
-      this.errorMessage = this.isViewAll ? 
-        'No attendance data found for any employees in the last 12 months' : 
-        'No attendance data found for this employee in the last 12 months';
+      this.errorMessage = this.isEmployeeRole() ? 
+        'No attendance data found for your account in the last 12 months' : 
+        (this.isViewAll ? 
+          'No attendance data found for any employees in the last 12 months' : 
+          'No attendance data found for this employee in the last 12 months');
       this.employees = [];
       this.isLoading = false;
       return;
@@ -284,14 +410,44 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
 
     const { year, month } = monthsToCheck[index];
     
-    const sub = this.attendanceService.getAllAttendanceData(
-      year, 
-      month, 
-      this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
-    ).pipe(
-      catchError(() => of([]))
-    ).subscribe({
-      next: (data: any[]) => {
+    // Determine what data to load based on role and route
+    let loadData$;
+    
+    if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.currentUserRoleBasedId,
+        year,
+        month
+      ).pipe(
+        map(data => ({ data: data ? [data] : [], year, month })),
+        catchError(() => of({ data: [], year, month }))
+      );
+    } else if (this.isViewAll && this.canViewAllEmployees()) {
+      loadData$ = this.attendanceService.getAllAttendanceData(
+        year, 
+        month, 
+        this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+      ).pipe(
+        map(data => ({ data, year, month })),
+        catchError(() => of({ data: [], year, month }))
+      );
+    } else if (!this.isViewAll && this.canViewAllEmployees()) {
+      loadData$ = this.attendanceService.getEmployeeAttendanceData(
+        this.employeeId,
+        year,
+        month
+      ).pipe(
+        map(data => ({ data: data ? [data] : [], year, month })),
+        catchError(() => of({ data: [], year, month }))
+      );
+    } else {
+      this.errorMessage = 'You do not have permission to view this attendance data.';
+      this.isLoading = false;
+      return;
+    }
+    
+    const sub = loadData$.subscribe({
+      next: ({ data, year, month }) => {
         if (data && data.length > 0) {
           // Found data! Update the selected month/year and process (same as attendance sheet)
           this.selectedYear = year;
@@ -315,19 +471,31 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
   }
 
   private processLoadedData(data: any[]): void {
-    if (this.isViewAll) {
+    if (this.isViewAll && this.canViewAllEmployees()) {
       // Load all employees
       this.employees = data
         .filter((emp: any) => emp.attendanceList && emp.attendanceList.length > 0)
         .map((emp: any) => this.processEmployeeData(emp));
     } else {
-      // Load specific employee by employeeId
-      const employeeData = data.find((emp: any) => emp.employeeId === this.employeeId);
-      if (employeeData && employeeData.attendanceList) {
-        this.employees = [this.processEmployeeData(employeeData)];
+      // Load specific employee data
+      if (this.isEmployeeRole()) {
+        // For employees, find their own data
+        const employeeData = data.find((emp: any) => emp.employeeId === this.currentUserRoleBasedId);
+        if (employeeData && employeeData.attendanceList) {
+          this.employees = [this.processEmployeeData(employeeData)];
+        } else {
+          this.errorMessage = `No attendance data found for your account.`;
+          this.employees = [];
+        }
       } else {
-        this.errorMessage = `No attendance data found for employee ID: ${this.employeeId}`;
-        this.employees = [];
+        // For HR/Manager/Admin viewing specific employee
+        const employeeData = data.find((emp: any) => emp.employeeId === this.employeeId);
+        if (employeeData && employeeData.attendanceList) {
+          this.employees = [this.processEmployeeData(employeeData)];
+        } else {
+          this.errorMessage = `No attendance data found for employee ID: ${this.employeeId}`;
+          this.employees = [];
+        }
       }
     }
     this.totalItems = this.employees.length;
@@ -337,7 +505,7 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
     const employee: EmployeeAttendanceData = {
       employeeId: employeeData.employeeId || '',
       name: `${employeeData.attendanceList[0]?.firstName || ''} ${employeeData.attendanceList[0]?.lastName || ''}`.trim(),
-      designation: employeeData.attendanceList[0]?.department?.split('>').pop() || '',
+      designation: employeeData.attendanceList[0]?.attendanceGroup || employeeData.attendanceList[0]?.department?.split('>').pop() || 'Not specified',
       records: new Array(this.daysInMonth).fill(null).map((_, index) => {
         const date = new Date(this.selectedYear, this.selectedMonth - 1, index + 1);
         const isFutureDate = date > new Date();
@@ -466,8 +634,11 @@ export class ViewEmployeeComponent implements OnInit, OnDestroy {
 
   resetFilters(): void {
     const today = new Date();
-    this.selectedYear = today.getFullYear();
-    this.selectedMonth = today.getMonth() + 1;
+    // Reset to previous month instead of current month for better data availability
+    const previousMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+    
+    this.selectedYear = previousMonth.getFullYear();
+    this.selectedMonth = previousMonth.getMonth() + 1;
     this.selectedDepartment = 'All';
     this.currentPage = 1;
     this.currentMonthName = this.availableMonths[this.selectedMonth - 1]?.name || '';
