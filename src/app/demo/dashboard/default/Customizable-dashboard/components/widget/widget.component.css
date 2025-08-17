@@ -1,0 +1,46 @@
+:host {
+  display: block;
+  border-radius: 16px;
+}
+
+.container{
+  position: relative;
+  height: 100%;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  border-radius: inherit;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-button{
+  position: absolute;
+  top: 20px;
+  right: 20px;
+}
+
+.header{
+  cursor: move;
+  display: flex;
+  justify-content: space-between; /* This separates title and button */
+  align-items: center; /* Vertically centers items */
+  width: 100%;
+  gap: 16px; /* Adds space between elements */
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
+  margin: 0;
+}
+
+ng-container {
+  display: block;
+  flex: 1;
+  height: 100%;
+}

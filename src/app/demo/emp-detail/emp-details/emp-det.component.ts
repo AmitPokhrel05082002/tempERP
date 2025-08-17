@@ -224,6 +224,8 @@ selectedOrgId: string = '';
   totalItems = 0;
   pageSizeOptions = [5, 10, 25, 50];
   Math = Math;
+  selectedFiles: File[] = [];
+employeeDocuments: any[] = [];
 
   // API Configuration
   private readonly apiUrl = `${environment.apiUrl}/api/v1/employees`;
@@ -232,7 +234,7 @@ selectedOrgId: string = '';
   private readonly branchApiUrl = `${environment.apiUrl}/api/v1/branches`;
   private readonly gradeApiUrl = `${environment.apiUrl}/api/v1/job-grades`;
   private readonly orgApiUrl = `${environment.apiUrl}/api/v1/organizations`;
-
+   private readonly documentUploadUrl = `${environment.apiUrl}/api/archive/upload`;
   private readonly httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json',
@@ -267,14 +269,13 @@ selectedOrgId: string = '';
   private initializeForm(): void {
     this.employeeForm = this.fb.group({
       // Personal Information
-      empCode: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]+$/)]],
       firstName: ['', [Validators.required, Validators.maxLength(50)]],
       middleName: [''],
       lastName: ['', [Validators.required, Validators.maxLength(50)]],
       dateOfBirth: ['', Validators.required],
       gender: ['', Validators.required],
       maritalStatus: ['', Validators.required],
-      nationality: ['', Validators.required],
+      nationality: ['Bhutanese', Validators.required], 
       cidNumber: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
       organization: ['', Validators.required],
 
@@ -290,7 +291,7 @@ selectedOrgId: string = '';
       maxSalary: ['', Validators.required],
 
       // Contact Information
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]],
       phonePrimary: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
 
       // Bank Details
@@ -306,12 +307,15 @@ selectedOrgId: string = '';
     yearOfCompletion: [0],
 educations: this.fb.array([]),
       // Address
-      addressType: ['Permanent', Validators.required],
-      addressLine1: ['', Validators.required],
+      addressType: ['Permanent'],
+      addressLine1: [''],
       addressLine2: [''],
       thromde: [''],
-      dzongkhag: ['']
+      dzongkhag: [''],
+      country: ['Bhutan']
     });
+      this.onNationalityChange();
+
   }
 get educations(): FormArray {
   return this.employeeForm.get('educations') as FormArray;
@@ -363,14 +367,10 @@ private clearMainEducationForm(): void {
 private createEducationFormGroup(education?: Qualification): FormGroup {
   return this.fb.group({
     qualificationId: [education?.qualificationId || ''],
-    institutionName: [education?.institutionName || '', Validators.required],
-    degreeName: [education?.degreeName || '', Validators.required],
+    institutionName: [education?.institutionName || ''],
+    degreeName: [education?.degreeName || ''],
     specialization: [education?.specialization || ''],
-    yearOfCompletion: [education?.yearOfCompletion || null, [
-      Validators.required, 
-      Validators.min(1900), 
-      Validators.max(new Date().getFullYear())
-    ]]
+    yearOfCompletion: [education?.yearOfCompletion || null]
   });
 }
 
@@ -532,6 +532,51 @@ onBranchChangeInForm(): void {
       this.employeeForm.get('department')?.setValue('');
     });
   }
+}
+
+// nationality change handler for the form add
+onNationalityChange(): void {
+  const isBhutanese = this.employeeForm.get('nationality')?.value === 'Bhutanese';
+  
+  // Get form controls
+  const addressLine1 = this.employeeForm.get('addressLine1');
+  const addressLine2 = this.employeeForm.get('addressLine2');
+  const thromde = this.employeeForm.get('thromde');
+  const dzongkhag = this.employeeForm.get('dzongkhag');
+
+  // Clear and reset fields based on nationality
+  if (isBhutanese) {
+    // Clear Non-Bhutanese fields only if they exist
+    if (addressLine2?.value) {
+      this.employeeForm.patchValue({ addressLine2: '' });
+    }
+    
+    // Set validators for Bhutanese fields
+    addressLine1?.clearValidators();
+    addressLine2?.clearValidators();
+    thromde?.clearValidators();
+    dzongkhag?.clearValidators();
+  } else {
+    // Clear Bhutanese fields only if they exist
+    if (thromde?.value || dzongkhag?.value) {
+      this.employeeForm.patchValue({
+        thromde: '',
+        dzongkhag: ''
+      });
+    }
+    
+    // Set validators for Non-Bhutanese fields
+    addressLine1?.clearValidators();
+    addressLine2?.clearValidators();
+    thromde?.clearValidators();
+    dzongkhag?.clearValidators();
+  }
+
+  // Update validity for all affected controls
+  addressLine1?.updateValueAndValidity();
+  addressLine2?.updateValueAndValidity();
+  thromde?.updateValueAndValidity();
+  dzongkhag?.updateValueAndValidity();
 }
   /**
    * Load departments for a specific branch
@@ -834,8 +879,9 @@ canExport(): boolean {
         addressType: '',
         grade: '',
         organization: this.selectedOrgId,
+        nationality: 'Bhutanese'
       });
-
+ this.onNationalityChange();
       if (this.employeeForm.get('department')?.value) {
         this.employeeForm.get('position')?.enable();
       }
@@ -975,14 +1021,14 @@ onOrganizationChange(): void {
       yearOfCompletion: 0
     };
 
-    const currentAddress: Address = emp.addresses?.find(a => a.isCurrent) || emp.addresses?.[0] || {
-      addressType: 'Permanent',
-      addressLine1: '',
-      addressLine2: '',
-      thromde: '',
-      dzongkhag: '',
-      country: 'Bhutan',
-      isCurrent: false
+   const currentAddress: Address = emp.addresses?.find(a => a.isCurrent) || emp.addresses?.[0] || {
+        addressType: 'Permanent',
+        addressLine1: '',
+        addressLine2: '',
+        thromde: '',
+        dzongkhag: '',
+        country: 'Bhutan',
+        isCurrent: false
     };
 
     this.employeeForm.patchValue({
@@ -993,7 +1039,7 @@ onOrganizationChange(): void {
       dateOfBirth: this.formatDateForInput(emp.dateOfBirth),
       gender: emp.gender,
       maritalStatus: emp.maritalStatus,
-      nationality: emp.nationality,
+      nationality: emp.nationality || 'Bhutanese',
       cidNumber: emp.cidNumber,
       organization: emp.orgId || this.selectedOrgId,
       hireDate: this.formatDateForInput(emp.hireDate),
@@ -1016,12 +1062,12 @@ onOrganizationChange(): void {
       specialization: highestQualification.specialization,
       yearOfCompletion: highestQualification.yearOfCompletion || 0,
       addressType: currentAddress.addressType,
-      addressLine1: currentAddress.addressLine1,
-      addressLine2: currentAddress.addressLine2,
-      thromde: currentAddress.thromde,
-      dzongkhag: currentAddress.dzongkhag
+        addressLine1: currentAddress.addressLine1,
+        addressLine2: currentAddress.addressLine2,
+        thromde: currentAddress.thromde,
+        dzongkhag: currentAddress.dzongkhag
     });
-
+this.onNationalityChange();
     if (emp.gradeId) {
       this.fetchSalaryStructure(emp.gradeId);
     }
@@ -1053,126 +1099,178 @@ onOrganizationChange(): void {
   /**
    * Save employee (create or update)
    */
-  saveEmployee(): void {
-    if (this.employeeForm.invalid) {
-      this.errorMessage = 'Please fill all required fields correctly.';
-      this.employeeForm.markAllAsTouched();
-      return;
-    }
-    if (this.hasMainEducationValues()) {
+saveEmployee(): void {
+  
+  if (this.employeeForm.invalid) {
+    this.errorMessage = 'Please fill all required fields correctly.';
+    this.employeeForm.markAllAsTouched();
+    
+    // Log validation errors for debugging
+    Object.keys(this.employeeForm.controls).forEach(key => {
+      const control = this.employeeForm.get(key);
+      if (control?.invalid) {
+        console.error(`Validation error for ${key}:`, control.errors);
+      }
+    });
+    
+    return;
+  }
+
+  // Save main education to array if it has values
+  if (this.hasMainEducationValues()) {
     this.saveMainEducationToArray();
   }
 
-    this.isSaving = true;
-    this.errorMessage = '';
+  this.isSaving = true;
+  this.errorMessage = '';
 
-    const formValue = this.employeeForm.getRawValue();
-    const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
+  const formValue = this.employeeForm.getRawValue();
+  const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
+  const isBhutanese = formValue.nationality === 'Bhutanese';
 
-    try {
-      const branchId = this.getBranchId(formValue.location);
-      if (!branchId) {
-        throw new Error('Invalid location selected');
-      }
+  try {
+    const branchId = this.getBranchId(formValue.location);
+    if (!branchId) {
+      throw new Error('Invalid location selected');
+    }
 
-      // Get the most recent existing IDs
-      const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
-      const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
-      const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
-      const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
+    // Get the most recent existing IDs
+    const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
+    const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
+    const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
+    const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
 
-      const payload = {
-        employee: {
-          empId: empId,
-          empCode: formValue.empCode,
-          firstName: formValue.firstName,
-          middleName: formValue.middleName || null,
-          lastName: formValue.lastName,
-          positionId: formValue.position,
-          deptId: formValue.department,
-          dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
-          gender: formValue.gender,
-          maritalStatus: formValue.maritalStatus,
-          nationality: formValue.nationality,
-          cidNumber: formValue.cidNumber,
-          hireDate: this.formatDateForAPI(formValue.hireDate),
-          employmentStatus: formValue.employmentStatus,
-          employmentType: formValue.employmentType,
-          branchId: branchId,
-          orgId: this.employeeForm.get('organization')?.value,
-          gradeId: formValue.grade,
-          basicSalary: formValue.basicSalary,
-          maxSalary: formValue.maxSalary
-        },
-        contacts: [{
-          contactId: existingContact?.contactId || undefined,
-          email: formValue.email,
-          phonePrimary: formValue.phonePrimary,
-          isEmergencyContact: false,
-          relationship: 'Self',
-          priorityLevel: 1
-        }],
-        addresses: [{
-          addressId: existingAddress?.addressId || undefined,
-          addressType: formValue.addressType || 'Permanent',
-          addressLine1: formValue.addressLine1,
-          addressLine2: formValue.addressLine2,
-          thromde: formValue.thromde,
-          dzongkhag: formValue.dzongkhag,
-          country: 'Bhutan',
-          isCurrent: true
-        }],
-        qualifications: [
-      // Include all educations from the array
-      ...this.educations.controls.map(control => ({
+    // Prepare address payload based on nationality
+    const addressPayload: any = {
+      addressId: existingAddress?.addressId || undefined,
+      addressType: formValue.addressType || 'Permanent',
+      addressLine1: formValue.addressLine1,
+      isCurrent: true
+    };
+
+    if (isBhutanese) {
+      addressPayload.addressLine2 = ''; // Clear for Bhutanese
+      addressPayload.thromde = formValue.thromde;
+      addressPayload.dzongkhag = formValue.dzongkhag;
+      addressPayload.country = 'Bhutan';
+    } else {
+      addressPayload.addressLine2 = formValue.addressLine2;
+      addressPayload.thromde = ''; // Clear for non-Bhutanese
+      addressPayload.dzongkhag = ''; // Clear for non-Bhutanese
+      addressPayload.country = 'Non-Bhutanese';
+    }
+
+    const payload = {
+      employee: {
+        empId: empId,
+        empCode: formValue.empCode,
+        firstName: formValue.firstName,
+        middleName: formValue.middleName || null,
+        lastName: formValue.lastName,
+        positionId: formValue.position,
+        deptId: formValue.department,
+        dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
+        gender: formValue.gender,
+        maritalStatus: formValue.maritalStatus,
+        nationality: formValue.nationality,
+        cidNumber: formValue.cidNumber,
+        hireDate: this.formatDateForAPI(formValue.hireDate),
+        employmentStatus: formValue.employmentStatus,
+        employmentType: formValue.employmentType,
+        branchId: branchId,
+        orgId: formValue.organization,
+        gradeId: formValue.grade,
+        basicSalary: formValue.basicSalary,
+        maxSalary: formValue.maxSalary
+      },
+      contacts: [{
+        contactId: existingContact?.contactId || undefined,
+        email: formValue.email,
+        phonePrimary: formValue.phonePrimary,
+        isEmergencyContact: false,
+        relationship: 'Self',
+        priorityLevel: 1
+      }],
+      addresses: [addressPayload],
+      qualifications: this.educations.controls.map(control => ({
         qualificationId: control.value.qualificationId || undefined,
         institutionName: control.value.institutionName,
         degreeName: control.value.degreeName,
         specialization: control.value.specialization,
         yearOfCompletion: control.value.yearOfCompletion
-      }))
-    ],
-        bankDetails: [{
-          bankDetailId: existingBankDetail?.bankDetailId || undefined,
-          bankName: formValue.bankName,
-          branchName: formValue.branchName,
-          accountNumber: formValue.accountNumber,
-          accountType: formValue.accountType
-        }],
-        updateOperation: true
-      };
+      })),
+      bankDetails: [{
+        bankDetailId: existingBankDetail?.bankDetailId || undefined,
+        bankName: formValue.bankName,
+        branchName: formValue.branchName,
+        accountNumber: formValue.accountNumber,
+        accountType: formValue.accountType
+      }],
+      updateOperation: this.isEditMode
+    };
 
-      const request$ = this.isEditMode && empId
-        ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
-        : this.http.post(this.apiUrl, payload, this.httpOptions);
+    console.log('Sending payload:', payload);
 
-      request$.pipe(
-        catchError(err => {
-          console.error('Error saving employee:', {
-            status: err.status,
-            message: err.message,
-            error: err.error
+    const request$ = this.isEditMode && empId
+      ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
+      : this.http.post(this.apiUrl, payload, this.httpOptions);
+
+    request$.pipe(
+      catchError(err => {
+        console.error('Error saving employee:', {
+          status: err.status,
+          message: err.message,
+          error: err.error
+        });
+        this.errorMessage = this.extractErrorMessage(err);
+        this.isSaving = false;
+        return throwError(() => err);
+      })
+    ).subscribe({
+      next: (response: ApiEmployeeResponse | any) => {
+        const generatedEmpId = (response as ApiEmployeeResponse)?.employee?.empId || 
+                             response?.empId || 
+                             empId;
+        
+        if (generatedEmpId && this.selectedFiles.length > 0) {
+          // Upload documents if files were selected
+          this.uploadDocuments(generatedEmpId).then(() => {
+            this.isSaving = false;
+            this.closeModal();
+            this.handleUpdateResponse(response, empId);
+            this.selectedFiles = []; // Clear selected files after upload
+          }).catch((uploadError) => {
+            console.error('Document upload failed:', uploadError);
+            this.isSaving = false;
+            this.closeModal();
+            this.handleUpdateResponse(response, empId);
+            // Optionally show a warning that employee was saved but documents failed
+            this.errorMessage = 'Employee saved but document upload failed. You can upload documents later.';
           });
-          this.errorMessage = this.extractErrorMessage(err);
-          this.isSaving = false;
-          return throwError(() => err);
-        })
-      ).subscribe({
-        next: (response) => {
+        } else {
+          // No documents to upload
           this.isSaving = false;
           this.closeModal();
           this.handleUpdateResponse(response, empId);
-        },
-        error: (err) => {
-          console.error('Save failed:', err);
-          this.isSaving = false;
         }
-      });
-    } catch (error) {
-      this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      this.isSaving = false;
-    }
+        
+        const generatedCode = (response as ApiEmployeeResponse)?.employee?.empCode || 
+                            response?.empCode || 
+                            'N/A';
+        console.log('Employee saved successfully with code:', generatedCode);
+      },
+      error: (err) => {
+        console.error('Save failed:', err);
+        this.isSaving = false;
+      }
+    });
+  } catch (error) {
+    this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    this.isSaving = false;
+    console.error('Exception in saveEmployee:', error);
   }
+}
+
 
   /**
    * Handle response from save operation
@@ -1433,19 +1531,31 @@ onOrganizationChange(): void {
   /**
    * Format date for display in input fields
    */
-  private formatDateForInput(dateString: string): string {
-    if (!dateString) return '';
+ private formatDateForInput(dateString: string): string {
+  if (!dateString) return '';
+  try {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
     return date.toISOString().split('T')[0];
+  } catch (e) {
+    console.error('Date formatting error:', e);
+    return '';
   }
+}
 
   /**
    * Format date for API requests
    */
-  private formatDateForAPI(date: Date | string): string {
-    const d = new Date(date);
+ private formatDateForAPI(date: Date | string): string {
+  try {
+    const d = date ? new Date(date) : new Date();
+    if (isNaN(d.getTime())) throw new Error('Invalid date');
     return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+  } catch (e) {
+    console.error('Date formatting error:', e);
+    return ''; // or handle differently
   }
+}
 
   /**
    * Extract error message from HTTP response
@@ -1594,4 +1704,148 @@ onOrganizationChange(): void {
     };
     return classes[department] || 'emp-dept-default';
   }
+  ///Document upload
+  // File handling methods
+triggerFileInput(): void {
+  const fileInput = document.querySelector('.file-upload-area input[type="file"]') as HTMLElement;
+  fileInput.click();
+}
+
+onFileSelected(event: Event): void {
+  const input = event.target as HTMLInputElement;
+  if (input.files && input.files.length > 0) {
+    for (let i = 0; i < input.files.length; i++) {
+      const file = input.files[i];
+      if (this.validateFile(file)) {
+        this.selectedFiles.push(file);
+      }
+    }
+  }
+}
+
+validateFile(file: File): boolean {
+  const validTypes = ['application/pdf', 'application/msword', 
+                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                     'application/vnd.ms-excel', 
+                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     'image/jpeg', 'image/png'];
+  const maxSize = 5 * 1024 * 1024; // 5MB
+
+  if (!validTypes.includes(file.type)) {
+    this.errorMessage = `Invalid file type: ${file.name}. Only PDF, Word, Excel, JPG, PNG are allowed.`;
+    return false;
+  }
+
+  if (file.size > maxSize) {
+    this.errorMessage = `File too large: ${file.name}. Max size is 5MB.`;
+    return false;
+  }
+
+  return true;
+}
+
+removeFile(index: number): void {
+  this.selectedFiles.splice(index, 1);
+}
+
+getFileIconClass(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase();
+  const iconMap: { [key: string]: string } = {
+    'pdf': 'bi bi-file-earmark-pdf text-danger',
+    'doc': 'bi bi-file-earmark-word text-primary',
+    'docx': 'bi bi-file-earmark-word text-primary',
+    'xls': 'bi bi-file-earmark-excel text-success',
+    'xlsx': 'bi bi-file-earmark-excel text-success',
+    'jpg': 'bi bi-file-earmark-image text-info',
+    'jpeg': 'bi bi-file-earmark-image text-info',
+    'png': 'bi bi-file-earmark-image text-info'
+  };
+  return iconMap[extension || ''] || 'bi bi-file-earmark-text';
+}
+
+formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const sizeValue = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+  return `${sizeValue} ${sizes[i]}`;
+}
+
+// Document API methods
+uploadDocuments(empId: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (this.selectedFiles.length === 0) {
+      resolve();
+      return;
+    }
+
+    const authToken = this.authService.getToken(); // Get your auth token
+    if (!authToken) {
+      this.errorMessage = 'Authentication required for document upload';
+      reject('No auth token');
+      return;
+    }
+
+    const uploadPromises = this.selectedFiles.map(file => {
+      const formData = new FormData();
+      formData.append('file', file, file.name);
+      formData.append('fileName', file.name); // Using original filename
+      formData.append('visibleOnlyToMe', 'false'); // Default visibility
+
+      const headers = new HttpHeaders({
+        'Authorization': `Bearer ${authToken}`
+      });
+
+      return this.http.post(this.documentUploadUrl, formData, { headers }).toPromise();
+    });
+
+    Promise.all(uploadPromises)
+      .then(() => {
+        this.selectedFiles = [];
+        resolve();
+      })
+      .catch(error => {
+        console.error('Document upload failed:', error);
+        this.errorMessage = 'Document upload failed. You can try again later.';
+        // Still resolve to allow employee save to continue
+        resolve();
+      });
+  });
+}
+
+loadEmployeeDocuments(empId: string): void {
+  if (!empId) return;
+  
+  this.http.get<any[]>(`${environment.apiUrl}/api/archive/upload/${empId}`, this.httpOptions)
+    .pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error loading documents:', error);
+        return of([]);
+      })
+    )
+    .subscribe({
+      next: (documents) => {
+        this.employeeDocuments = documents;
+      }
+    });
+}
+
+deleteDocument(docId: string): void {
+  if (confirm('Are you sure you want to delete this document?')) {
+    this.http.delete(`${environment.apiUrl}/api/archive/${docId}`, this.httpOptions)
+      .subscribe({
+        next: () => {
+          this.employeeDocuments = this.employeeDocuments.filter(doc => doc.id !== docId);
+        },
+        error: (error) => {
+          console.error('Error deleting document:', error);
+        }
+      });
+  }
+}
+
+getDocumentUrl(docId: string): string {
+  return `${environment.apiUrl}/api/archive/download/${docId}`;
+}
 }

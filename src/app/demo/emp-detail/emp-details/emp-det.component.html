@@ -13,19 +13,17 @@
         <i class="bi bi-people-fill me-2"></i>
         {{ filteredEmployees.length }} Employees
       </button>
-     <button class="emp-det-add-btn btn btn-outline-dark d-flex align-items-center" 
-        (click)="openModal()"
+      <button class="emp-det-add-btn btn btn-outline-dark d-flex align-items-center" (click)="openModal()"
         *ngIf="canAddEmployee()">
-  <i class="bi bi-plus me-2"></i>
-  Add Employee
-</button>
+        <i class="bi bi-plus me-2"></i>
+        Add Employee
+      </button>
 
-<button class="emp-det-export-btn btn btn-warning d-flex align-items-center" 
-        (click)="exportToCSV()"
+      <button class="emp-det-export-btn btn btn-warning d-flex align-items-center" (click)="exportToCSV()"
         *ngIf="canExport()">
-  <i class="bi bi-download me-2"></i>
-  Export
-</button>
+        <i class="bi bi-download me-2"></i>
+        Export
+      </button>
     </div>
   </div>
 
@@ -35,37 +33,36 @@
   <div class="emp-det-divider w-100 pb-3 mb-4" style="border-bottom: 1px solid #dee2e6;"></div>
 
   <div class="emp-det-filter-section d-flex align-items-center mb-4 gap-4">
-  <!-- Branch Select -->
-  <div class="emp-det-filter-select">
-    <select class="form-select" [(ngModel)]="selectedBranchId" (change)="onBranchChange()">
-      <option *ngFor="let branch of branches" [value]="branch.branchId">
-        {{ branch.branchName }}
-      </option>
-    </select>
-  </div>
-
-  <!-- Department Select -->
-  <div class="emp-det-filter-select">
-    <select class="form-select" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
-      <option *ngFor="let dept of tabDepartments" [value]="dept">{{ dept }}</option>
-    </select>
-  </div>
-   <!-- Clear Filters Button -->
-    <button class="clear_btn btn btn-sm d-flex align-items-center" 
-          (click)="clearAllFilters()" 
-          [disabled]="!hasActiveFilters()">
-    <i class="bi bi-funnel"></i> Clear Filters
-  </button>
-
-
-  <!-- Search Input -->
-  <div class="emp-det-search-container">
-    <div class="emp-det-search position-relative">
-      <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
-      <input type="text" class="emp-det-search-input form-control ps-5" placeholder="Search employees..."
-        [(ngModel)]="searchQuery" (input)="applyFilters()">
+    <!-- Branch Select -->
+    <div class="emp-det-filter-select">
+      <select class="form-select" [(ngModel)]="selectedBranchId" (change)="onBranchChange()">
+        <option *ngFor="let branch of branches" [value]="branch.branchId">
+          {{ branch.branchName }}
+        </option>
+      </select>
     </div>
-  </div>
+
+    <!-- Department Select -->
+    <div class="emp-det-filter-select">
+      <select class="form-select" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
+        <option *ngFor="let dept of tabDepartments" [value]="dept">{{ dept }}</option>
+      </select>
+    </div>
+    <!-- Clear Filters Button -->
+    <button class="clear_btn btn btn-sm d-flex align-items-center" (click)="clearAllFilters()"
+      [disabled]="!hasActiveFilters()">
+      <i class="bi bi-funnel"></i> Clear Filters
+    </button>
+
+
+    <!-- Search Input -->
+    <div class="emp-det-search-container">
+      <div class="emp-det-search position-relative">
+        <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+        <input type="text" class="emp-det-search-input form-control ps-5" placeholder="Search employees..."
+          [(ngModel)]="searchQuery" (input)="applyFilters()">
+      </div>
+    </div>
 
   </div>
 
@@ -132,18 +129,16 @@
               <td class="py-3">
                 <div class="emp-det-actions-btns d-flex gap-2">
                   <button class="emp-det-view-btn btn btn-sm" (click)="viewEmployee(emp.empCode)">
-    <i class="bi bi-eye"></i>
-  </button>
-  <!-- <button class="emp-det-edit-btn btn btn-sm" 
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <button class="emp-det-edit-btn btn btn-sm" 
           (click)="editEmployee(i)"
           *ngIf="canEditEmployee()">
     <i class="bi bi-pencil"></i>
-  </button> -->
-  <button class="emp-det-delete-btn btn btn-sm" 
-          (click)="deleteEmployee(i)"
-          *ngIf="canDeleteEmployee()">
-    <i class="bi bi-trash"></i>
   </button>
+                  <button class="emp-det-delete-btn btn btn-sm" (click)="deleteEmployee(i)" *ngIf="canDeleteEmployee()">
+                    <i class="bi bi-trash"></i>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -219,448 +214,514 @@
   </div>
 
 
-  <!-- Add/Edit Modal -->
-  <div class="emp-det-modal modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-      <div class="emp-det-modal-content modal-content border-0 shadow">
-        <div class="emp-det-modal-header modal-header text-white border-0">
-          <h5 class="modal-title fw-bold">
-            {{ isEditMode ? 'Edit' : 'Add' }} Employee
-          </h5>
-          <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
-        </div>
+  <!-- Add/Edit Employee Modal -->
+<div class="emp-det-modal modal fade" [class.show]="showModal" [style.display]="showModal ? 'block' : 'none'">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="emp-det-modal-content modal-content border-0 shadow">
+      <div class="emp-det-modal-header modal-header text-white border-0">
+        <h5 class="modal-title fw-bold">
+          {{ isEditMode ? 'Edit' : 'Add' }} Employee
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeModal()"></button>
+      </div>
 
+      <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
         <div class="emp-det-modal-body modal-body p-4">
-          <form [formGroup]="employeeForm" (ngSubmit)="saveEmployee()">
-            <div *ngIf="errorMessage" class="alert alert-danger mb-4">
-              {{ errorMessage }}
-            </div>
+          <div *ngIf="errorMessage" class="alert alert-danger mb-4">
+            {{ errorMessage }}
+          </div>
 
-            <!-- Modal Tab Navigation -->
-            <div class="emp-det-tabs mb-4">
-              <ul class="nav nav-tabs">
-                <li class="nav-item">
-                  <a class="nav-link" [class.active]="isModalTabActive('basic')" (click)="selectModalTab('basic')">
-                    <i class="fas fa-user-circle mr-2"></i>Basic Info
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" [class.active]="isModalTabActive('employment')"
-                    (click)="selectModalTab('employment')">
-                    <i class="fas fa-briefcase mr-2"></i>Employment
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" [class.active]="isModalTabActive('contact-bank')"
-                    (click)="selectModalTab('contact-bank')">
-                    <i class="fas fa-address-card mr-2"></i>Contact & Bank
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" [class.active]="isModalTabActive('education')"
-                    (click)="selectModalTab('education')">
-                    <i class="fas fa-graduation-cap mr-2"></i>Education
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" [class.active]="isModalTabActive('address')" (click)="selectModalTab('address')">
-                    <i class="fas fa-map-marker-alt mr-2"></i>Address
-                  </a>
-                </li>
-              </ul>
-            </div>
+          <!-- Modal Tab Navigation -->
+          <div class="emp-det-tabs mb-4">
+            <ul class="nav nav-tabs">
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="isModalTabActive('basic')" (click)="selectModalTab('basic')">
+                  <i class="fas fa-user-circle mr-2"></i>Basic Info
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="isModalTabActive('employment')"
+                  (click)="selectModalTab('employment')">
+                  <i class="fas fa-briefcase mr-2"></i>Employment
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="isModalTabActive('contact-bank')"
+                  (click)="selectModalTab('contact-bank')">
+                  <i class="fas fa-address-card mr-2"></i>Contact & Bank
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="isModalTabActive('education')"
+                  (click)="selectModalTab('education')">
+                  <i class="fas fa-graduation-cap mr-2"></i>Education
+                </a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" [class.active]="isModalTabActive('address')" (click)="selectModalTab('address')">
+                  <i class="fas fa-map-marker-alt mr-2"></i>Address
+                </a>
+              </li>
+              <li class="nav-item">
+  <a class="nav-link" [class.active]="isModalTabActive('documents')" (click)="selectModalTab('documents')">
+    <i class="fas fa-file-alt mr-2"></i>Documents
+  </a>
+</li>
+            </ul>
+          </div>
 
-            <!-- Modal Tab Content -->
-            <div class="emp-det-tab-content">
-              <!-- Basic Info Tab -->
-              <div *ngIf="isModalTabActive('basic')" class="tab-pane active">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Employee Code</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="empCode"
-                      [readOnly]="isEditMode" placeholder="Enter employee code">
-                    <div *ngIf="employeeForm.get('empCode')?.invalid && employeeForm.get('empCode')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Employee code is required (alphanumeric only)
-                    </div>
+          <!-- Modal Tab Content -->
+          <div class="emp-det-tab-content">
+            <!-- Basic Info Tab -->
+            <div *ngIf="isModalTabActive('basic')" class="tab-pane active">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">First Name</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="firstName"
+                    placeholder="Enter first name">
+                  <div *ngIf="employeeForm.get('firstName')?.invalid && employeeForm.get('firstName')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    First name is required (max 50 characters)
                   </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">First Name</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="firstName"
-                      placeholder="Enter first name">
-                    <div *ngIf="employeeForm.get('firstName')?.invalid && employeeForm.get('firstName')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      First name is required (max 50 characters)
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Middle Name</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="middleName"
-                      placeholder="Enter middle name">
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Last Name</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="lastName"
-                      placeholder="Enter last name">
-                    <div *ngIf="employeeForm.get('lastName')?.invalid && employeeForm.get('lastName')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Last name is required (max 50 characters)
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Date of Birth</label>
-                    <input type="date" class="emp-det-form-input form-control" formControlName="dateOfBirth">
-                    <div *ngIf="employeeForm.get('dateOfBirth')?.invalid && employeeForm.get('dateOfBirth')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Date of birth is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Gender</label>
-                    <select class="emp-det-form-select form-select" formControlName="gender">
-                      <option value="" disabled selected>Select Gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Marital Status</label>
-                    <select class="emp-det-form-select form-select" formControlName="maritalStatus">
-                      <option value="" disabled selected>Select Marital Status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Nationality</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="nationality"
-                      placeholder="Enter nationality">
-                    <div *ngIf="employeeForm.get('nationality')?.invalid && employeeForm.get('nationality')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Nationality is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">CID Number</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="cidNumber"
-                      placeholder="Enter CID number">
-                    <div *ngIf="employeeForm.get('cidNumber')?.invalid && employeeForm.get('cidNumber')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      CID number is required (numbers only)
-                    </div>
-                  </div>
-                  <div class="col-md-6">
-  <label class="emp-det-form-label form-label fw-medium">Organization</label>
-  <select class="emp-det-form-select form-select" formControlName="organization" 
-          (change)="onOrganizationChange()">
-    <option value="" disabled selected>Select Organization</option>
-    <option *ngFor="let org of organizations" [value]="org.orgId">
-      {{ org.orgName }}
-    </option>
-  </select>
-</div>
                 </div>
-              </div>
-
-              <!-- Employment Tab -->
-              <div *ngIf="isModalTabActive('employment')" class="tab-pane">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Hire Date</label>
-                    <input type="date" class="emp-det-form-input form-control" formControlName="hireDate">
-                    <div *ngIf="employeeForm.get('hireDate')?.invalid && employeeForm.get('hireDate')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Hire date is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Employment Status</label>
-                    <select class="emp-det-form-select form-select" formControlName="employmentStatus">
-                      <option value="" disabled selected>Select Status</option>
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="On Leave">On Leave</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Employment Type</label>
-                    <select class="emp-det-form-select form-select" formControlName="employmentType">
-                      <option value="" disabled selected>Select Employment Type</option>
-                      <option value="Regular">Regular</option>
-                      <option value="Contract">Contract</option>
-                      <option value="Temporary">Temporary</option>
-                      <option value="Probation">Probation</option>
-                      <option value="Intern">Intern</option>
-                      <option value="Consultant">Consultant</option>
-                    </select>
-                  </div>
 
                 <div class="col-md-6">
-  <label class="emp-det-form-label form-label fw-medium">Branch</label>
-  <select class="emp-det-form-select form-select" formControlName="location" 
-          (change)="onBranchChangeInForm()">
-    <option value="" disabled selected>Select Branch</option>
-    <option *ngFor="let branch of branches" [value]="branch.branchName">
-      {{ branch.branchName }}
-    </option>
-  </select>
-</div>
+                  <label class="emp-det-form-label form-label fw-medium">Middle Name</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="middleName"
+                    placeholder="Enter middle name">
+                </div>
 
-<div class="col-md-6">
-  <label class="emp-det-form-label form-label fw-medium">Department</label>
-  <select class="emp-det-form-select form-select" formControlName="department"
-          (change)="onDepartmentChange()" [disabled]="!employeeForm.get('location')?.value">
-    <option value="" disabled selected>Select Department</option>
-    <option *ngFor="let dept of formDepartments" [value]="dept.dept_id">
-      {{ dept.dept_name }}
-    </option>
-  </select>
-</div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Position</label>
-                    <select class="emp-det-form-select form-select" formControlName="position"
-                      [disabled]="!employeeForm.get('department')?.value">
-                      <option value="" disabled selected>Select Position</option>
-                      <option *ngFor="let pos of filteredPositions" [value]="pos.positionId">
-                        {{ pos.positionName }}
-                      </option>
-                    </select>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Last Name</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="lastName"
+                    placeholder="Enter last name">
+                  <div *ngIf="employeeForm.get('lastName')?.invalid && employeeForm.get('lastName')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    Last name is required (max 50 characters)
                   </div>
+                </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Grade</label>
-                    <select class="emp-det-form-select form-select" formControlName="grade"
-                      (change)="onGradeChange($event)">
-                      <option value="" disabled selected>Select Grade</option>
-                      <option *ngFor="let grade of grades" [value]="grade.gradeId">
-                        {{ grade.gradeName }} ({{ grade.gradeCode }})
-                      </option>
-                    </select>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Date of Birth</label>
+                  <input type="date" class="emp-det-form-input form-control" formControlName="dateOfBirth">
+                  <div *ngIf="employeeForm.get('dateOfBirth')?.invalid && employeeForm.get('dateOfBirth')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    Date of birth is required
                   </div>
+                </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Basic Salary</label>
-                    <input type="number" class="emp-det-form-input form-control" formControlName="basicSalary" readonly>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Gender</label>
+                  <select class="emp-det-form-select form-select" formControlName="gender">
+                    <option value="" disabled selected>Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Marital Status</label>
+                  <select class="emp-det-form-select form-select" formControlName="maritalStatus">
+                    <option value="" disabled selected>Select Marital Status</option>
+                    <option value="Single">Single</option>
+                    <option value="Married">Married</option>
+                    <option value="Divorced">Divorced</option>
+                    <option value="Widowed">Widowed</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Nationality</label>
+                  <select class="emp-det-form-select form-select" formControlName="nationality" 
+                          (change)="onNationalityChange()">
+                    <option value="Bhutanese" selected>Bhutanese</option>
+                    <option value="Non-Bhutanese">Non-Bhutanese</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">CID Number</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="cidNumber"
+                    placeholder="Enter CID number">
+                  <div *ngIf="employeeForm.get('cidNumber')?.invalid && employeeForm.get('cidNumber')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    CID number is required (numbers only)
                   </div>
+                </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Max Salary</label>
-                    <input type="number" class="emp-det-form-input form-control" formControlName="maxSalary" readonly>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Organization</label>
+                  <select class="emp-det-form-select form-select" formControlName="organization" 
+                          (change)="onOrganizationChange()">
+                    <option value="" disabled selected>Select Organization</option>
+                    <option *ngFor="let org of organizations" [value]="org.orgId">
+                      {{ org.orgName }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Employment Tab -->
+            <div *ngIf="isModalTabActive('employment')" class="tab-pane active">
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Hire Date</label>
+                  <input type="date" class="emp-det-form-input form-control" formControlName="hireDate">
+                  <div *ngIf="employeeForm.get('hireDate')?.invalid && employeeForm.get('hireDate')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    Hire date is required
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Employment Status</label>
+                  <select class="emp-det-form-select form-select" formControlName="employmentStatus">
+                    <option value="" disabled selected>Select Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="On Leave">On Leave</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Employment Type</label>
+                  <select class="emp-det-form-select form-select" formControlName="employmentType">
+                    <option value="" disabled selected>Select Employment Type</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Contract">Contract</option>
+                    <option value="Temporary">Temporary</option>
+                    <option value="Probation">Probation</option>
+                    <option value="Intern">Intern</option>
+                    <option value="Consultant">Consultant</option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Branch</label>
+                  <select class="emp-det-form-select form-select" formControlName="location" 
+                          (change)="onBranchChangeInForm()">
+                    <option value="" disabled selected>Select Branch</option>
+                    <option *ngFor="let branch of branches" [value]="branch.branchName">
+                      {{ branch.branchName }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Department</label>
+                  <select class="emp-det-form-select form-select" formControlName="department"
+                          (change)="onDepartmentChange()" [disabled]="!employeeForm.get('location')?.value">
+                    <option value="" disabled selected>Select Department</option>
+                    <option *ngFor="let dept of formDepartments" [value]="dept.dept_id">
+                      {{ dept.dept_name }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Position</label>
+                  <select class="emp-det-form-select form-select" formControlName="position"
+                    [disabled]="!employeeForm.get('department')?.value">
+                    <option value="" disabled selected>Select Position</option>
+                    <option *ngFor="let pos of filteredPositions" [value]="pos.positionId">
+                      {{ pos.positionName }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Grade</label>
+                  <select class="emp-det-form-select form-select" formControlName="grade"
+                    (change)="onGradeChange($event)">
+                    <option value="" disabled selected>Select Grade</option>
+                    <option *ngFor="let grade of grades" [value]="grade.gradeId">
+                      {{ grade.gradeName }} ({{ grade.gradeCode }})
+                    </option>
+                  </select>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Basic Salary</label>
+                  <input type="number" class="emp-det-form-input form-control" formControlName="basicSalary" readonly>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Max Salary</label>
+                  <input type="number" class="emp-det-form-input form-control" formControlName="maxSalary" readonly>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact & Bank Tab -->
+            <div *ngIf="isModalTabActive('contact-bank')" class="tab-pane active">
+              <div class="row g-3">
+                <div class="col-12">
+                  <h6 class="fw-bold border-bottom pb-2 mb-3">Contact Information</h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Email</label>
+                  <input type="email" class="emp-det-form-input form-control" formControlName="email"
+                    placeholder="Enter Your Email">
+                  <div *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    <span *ngIf="employeeForm.get('email')?.errors?.['required']">Email is required</span>
+                    <span *ngIf="employeeForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+                  </div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Phone Number</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="phonePrimary"
+                    placeholder="Enter phone number">
+                  <div *ngIf="employeeForm.get('phonePrimary')?.invalid && employeeForm.get('phonePrimary')?.touched"
+                    class="emp-det-form-error text-danger small mt-1">
+                    Phone number is required (numbers only)
+                  </div>
+                </div>
+
+                <div class="col-12 mt-4">
+                  <h6 class="fw-bold border-bottom pb-2 mb-3">Bank Details</h6>
+                </div>
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Bank Name</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="bankName"
+                    placeholder="Enter bank name">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Branch Name</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="branchName"
+                    placeholder="Enter branch name">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Account Number</label>
+                  <input type="text" class="emp-det-form-input form-control" formControlName="accountNumber"
+                    placeholder="Enter account number">
+                </div>
+
+                <div class="col-md-6">
+                  <label class="emp-det-form-label form-label fw-medium">Account Type</label>
+                  <select class="emp-det-form-select form-select" formControlName="accountType">
+                    <option value="" disabled selected>Select Account Type</option>
+                    <option value="Savings">Savings</option>
+                    <option value="Current">Current</option>
+                    <option value="Fixed Deposit">Fixed Deposit</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Education Tab -->
+            <div *ngIf="isModalTabActive('education')" class="tab-pane active">
+              <div class="education-container">
+                <div class="education-form">
+                  <div class="row g-3">
+                    <div class="col-md-6">
+                      <label class="emp-det-form-label form-label fw-medium">Institution Name</label>
+                      <input type="text" class="emp-det-form-input form-control" formControlName="institutionName" 
+                             placeholder="Enter institution name">
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="emp-det-form-label form-label fw-medium">Degree Name</label>
+                      <input type="text" class="emp-det-form-input form-control" formControlName="degreeName" 
+                             placeholder="Enter degree name">
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="emp-det-form-label form-label fw-medium">Specialization</label>
+                      <input type="text" class="emp-det-form-input form-control" formControlName="specialization" 
+                             placeholder="Enter specialization">
+                    </div>
+
+                    <div class="col-md-6">
+                      <label class="emp-det-form-label form-label fw-medium">Year of Completion</label>
+                      <input type="number" class="emp-det-form-input form-control" formControlName="yearOfCompletion" 
+                             placeholder="Enter year">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="add-more-container text-end mt-3">
+                  <button type="button" class="btn btn-sm btn-outline-primary" (click)="addEducation()">
+                    <i class="bi bi-plus-circle"></i> Add More Education
+                  </button>
+                </div>
+
+                <div class="additional-educations mt-4" *ngIf="educations.controls.length > 0">
+                  <div class="education-entry card mb-3" *ngFor="let education of educations.controls; let i = index" [formGroup]="education">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                      <h6 class="mb-0">Additional Education #{{i + 1}}</h6>
+                      <button type="button" class="btn btn-sm btn-danger" (click)="removeEducation(i)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                    <div class="card-body">
+                      <div class="row g-3">
+                        <div class="col-md-6">
+                          <label class="emp-det-form-label form-label fw-medium">Institution Name</label>
+                          <input type="text" class="emp-det-form-input form-control" formControlName="institutionName">
+                        </div>
+
+                        <div class="col-md-6">
+                          <label class="emp-det-form-label form-label fw-medium">Degree Name</label>
+                          <input type="text" class="emp-det-form-input form-control" formControlName="degreeName">
+                        </div>
+
+                        <div class="col-md-6">
+                          <label class="emp-det-form-label form-label fw-medium">Specialization</label>
+                          <input type="text" class="emp-det-form-input form-control" formControlName="specialization">
+                        </div>
+
+                        <div class="col-md-6">
+                          <label class="emp-det-form-label form-label fw-medium">Year of Completion</label>
+                          <input type="number" class="emp-det-form-input form-control" formControlName="yearOfCompletion">
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div *ngIf="isModalTabActive('contact-bank')" class="tab-pane">
-                <div class="row g-3">
-                  <!-- Contact Section -->
-                  <div class="col-12">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3">Contact Information</h6>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Email</label>
-                    <input type="email" class="emp-det-form-input form-control" formControlName="email"
-                      placeholder="Enter Your Email">
-                    <div *ngIf="employeeForm.get('email')?.invalid && employeeForm.get('email')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      <span *ngIf="employeeForm.get('email')?.errors?.['required']">Email is required</span>
-                      <span *ngIf="employeeForm.get('email')?.errors?.['email']">Please enter a valid email
-                        address</span>
-                    </div>
-                  </div>
+            <!-- Address Tab -->
+            <!-- Address Tab -->
+<div *ngIf="isModalTabActive('address')" class="tab-pane active">
+  <div class="row g-3">
+    <div class="col-md-6">
+      <label class="emp-det-form-label form-label fw-medium">Address Type</label>
+      <select class="emp-det-form-select form-select" formControlName="addressType">
+        <option value="Permanent">Permanent</option>
+        <option value="Temporary">Temporary</option>
+        <option value="Correspondence">Correspondence</option>
+      </select>
+    </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Phone Number</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="phonePrimary"
-                      placeholder="Enter phone number">
-                    <div *ngIf="employeeForm.get('phonePrimary')?.invalid && employeeForm.get('phonePrimary')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Phone number is required (numbers only)
-                    </div>
-                  </div>
+    <!-- Address Line 1 (Village for Bhutanese) -->
+    <div class="col-md-6">
+      <label class="emp-det-form-label form-label fw-medium">
+        {{ employeeForm.get('nationality')?.value === 'Bhutanese' ? 'Village' : 'Address Line 1' }}
+      </label>
+      <input type="text" class="emp-det-form-input form-control" formControlName="addressLine1"
+        [placeholder]="employeeForm.get('nationality')?.value === 'Bhutanese' ? 'Enter village' : 'Enter address line 1'">
+      <div *ngIf="employeeForm.get('addressLine1')?.invalid && employeeForm.get('addressLine1')?.touched"
+        class="emp-det-form-error text-danger small mt-1">
+        {{ employeeForm.get('nationality')?.value === 'Bhutanese' ? 'Village is required' : 'Address line 1 is required' }}
+      </div>
+    </div>
 
-                  <!-- Bank Section -->
-                  <div class="col-12 mt-4">
-                    <h6 class="fw-bold border-bottom pb-2 mb-3">Bank Details</h6>
-                  </div>
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Bank Name</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="bankName"
-                      placeholder="Enter bank name">
-                  </div>
+    <!-- Address Line 2 (Only for Non-Bhutanese) -->
+    <div class="col-md-6" *ngIf="employeeForm.get('nationality')?.value !== 'Bhutanese'">
+      <label class="emp-det-form-label form-label fw-medium">Address Line 2</label>
+      <input type="text" class="emp-det-form-input form-control" formControlName="addressLine2"
+        placeholder="Enter address line 2">
+      <div *ngIf="employeeForm.get('addressLine2')?.invalid && employeeForm.get('addressLine2')?.touched"
+        class="emp-det-form-error text-danger small mt-1">
+        Address line 2 is required
+      </div>
+    </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Branch Name</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="branchName"
-                      placeholder="Enter branch name">
-                  </div>
+    <!-- Thromde (Only for Bhutanese) -->
+    <div class="col-md-6" *ngIf="employeeForm.get('nationality')?.value === 'Bhutanese'">
+      <label class="emp-det-form-label form-label fw-medium">Thromde</label>
+      <input type="text" class="emp-det-form-input form-control" formControlName="thromde"
+        placeholder="Enter thromde">
+      <div *ngIf="employeeForm.get('thromde')?.invalid && employeeForm.get('thromde')?.touched"
+        class="emp-det-form-error text-danger small mt-1">
+        Thromde is required
+      </div>
+    </div>
 
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Account Number</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="accountNumber"
-                      placeholder="Enter account number">
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Account Type</label>
-                    <select class="emp-det-form-select form-select" formControlName="accountType">
-                      <option value="" disabled selected>Select Account Type</option>
-                      <option value="Savings">Savings</option>
-                      <option value="Current">Current</option>
-                      <option value="Fixed Deposit">Fixed Deposit</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Education Tab -->
-              <div *ngIf="isModalTabActive('education')" class="tab-pane">
-  <div class="education-container">
-    <!-- Main Education Form -->
-    <div class="education-form">
-      <div class="row g-3">
-        <div class="col-md-6">
-          <label class="emp-det-form-label form-label fw-medium">Institution Name</label>
-          <input type="text" class="emp-det-form-input form-control" formControlName="institutionName" placeholder="Enter institution name">
+    <!-- Dzongkhag (Only for Bhutanese) -->
+    <div class="col-md-6" *ngIf="employeeForm.get('nationality')?.value === 'Bhutanese'">
+      <label class="emp-det-form-label form-label fw-medium">Dzongkhag</label>
+      <input type="text" class="emp-det-form-input form-control" formControlName="dzongkhag"
+        placeholder="Enter dzongkhag">
+      <div *ngIf="employeeForm.get('dzongkhag')?.invalid && employeeForm.get('dzongkhag')?.touched"
+        class="emp-det-form-error text-danger small mt-1">
+        Dzongkhag is required
+      </div>
+    </div>
+   
+  </div>
+  
+</div>
+          </div>
         </div>
-
-        <div class="col-md-6">
-          <label class="emp-det-form-label form-label fw-medium">Degree Name</label>
-          <input type="text" class="emp-det-form-input form-control" formControlName="degreeName" placeholder="Enter degree name">
+         <!-- Documents Tab -->
+<div *ngIf="isModalTabActive('documents')" class="tab-pane active">
+  <div class="documents-tab-container">
+    <div class="upload-section mb-4">
+      <h6 class="fw-bold border-bottom pb-2 mb-3">Upload Documents</h6>
+      <div class="file-upload-area" (click)="triggerFileInput()">
+        <input #fileInput type="file" class="d-none" (change)="onFileSelected($event)" multiple>
+        <div class="upload-icon">
+          <i class="bi bi-cloud-arrow-up"></i>
         </div>
-
-        <div class="col-md-6">
-          <label class="emp-det-form-label form-label fw-medium">Specialization</label>
-          <input type="text" class="emp-det-form-input form-control" formControlName="specialization" placeholder="Enter specialization">
+        <div class="upload-text">
+          <p>Drag & drop files here or click to browse</p>
+          <small class="text-muted">Supported formats: PDF, DOCX, XLSX, JPG, PNG (Max 5MB each)</small>
         </div>
-
-        <div class="col-md-6">
-          <label class="emp-det-form-label form-label fw-medium">Year of Completion</label>
-          <input type="number" class="emp-det-form-input form-control" formControlName="yearOfCompletion" placeholder="Enter year">
+      </div>
+      <div class="selected-files mt-3" *ngIf="selectedFiles.length > 0">
+        <div class="file-item" *ngFor="let file of selectedFiles; let i = index">
+          <div class="file-info">
+            <i [class]="getFileIconClass(file.name)"></i>
+            <div>
+              <div>{{ file.name }}</div>
+              <small>{{ formatFileSize(file.size) }}</small>
+            </div>
+          </div>
+          <button class="btn btn-sm btn-danger" (click)="removeFile(i)">
+            <i class="bi bi-trash"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Add More Button -->
-    <div class="add-more-container text-end mt-3">
-      <button type="button" class="btn btn-sm btn-outline-primary" (click)="addEducation()">
-        <i class="bi bi-plus-circle"></i> Add More Education
-      </button>
-    </div>
-
-    <!-- Additional Education Entries -->
-    <div class="additional-educations mt-4" *ngIf="educations.controls.length > 0">
-      <div class="education-entry card mb-3" *ngFor="let education of educations.controls; let i = index" [formGroup]="education">
-        <div class="card-header d-flex justify-content-between align-items-center bg-light">
-          <h6 class="mb-0">Additional Education #{{i + 1}}</h6>
-          <button type="button" class="btn btn-sm btn-danger" (click)="removeEducation(i)">
-            <i class="bi bi-trash"></i>
-          </button>
-        </div>
-        <div class="card-body">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="emp-det-form-label form-label fw-medium">Institution Name</label>
-              <input type="text" class="emp-det-form-input form-control" formControlName="institutionName">
+    <div class="existing-documents" *ngIf="isEditMode && employeeDocuments.length > 0">
+      <h6 class="fw-bold border-bottom pb-2 mb-3">Existing Documents</h6>
+      <div class="document-list">
+        <div class="document-item" *ngFor="let doc of employeeDocuments">
+          <div class="document-info">
+            <i [class]="getFileIconClass(doc.fileName)"></i>
+            <div>
+              <div>{{ doc.fileName }}</div>
+              <small>Uploaded: {{ doc.uploadDate | date:'mediumDate' }}</small>
             </div>
-
-            <div class="col-md-6">
-              <label class="emp-det-form-label form-label fw-medium">Degree Name</label>
-              <input type="text" class="emp-det-form-input form-control" formControlName="degreeName">
-            </div>
-
-            <div class="col-md-6">
-              <label class="emp-det-form-label form-label fw-medium">Specialization</label>
-              <input type="text" class="emp-det-form-input form-control" formControlName="specialization">
-            </div>
-
-            <div class="col-md-6">
-              <label class="emp-det-form-label form-label fw-medium">Year of Completion</label>
-              <input type="number" class="emp-det-form-input form-control" formControlName="yearOfCompletion">
-            </div>
+          </div>
+          <div class="document-actions">
+            <a href="{{ getDocumentUrl(doc.id) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-eye"></i>
+            </a>
+            <button class="btn btn-sm btn-outline-danger" (click)="deleteDocument(doc.id)">
+              <i class="bi bi-trash"></i>
+            </button>
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
-
-              <!-- Address Tab -->
-              <div *ngIf="isModalTabActive('address')" class="tab-pane">
-                <div class="row g-3">
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Address Type</label>
-                    <select class="emp-det-form-select form-select" formControlName="addressType">
-                      <option value="" disabled selected>Select Address Type</option>
-                      <option value="Permanent">Permanent</option>
-                      <option value="Temporary">Temporary</option>
-                      <option value="Correspondence">Correspondence</option>
-                    </select>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Address Line 1</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="addressLine1"
-                      placeholder="Enter address line 1">
-                    <div *ngIf="employeeForm.get('addressLine1')?.invalid && employeeForm.get('addressLine1')?.touched"
-                      class="emp-det-form-error text-danger small mt-1">
-                      Address line 1 is required
-                    </div>
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Address Line 2</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="addressLine2"
-                      placeholder="Enter address line 2">
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Thromde</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="thromde"
-                      placeholder="Enter thromde">
-                  </div>
-
-                  <div class="col-md-6">
-                    <label class="emp-det-form-label form-label fw-medium">Dzongkhag</label>
-                    <input type="text" class="emp-det-form-input form-control" formControlName="dzongkhag"
-                      placeholder="Enter dzongkhag">
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="emp-det-modal-footer modal-footer border-0 p-4 pt-0">
-              <button type="button" class="emp-det-cancel-btn btn btn-outline-dark" (click)="closeModal()">
-                Cancel
-              </button>
-              <button type="button" class="emp-det-save-btn btn" [disabled]="employeeForm.invalid || isSaving"
-                (click)="saveEmployee()">
-                <span *ngIf="!isSaving">{{ isEditMode ? 'Update' : 'Save' }} Employee</span>
-                <span *ngIf="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              </button>
-            </div>
-          </form>
+        <div class="emp-det-modal-footer modal-footer border-0 p-4 pt-0">
+          <button type="button" class="emp-det-cancel-btn btn btn-outline-dark" (click)="closeModal()">
+            Cancel
+          </button>
+          <button type="submit" class="emp-det-save-btn btn" [disabled]="isSaving">
+            <span *ngIf="!isSaving">{{ isEditMode ? 'Update' : 'Save' }} Employee</span>
+            <span *ngIf="isSaving" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          </button>
         </div>
-      </div>
+      </form>
     </div>
   </div>
+</div>
+</div>
 
-
-  <!-- Modal Backdrop -->
-  <div class="emp-det-modal-backdrop modal-backdrop fade" [class.show]="showModal || showViewModal"
-    [style.display]="showModal || showViewModal ? 'block' : 'none'" (click)="closeModal(); closeViewModal()">
-  </div>
+<!-- Modal Backdrop -->
+<div class="emp-det-modal-backdrop modal-backdrop fade" [class.show]="showModal || showViewModal"
+  [style.display]="showModal || showViewModal ? 'block' : 'none'" (click)="closeModal(); closeViewModal()">
 </div>

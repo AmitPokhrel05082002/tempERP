@@ -1,0 +1,51 @@
+<!-- dashboard-header.component.html -->
+<div class="dashboard-header">
+  <div class="header-content">
+    <div class="title-section">
+      <h1 class="main-title">Dashboard</h1>
+      <span class="subtitle">Monthly summary stats</span>
+    </div>
+
+    <div class="actions-section">
+      <div class="search-bar">
+        <mat-icon class="search-icon">search</mat-icon>
+        <input type="text" placeholder="Search dashboard" class="search-input">
+      </div>
+
+      <button class="add-widget-btn" mat-flat-button [mat-menu-trigger-for]="widgetMenu">
+        <mat-icon>add</mat-icon>
+        <span>Add widgets</span>
+      </button>
+
+      <mat-menu #widgetMenu="matMenu" class="widget-menu">
+        @for (widget of store.widgetsToAdd(); track widget.id) {
+          <button mat-menu-item (click)="store.addWidget(widget)" class="widget-menu-item">
+            <mat-icon [fontIcon]="widget.icon || 'dashboard'"></mat-icon>
+            <span>{{ widget.label }}</span>
+          </button>
+        } @empty {
+          <div class="empty-state">
+            <mat-icon>widgets</mat-icon>
+            <span>No widgets available</span>
+          </div>
+        }
+      </mat-menu>
+    </div>
+  </div>
+
+  <div class="header-tabs">
+    @for (widget of store.widgetsToAdd(); track widget.id) {
+          <button mat-menu-item (click)="store.addWidget(widget)" class="tab-item">
+            <mat-icon [fontIcon]="widget.icon || 'dashboard'"></mat-icon>
+            <span>{{ widget.label }}</span>
+          </button>
+    }
+  </div>
+</div>
+
+<div #dashboard class="dashboard-widgets" cdkDropListGroup style="padding-bottom: 20px;">
+  @for (widget of store.addedWidgets(); track widget.id){
+    <app-widget cdkDropList [data]="widget" (cdkDropListDropped)="drop($event)" [cdkDropListData]="widget.id"></app-widget>
+  }
+</div>
+
