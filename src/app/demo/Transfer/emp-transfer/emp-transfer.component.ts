@@ -9,6 +9,8 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 import { EmployeeTransferService, EmployeeTransfer, TransferType, EmployeeProfile } from '../../../services/employee-transfer.service';
 import { DepartmentService, Department } from '../../../services/department.service';
+import { AuthService } from '../../../core/services/auth.service';
+
 
 // Using the EmployeeTransfer interface from the service
 
@@ -354,7 +356,8 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
     private modalService: NgbModal,
     private transferService: EmployeeTransferService,
     private departmentService: DepartmentService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService // Add this
   ) {
     this.form = this.initForm();
   }
@@ -588,14 +591,30 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
     if (!deptId) return 'N/A';
     return this.departmentMap[deptId] || deptId; // Return ID if name not found
   }
-
+  isEmployee(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser && !this.authService.isAdmin() && !this.authService.isCTO();
+  }
+  
   loadTransfers(): void {
     this.isLoading = true;
     this.transferService.getAllTransfers()
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
         next: async (transfers: EmployeeTransfer[]) => {
-          this.transfers = transfers || [];
+          // Get the current user's employee ID
+          const currentUser = this.authService.currentUserValue;
+          const currentEmpId = currentUser?.empId;
+          
+          // Filter transfers to only show those for the current employee
+          this.transfers = (transfers || []).filter(transfer => {
+            // If user is admin/CTO, show all transfers
+            if (this.authService.isAdmin() || this.authService.isCTO()) {
+              return true;
+            }
+            // For employees, only show their own transfers
+            return transfer.empId === currentEmpId;
+          });
           
           // Get all unique employee IDs (both requester and approver)
           const allEmployeeIds = new Set<string>();

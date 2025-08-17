@@ -155,25 +155,6 @@
             </div>
           </div>
           
-          <div class="col-md-6">
-            <label for="transferCode" class="form-label">Transfer Code *</label>
-            <input 
-              type="text" 
-              class="form-control text-uppercase" 
-              id="transferCode"
-              formControlName="transferCode"
-              [class.is-invalid]="form.get('transferCode')?.invalid && form.get('transferCode')?.touched">
-            <div 
-              *ngIf="form.get('transferCode')?.errors?.['required'] && form.get('transferCode')?.touched" 
-              class="invalid-feedback">
-              Transfer code is required
-            </div>
-            <div 
-              *ngIf="form.get('transferCode')?.errors?.['maxlength']" 
-              class="invalid-feedback">
-              Maximum length is 20 characters
-            </div>
-          </div>
           
           <div class="col-md-6">
             <label for="orgId" class="form-label">Organization *</label>

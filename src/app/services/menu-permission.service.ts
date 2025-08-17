@@ -9,6 +9,21 @@ export interface Permission {
   name: string;
   checked: boolean;
 }
+export interface MenuPermission {
+  permissionId: string;
+  userId: string;
+  menuId: string;
+  menuItem: string | null;
+  menuName: string;
+  actionNames: string[];
+  permissionType: string;
+  grantedBy: string | null;
+  grantedByUsername: string | null;
+  grantedDate: string;
+  expiryDate: string | null;
+  reason: string | null;
+  isActive: boolean;
+}
 
 export interface SubModule {
   id: string;
@@ -91,6 +106,25 @@ export class MenuPermissionService {
   createMenuPermission(permission: Partial<MenuPermission>): Observable<MenuPermission> {
     return this.http.post<MenuPermission>(this.apiUrl, permission);
   }
+// In menu-permission.service.ts
+updateUserPermissions(
+  userId: string,
+  menuId: string,
+  data: {
+    actionNames: string[],
+    permissionType: string,
+    expiryDate: string | null,
+    reason: string,
+    isActive: boolean,
+    grantedBy: string,
+    grantedByUsername: string
+  }
+): Observable<MenuPermission> {
+  const url = `${this.apiUrl}/user/${userId}`;
+  const params = new HttpParams().set('menuId', menuId);
+  return this.http.put<MenuPermission>(url, data, { params });
+}
+
 
   /**
    * Update an existing menu permission
@@ -148,14 +182,6 @@ export class MenuPermissionService {
    * @param menuId The ID of the menu
    * @param activeOnly Whether to return only active permissions
    */
-  getMenuPermissionsByMenuId(
-    menuId: string,
-    activeOnly: boolean = true
-  ): Observable<MenuPermission[]> {
-    let params = new HttpParams();
-    if (activeOnly) {
-      params = params.append('isActive', 'true');
-    }
-    return this.http.get<MenuPermission[]>(`${this.apiUrl}/menu/${menuId}`, { params });
-  }
+
 }
+

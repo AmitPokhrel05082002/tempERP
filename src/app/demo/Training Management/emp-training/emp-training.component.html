@@ -192,20 +192,7 @@
             Program name is required
           </div>
         </div>
-        
-        <div class="col-md-6">
-          <label for="programCode" class="form-label">Program Code *</label>
-          <input 
-            type="text" 
-            class="form-control" 
-            id="programCode"
-            formControlName="programCode"
-            [class.is-invalid]="form.get('programCode')?.invalid && form.get('programCode')?.touched">
-          <div *ngIf="form.get('programCode')?.invalid && form.get('programCode')?.touched" class="invalid-feedback">
-            Program code is required and must be alphanumeric with hyphens
-          </div>
-        </div>
-        
+            
         <div class="col-md-6">
           <label for="programType" class="form-label">Program Type *</label>
           <select 

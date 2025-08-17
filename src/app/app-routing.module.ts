@@ -53,6 +53,15 @@ export const routes: Routes = [
         redirectTo: 'job-management/employee-attendance',
         pathMatch: 'full'
       },
+        {
+        path: 'menu-permissions',
+        loadComponent: () => import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent),
+      },
+    
+      {
+        path: 'rbac',
+        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent),
+      },
       {
         path: 'attendance-sheet',
         redirectTo: 'job-management/attendance-sheet',
@@ -160,7 +169,7 @@ export const routes: Routes = [
       },
 
       {
-        path: 'branches',
+        path: 'organization/branches',
         loadComponent: () => import('./demo/branches/branches.component').then((c) => c.BranchesComponent)
       },
 
@@ -210,7 +219,7 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/Transfer/emp-transfer/emp-transfer.component').then((c) => c.EmpTransferComponent)
       },
          {
-        path: 'emp-type',
+        path: 'transfer/transfer-types',
         loadComponent: () => import('./demo/Transfer/emp-type/emp-type.component').then((c) => c.EmpTypeComponent)
       },
       // Redirect transfer-types to emp-type
@@ -234,15 +243,6 @@ export const routes: Routes = [
          {
         path: 'emp-det/view',
         loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
-      },
-      {
-        path: 'menu-permissions',
-        loadComponent: () => import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent),
-      },
-
-      {
-        path: 'rbac',
-        loadComponent: () => import('./demo/RoleBaseAccess/hr/RBAC.component').then((c) => c.RBACComponent),
       },
 
     ]
