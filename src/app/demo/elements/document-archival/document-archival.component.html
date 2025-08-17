@@ -2,7 +2,7 @@
   <div class="header">
     <div>
       <h2>Documents</h2>
-      <p>Keep track employee salary on daily basis.</p>
+      <p>Manage and organize all your documents in one place.</p>
     </div>
     <button class="export-btn" (click)="openUploadModal()">
       <i class="fas fa-upload"></i> Upload File
@@ -14,7 +14,7 @@
       <div class="search-container">
         <i class="fas fa-search"></i>
         <input type="text" 
-               placeholder="Search" 
+               placeholder="Search documents..." 
                class="search-box" 
                [(ngModel)]="searchQuery"
                (input)="searchDocuments()" />
@@ -24,17 +24,18 @@
       </button>
     </div>
     <div class="right-controls">
-<select class="file-type" [(ngModel)]="selectedFileType" (change)="filterByType()">
-  <option value="">File Type</option>
-  <option value="pdf">PDF</option>
-  <option value="docx">Word</option>
-  <option value="xlsx">Excel</option>
-</select>
+      <select class="file-type" [(ngModel)]="selectedFileType" (change)="filterByType()">
+        <option value="">All File Types</option>
+        <option value="pdf">PDF</option>
+        <option value="docx">Word</option>
+        <option value="xlsx">Excel</option>
+        <option value="jpg">JPG</option>
+        <option value="png">PNG</option>
+      </select>
 
-      <button class="date-sort">
-  <i class="fas fa-calendar-alt"></i> 21 June 2025
-</button>
-
+      <select class="year-filter" [(ngModel)]="selectedYear" (change)="filterByYear()">
+        <option *ngFor="let year of years" [value]="year">{{year}}</option>
+      </select>
     </div>
   </div>
 
@@ -43,9 +44,9 @@
       <tr class="table-header">
         <th><input type="checkbox" /></th>
         <th>Name</th>
-        <th>Created By</th>
-        <th>Date Created</th>
-        <th>Last Updated</th>
+        <th>Uploaded By</th>
+        <th>Date Uploaded</th>
+        <th>Visibility</th>
         <th>Action</th>
       </tr>
     </thead>
@@ -55,28 +56,23 @@
         <td>
           <div class="file-name">
             <i 
-              [class]="getFileIconClass(doc.fileType)" 
-              [style.color]="getFileIconColor(doc.fileType)"
+              [class]="getFileIconClass(doc.fileName)" 
+              [style.color]="getFileIconColor(doc.fileName)"
             ></i>
             <div>
-              <div [innerHTML]="highlightMatches(doc.name + '.' + doc.fileType)"></div>
-              <small [innerHTML]="highlightMatches(doc.size)"></small>
+              <div [innerHTML]="highlightMatches(doc.userInputFileName || doc.fileName)"></div>
+              <small>{{ formatFileSize(doc.fileSize) }} • {{doc.fileType}}</small>
             </div>
           </div>
         </td>
-        <td [innerHTML]="highlightMatches(doc.createdBy)"></td>
-        <td>{{doc.dateCreated}}</td>
-        <td>
-          {{doc.lastUpdated}}<br />
-          <small [innerHTML]="highlightMatches(doc.updatedBy)"></small>
-        </td>
+        <td [innerHTML]="highlightMatches(doc.uploadedBy)"></td>
+        <td>{{ formatDate(doc.uploadDate) }}</td>
+        <td>{{ doc.visibleOnlyToMe ? 'Private' : 'Public' }}</td>
         <td class="actions">
-          <i class="fas fa-eye action-icon" title="View" (click)="viewDocument(doc.id)"></i>
-          <i class="fas fa-pencil-alt action-icon" title="Edit" (click)="openEditModal(doc)"></i>
-          <i class="fas fa-download action-icon" title="Download"></i>
+          <i class="fas fa-eye action-icon" title="View" (click)="viewDocument(doc.documentCode)"></i>
+          <i class="fas fa-download action-icon" title="Download" (click)="downloadDocument(doc.documentCode)"></i>
+          <i class="fas fa-trash action-icon" title="Delete" (click)="deleteDocument(doc.id)"></i>
         </td>
-              <td>{{ formatDate(doc.dateCreated) }}</td>
-
       </tr>
     </tbody>
   </table>
@@ -90,23 +86,15 @@
       </div>
       <div class="modal-body" *ngIf="selectedDocument">
         <div class="form-group">
-          <label>Name</label>
-          <input type="text" [(ngModel)]="selectedDocument.name" class="form-control">
+          <label>Display Name</label>
+          <input type="text" [(ngModel)]="selectedDocument.userInputFileName" class="form-control">
         </div>
         <div class="form-group">
-          <label>File Type</label>
-          <select [(ngModel)]="selectedDocument.fileType" class="form-control">
-            <option value="pdf">PDF</option>
-            <option value="docx">Word</option>
-            <option value="xlsx">Excel</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Created By</label>
-          <input type="text" [(ngModel)]="selectedDocument.createdBy" class="form-control">
-        </div>
-        <div class="form-group">
-          
+          <label>Replace File (optional)</label>
+          <div class="file-upload-wrapper">
+            <input type="file" (change)="onFileSelected($event)">
+            <small *ngIf="selectedFile">Selected: {{selectedFile.name}}</small>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -126,11 +114,10 @@
       <div class="modal-body">
         <div class="file-upload-card">
           <div class="file-meta">
-            <div class="file-meta-label">File Name</div>              
+            <div class="file-meta-label">Display Name</div>              
             <div>
-              <input type="text" id="fileDescription" 
-                     [(ngModel)]="fileDescription" 
-                     placeholder="Enter File Name">
+              <input type="text" [(ngModel)]="fileName" 
+                     placeholder="Enter display name for file">
             </div>
           </div>
           
@@ -142,7 +129,15 @@
             <div class="upload-instructions">
               <button class="browse-btn" type="button">Choose file</button>
               <div class="drag-text">or drag and drop your file here</div>
+              <small *ngIf="selectedFile">Selected: {{selectedFile.name}} ({{formatFileSize(selectedFile.size)}})</small>
             </div>
+          </div>
+
+          <div class="visibility-toggle">
+            <label>
+              <input type="checkbox" [(ngModel)]="visibleOnlyToMe">
+              Make this document private (visible only to me)
+            </label>
           </div>
         </div>
       </div>
