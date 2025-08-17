@@ -121,7 +121,6 @@ export interface SeparationRequest {
   rehireNotes?: string;
 }
 
-// Updated interface to match API expectations
 export interface SeparationUpdateRequest {
   empId: string;
   separationTypeId: string;
@@ -133,6 +132,11 @@ export interface SeparationUpdateRequest {
   resignationLetterPath?: string;
   rehireEligible: boolean;
   rehireNotes?: string;
+}
+
+export interface DateRangeFilter {
+  startDate: string;
+  endDate: string;
 }
 
 export interface Separation {
@@ -411,6 +415,124 @@ export class SeparationService {
         return throwError(() => error);
       })
     );
+  }
+
+  // NEW: Get separations by date range
+  getSeparationsByDateRange(startDate: string, endDate: string): Observable<SeparationResponse[]> {
+    const headers = this.getAuthHeaders();
+    const params = new URLSearchParams();
+    params.append('startDate', startDate);
+    params.append('endDate', endDate);
+    
+    const url = `${this.apiUrl}/date-range?${params.toString()}`;
+    
+    return this.http.get<SeparationResponse[]>(url, { headers }).pipe(
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error fetching separations by date range:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // NEW: Export separations to CSV
+  exportSeparationsToCSV(separations: Separation[]): void {
+    if (!separations || separations.length === 0) {
+      console.warn('No separations data to export');
+      return;
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Employee ID',
+      'Employee Name',
+      'Employee Code',
+      'Department',
+      'Position',
+      'Separation Type',
+      'Initiation Date',
+      'Last Working Date',
+      'Notice Period (Days)',
+      'Separation Reason',
+      'Status',
+      'Initiated By',
+      'Approved By',
+      'Approval Date',
+      'Exit Interview Completed',
+      'Handover Completed',
+      'Rehire Eligible',
+      'Rehire Notes',
+      'Created Date'
+    ];
+
+    // Convert separations to CSV format
+    const csvData = separations.map(sep => [
+      sep.employeeId || '',
+      sep.employeeName || '',
+      sep.employeeCode || '',
+      sep.departmentName || sep.department || '',
+      sep.position || '',
+      sep.separationType?.separationName || 'N/A',
+      this.formatDateForCSV(sep.initiationDate),
+      this.formatDateForCSV(sep.lastWorkingDate),
+      sep.noticePeriodServed?.toString() || '0',
+      this.escapeCsvField(sep.separationReason || ''),
+      sep.status || 'Pending',
+      sep.initiatedByName || 'System',
+      sep.approvedByName || 'N/A',
+      this.formatDateForCSV(sep.approvalDate),
+      sep.exitInterviewCompleted ? 'Yes' : 'No',
+      sep.handoverCompleted ? 'Yes' : 'No',
+      sep.rehireEligible ? 'Yes' : 'No',
+      this.escapeCsvField(sep.rehireNotes || ''),
+      this.formatDateForCSV(sep.createdDate)
+    ]);
+
+    // Combine headers and data
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(field => `"${field}"`).join(','))
+      .join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `employee_separations_${this.formatDateForFilename(new Date())}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Helper method to format date for CSV
+  private formatDateForCSV(dateString: string | null | undefined): string {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString;
+      return date.toLocaleDateString();
+    } catch (e) {
+      return dateString || '';
+    }
+  }
+
+  // Helper method to escape CSV fields
+  private escapeCsvField(field: string): string {
+    if (!field) return '';
+    // Replace double quotes with two double quotes and handle line breaks
+    return field.replace(/"/g, '""').replace(/\n/g, ' ').replace(/\r/g, ' ');
+  }
+
+  // Helper method to format date for filename
+  private formatDateForFilename(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}${month}${day}_${hours}${minutes}`;
   }
 
   private mapToSeparation(response: SeparationResponse, requestedTypeId?: string): Separation {

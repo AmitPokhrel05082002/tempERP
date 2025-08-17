@@ -7,7 +7,7 @@ import { forkJoin, of, Subject, Subscription, throwError } from 'rxjs';
 import { tap, catchError, debounceTime, distinctUntilChanged, switchMap, takeUntil, map } from 'rxjs/operators';
 import { NgbModule, NgbModal } from '@ng-bootstrap/ng-bootstrap';
 import Swal from 'sweetalert2';
-import { SeparationService, Separation, SeparationRequest, SeparationUpdateRequest, Employee, SeparationType } from '../../../services/seperation.service';
+import { SeparationService, Separation, SeparationRequest, SeparationUpdateRequest, Employee, SeparationType, DateRangeFilter } from '../../../services/seperation.service';
 import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
@@ -54,6 +54,12 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
   errorMessage = '';
   statusForm: FormGroup;
 
+  // NEW: Date range filter properties
+  dateFilterForm: FormGroup;
+  showDateFilter = false;
+  isDateFiltering = false;
+  dateFilterApplied = false;
+
   // Role-based access properties
   canDeleteSeparations = false;
   canEditAllSeparations = false;
@@ -71,6 +77,7 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
   @ViewChild('separationModal', { static: true }) separationModalTemplate!: TemplateRef<any>;
   @ViewChild('viewSeparationModal', { static: true }) viewSeparationModalTemplate!: TemplateRef<any>;
   @ViewChild('statusModal', { static: true }) statusModalTemplate!: TemplateRef<any>;
+  @ViewChild('dateFilterModal', { static: true }) dateFilterModalTemplate!: TemplateRef<any>;
 
   private modalRef: any;
   private destroy$ = new Subject<void>();
@@ -99,6 +106,12 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
     this.statusForm = this.fb.group({
       status: ['', Validators.required],
       notes: ['']
+    });
+
+    // NEW: Date filter form
+    this.dateFilterForm = this.fb.group({
+      startDate: ['', Validators.required],
+      endDate: ['', Validators.required]
     });
   }
 
@@ -314,6 +327,95 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
     });
 
     this.subscriptions.push(separationsSub);
+  }
+
+  // NEW: Open date filter modal
+  openDateFilterModal(): void {
+    // Set default date range (last 3 months)
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 3);
+
+    this.dateFilterForm.patchValue({
+      startDate: startDate.toISOString().split('T')[0],
+      endDate: endDate.toISOString().split('T')[0]
+    });
+
+    this.modalRef = this.modalService.open(this.dateFilterModalTemplate, {
+      size: 'md',
+      backdrop: 'static',
+      keyboard: false
+    });
+  }
+
+  // NEW: Apply date filter
+  applyDateFilter(): void {
+    if (this.dateFilterForm.invalid) {
+      this.markFormGroupTouched(this.dateFilterForm);
+      return;
+    }
+
+    const formValue = this.dateFilterForm.value;
+    this.isDateFiltering = true;
+    this.modalRef?.close();
+
+    console.log('Applying date filter:', formValue);
+
+    const filterSub = this.separationService.getSeparationsByDateRange(
+      formValue.startDate,
+      formValue.endDate
+    ).subscribe({
+      next: (separations) => {
+        console.log('Filtered separations by date:', separations);
+        
+        // Map the filtered separations
+        this.separations = separations.map(sep => this.separationService['mapToSeparation'](sep));
+        
+        // Apply role-based filtering
+        this.separations = this.filterSeparationsByRole(this.separations);
+        this.filteredSeparations = [...this.separations];
+        this.totalPages = Math.ceil(this.separations.length / this.itemsPerPage);
+        this.currentPage = 1;
+        
+        this.dateFilterApplied = true;
+        this.isDateFiltering = false;
+        
+        // Load employee names for the filtered results
+        this.loadEmployeeNames();
+        
+        this.showSuccess(`Found ${this.separations.length} separations between ${formValue.startDate} and ${formValue.endDate}`);
+      },
+      error: (error) => {
+        console.error('Error filtering separations by date:', error);
+        this.isDateFiltering = false;
+        this.showError('Failed to filter separations by date. Please try again.');
+      }
+    });
+
+    this.subscriptions.push(filterSub);
+  }
+
+  // NEW: Clear date filter
+  clearDateFilter(): void {
+    this.dateFilterApplied = false;
+    this.loadSeparations(); // Reload all separations
+    this.showSuccess('Date filter cleared. Showing all separations.');
+  }
+
+  // NEW: Export to CSV
+  exportToCSV(): void {
+    if (!this.filteredSeparations || this.filteredSeparations.length === 0) {
+      this.showError('No data to export. Please ensure there are separations to export.');
+      return;
+    }
+
+    try {
+      this.separationService.exportSeparationsToCSV(this.filteredSeparations);
+      this.showSuccess(`Successfully exported ${this.filteredSeparations.length} separations to CSV file.`);
+    } catch (error) {
+      console.error('Error exporting to CSV:', error);
+      this.showError('Failed to export data to CSV. Please try again.');
+    }
   }
 
   // View reason in modal
@@ -639,6 +741,17 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       title: 'Error',
       text: message,
       confirmButtonColor: '#3f51b5',
+    });
+  }
+
+  private showSuccess(message: string): void {
+    Swal.fire({
+      icon: 'success',
+      title: 'Success',
+      text: message,
+      confirmButtonColor: '#198754',
+      timer: 3000,
+      timerProgressBar: true
     });
   }
 
@@ -1597,115 +1710,6 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       control?.markAsTouched();
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
-      }
-    });
-  }
-
-  private showSuccess(message: string): void {
-    Swal.fire({
-      icon: 'success',
-      title: 'Success',
-      text: message,
-      confirmButtonColor: '#198754',
-      timer: 3000,
-      timerProgressBar: true
-    });
-  }
-
-  // DEBUG METHODS - Can be removed in production
-  debugEmployeeMap(): void {
-    console.log('=== EMPLOYEE MAP DEBUG ===');
-    Object.keys(this.employeeMap).forEach(empId => {
-      const employee = this.employeeMap[empId];
-      console.log(`Employee ${empId}:`, {
-        name: `${employee.firstName} ${employee.lastName}`,
-        departmentId: employee.departmentId,
-        department: employee.department,
-        dept_id: (employee as any).dept_id,
-        deptId: (employee as any).deptId,
-        Department: (employee as any).Department,
-        extractedDeptId: (employee as any)._extractedDeptId,
-        allFields: Object.keys(employee)
-      });
-    });
-    console.log('=== END EMPLOYEE MAP DEBUG ===');
-  }
-
-  debugDepartmentMap(): void {
-    console.log('=== DEPARTMENT MAP DEBUG ===');
-    console.log('Department Map:', this.departmentMap);
-    console.log('=== END DEPARTMENT MAP DEBUG ===');
-  }
-
-  testDepartmentLoading(): void {
-    console.log('=== TESTING DEPARTMENT LOADING ===');
-    
-    const firstEmpId = Object.keys(this.employeeMap)[0];
-    if (!firstEmpId) {
-      console.log('No employees found');
-      return;
-    }
-    
-    const employee = this.employeeMap[firstEmpId];
-    console.log('Testing with employee:', employee);
-    
-    let deptId = employee.departmentId || 
-                 (employee as any).dept_id || 
-                 (employee as any).deptId ||
-                 (employee as any)._extractedDeptId ||
-                 ((employee as any).Department && (employee as any).Department.dept_id);
-    
-    if (deptId) {
-      console.log(`Found department ID: ${deptId}, loading department...`);
-      
-      this.separationService.getDepartmentById(deptId).subscribe({
-        next: (dept) => {
-          console.log('Department loaded:', dept);
-          if (dept && dept.dept_name) {
-            this.departmentMap[firstEmpId] = dept.dept_name;
-            console.log(`Set department for ${firstEmpId}: ${dept.dept_name}`);
-            this.updateSeparationData();
-          }
-        },
-        error: (error) => {
-          console.error('Error loading department:', error);
-        }
-      });
-    } else {
-      console.log('No department ID found in employee object');
-    }
-  }
-
-  checkEmployeeApiResponse(): void {
-    const firstSeparation = this.separations[0];
-    if (!firstSeparation) {
-      console.log('No separations found');
-      return;
-    }
-    
-    console.log('=== CHECKING EMPLOYEE API RESPONSE ===');
-    console.log('Loading employee:', firstSeparation.employeeId);
-    
-    this.separationService.getEmployeeById(firstSeparation.employeeId).subscribe({
-      next: (response) => {
-        console.log('Raw API Response:', response);
-        console.log('Response type:', typeof response);
-        console.log('Response keys:', Object.keys(response));
-        
-        if ((response as any).employee) {
-          console.log('Employee object:', (response as any).employee);
-          console.log('Employee keys:', Object.keys((response as any).employee));
-        }
-        
-        console.log('Department info check:', {
-          departmentId: (response as any).departmentId || (response as any).employee?.departmentId,
-          department: (response as any).department || (response as any).employee?.department,
-          dept_id: (response as any).dept_id || (response as any).employee?.dept_id,
-          Department: (response as any).Department || (response as any).employee?.Department
-        });
-      },
-      error: (error) => {
-        console.error('Error loading employee:', error);
       }
     });
   }

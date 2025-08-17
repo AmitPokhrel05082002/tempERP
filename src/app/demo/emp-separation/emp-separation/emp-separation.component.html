@@ -9,50 +9,66 @@
           <p class="text-muted mb-0">
             <span *ngIf="isCurrentUserEmployee">Manage your separation requests</span>
             <span *ngIf="!isCurrentUserEmployee">Manage employee separation requests</span>
+            <span *ngIf="dateFilterApplied" class="badge bg-info ms-2">
+              <i class="fas fa-filter me-1"></i>Date Filtered
+            </span>
           </p>
         </div>
-        <button 
-          *ngIf="canAddSeparation"
-          class="btn btn-primary d-flex align-items-center gap-2" 
-          (click)="openAddModal()">
-          <i class="fas fa-plus"></i>
-          <span *ngIf="isCurrentUserEmployee">Request Separation</span>
-          <span *ngIf="!isCurrentUserEmployee">Add Separation</span>
-        </button>
+        <div class="d-flex gap-2">
+          <!-- Add Separation Button -->
+          <button *ngIf="canAddSeparation" class="add-btn d-flex align-items-center gap-2" (click)="openAddModal()"
+            [disabled]="isLoading">
+            <i class="fas fa-plus"></i>
+            <span *ngIf="isCurrentUserEmployee">Request Separation</span>
+            <span *ngIf="!isCurrentUserEmployee">Add Separation</span>
+          </button>
+          <!-- Export Button -->
+          <button class="add-btn d-flex align-items-center gap-2" (click)="exportToCSV()"
+            [disabled]="isLoading || filteredSeparations.length === 0">
+            <i class="fas fa-download"></i>
+            <span>Export</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Search and Filter Section -->
-  <div class="row mb-4">
-    <div class="col-md-6">
-      <div class="input-group">
-        <span class="input-group-text bg-light border-end-0">
-          <i class="fas fa-search text-muted"></i>
-        </span>
-        <input 
-          type="text" 
-          class="form-control border-start-0" 
-          placeholder="Search by employee name, code..."
-          [(ngModel)]="searchQuery"
-          (input)="applySearch()">
-      </div>
+<div class="search-filter-row">
+  <div class="left-controls">
+    <div class="search-input-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" placeholder="Search by employee name, code..." 
+             [(ngModel)]="searchQuery" (input)="applySearch()">
     </div>
-    <div class="col-md-6 text-end">
-      <small class="text-muted">
-        Showing {{ filteredSeparations.length }} of {{ separations.length }} separations
-        <span *ngIf="isCurrentUserEmployee"> (your requests only)</span>
-      </small>
+
+    <div class="filter-buttons">
+      <!-- Date Filter Button -->
+      <button class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" 
+              (click)="openDateFilterModal()"
+              [disabled]="isLoading || isDateFiltering">
+        <i class="fas fa-calendar-alt"></i>
+        <span>Date</span>
+      </button>
+
+      <!-- Clear Filter Button -->
+      <button *ngIf="dateFilterApplied" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1"
+              (click)="clearDateFilter()" [disabled]="isLoading">
+        <i class="fas fa-times"></i>
+        <span>Clear</span>
+      </button>
     </div>
   </div>
 
-  <!-- Loading Indicator -->
-  <div *ngIf="isLoading" class="text-center py-5">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <p class="mt-3 text-muted">Loading separations...</p>
+  <div class="count-info">
+    <small class="text-muted">
+      Showing {{ filteredSeparations.length }} of {{ separations.length }} 
+      <span *ngIf="isCurrentUserEmployee">(yours)</span>
+      <span *ngIf="isDateFiltering" class="ms-1">
+        <i class="fas fa-spinner fa-spin"></i>
+      </span>
+    </small>
   </div>
+</div>
 
   <!-- Separations Table -->
   <div *ngIf="!isLoading" class="card shadow-sm">
@@ -73,7 +89,7 @@
             <tr *ngFor="let separation of paginatedSeparations; trackBy: trackByEmployeeId">
               <td class="align-middle">
                 <div class="d-flex flex-column">
-                  <span class="fw-medium text-dark">{{ separation.employeeName || 'Loading...' }}</span>
+                  <span class="text-dark">{{ separation.employeeName || 'Loading...' }}</span>
                   <small class="text-muted">Code: {{ separation.employeeCode || 'UNKNOWN' }}</small>
                 </div>
               </td>
@@ -94,47 +110,32 @@
               <td class="align-middle text-center">
                 <div class="btn-group" role="group">
                   <!-- View Button - Available to all users -->
-                  <button 
-                    type="button" 
-                    class="btn btn-sm btn-primary"
-                    (click)="openViewModal(separation)"
+                  <button type="button" class="btn btn-sm view-btn" (click)="openViewModal(separation)"
                     title="View Details">
                     <i class="fas fa-eye"></i>
                   </button>
-                  
+
                   <!-- Edit Button - Role-based access -->
-                  <button 
-                    *ngIf="canEditSeparation(separation)"
-                    type="button" 
-                    class="btn btn-sm btn-warning"
-                    (click)="openEditModal(separation)"
-                    title="Edit Separation">
+                  <button *ngIf="canEditSeparation(separation)" type="button" class="btn btn-sm edit-btn"
+                    (click)="openEditModal(separation)" title="Edit Separation">
                     <i class="fas fa-edit"></i>
                   </button>
-                  
+
                   <!-- Status Update Button - Admin/CTO only -->
-                  <button 
-                    *ngIf="canUpdateStatus(separation)"
-                    type="button" 
-                    class="btn btn-sm btn-info"
-                    (click)="openStatusModal(separation)"
-                    title="Update Status">
+                  <button *ngIf="canUpdateStatus(separation)" type="button" class="btn btn-sm status-btn"
+                    (click)="openStatusModal(separation)" title="Update Status">
                     <i class="fas fa-tasks"></i>
                   </button>
-                  
+
                   <!-- Delete Button - Admin/CTO only -->
-                  <button 
-                    *ngIf="canDeleteSeparation(separation)"
-                    type="button" 
-                    class="btn btn-sm btn-danger"
-                    (click)="deleteSeparation(separation)"
-                    title="Delete Separation">
+                  <button *ngIf="canDeleteSeparation(separation)" type="button" class="btn btn-sm delete-btn"
+                    (click)="deleteSeparation(separation)" title="Delete Separation">
                     <i class="fas fa-trash"></i>
                   </button>
                 </div>
               </td>
             </tr>
-            
+
             <!-- Empty State -->
             <tr *ngIf="filteredSeparations.length === 0">
               <td colspan="6" class="text-center py-5">
@@ -142,8 +143,11 @@
                   <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
                   <h5 class="text-muted mb-2">No separations found</h5>
                   <p class="text-muted mb-0">
-                    <span *ngIf="isCurrentUserEmployee">You haven't submitted any separation requests yet.</span>
-                    <span *ngIf="!isCurrentUserEmployee">No separation requests have been submitted yet.</span>
+                    <span *ngIf="dateFilterApplied">No separations found for the selected date range.</span>
+                    <span *ngIf="!dateFilterApplied && isCurrentUserEmployee">You haven't submitted any separation
+                      requests yet.</span>
+                    <span *ngIf="!dateFilterApplied && !isCurrentUserEmployee">No separation requests have been
+                      submitted yet.</span>
                   </p>
                 </div>
               </td>
@@ -163,9 +167,8 @@
             <i class="fas fa-chevron-left"></i>
           </button>
         </li>
-        <li class="page-item" 
-            *ngFor="let page of [].constructor(totalPages); let i = index" 
-            [class.active]="currentPage === i + 1">
+        <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index"
+          [class.active]="currentPage === i + 1">
           <button class="page-link" (click)="onPageChange(i + 1)">{{ i + 1 }}</button>
         </li>
         <li class="page-item" [class.disabled]="currentPage === totalPages">
@@ -178,6 +181,62 @@
   </div>
 </div>
 
+<!-- Date Filter Modal -->
+<ng-template #dateFilterModal let-modal>
+  <div class="modal-header bg-primary text-white">
+    <h4 class="modal-title">
+      <i class="fas fa-calendar-alt me-2"></i>
+      Filter by Date Range
+    </h4>
+    <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
+  </div>
+
+  <div class="modal-body">
+    <form [formGroup]="dateFilterForm" (ngSubmit)="applyDateFilter()">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label for="startDate" class="form-label fw-semibold">
+            Start Date <span class="text-danger">*</span>
+          </label>
+          <input type="date" id="startDate" class="form-control" formControlName="startDate">
+          <div *ngIf="dateFilterForm.get('startDate')?.touched && dateFilterForm.get('startDate')?.errors?.['required']"
+            class="text-danger small mt-1">
+            Start date is required
+          </div>
+        </div>
+
+        <div class="col-md-6 mb-3">
+          <label for="endDate" class="form-label fw-semibold">
+            End Date <span class="text-danger">*</span>
+          </label>
+          <input type="date" id="endDate" class="form-control" formControlName="endDate">
+          <div *ngIf="dateFilterForm.get('endDate')?.touched && dateFilterForm.get('endDate')?.errors?.['required']"
+            class="text-danger small mt-1">
+            End date is required
+          </div>
+        </div>
+      </div>
+
+      <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        This will filter separations based on their initiation date within the selected range.
+      </div>
+    </form>
+  </div>
+
+  <div class="modal-footer bg-light">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
+      <i class="fas fa-times me-1"></i> Cancel
+    </button>
+    <button type="button" class="btn btn-primary" (click)="applyDateFilter()"
+      [disabled]="dateFilterForm.invalid || isDateFiltering">
+      <span *ngIf="isDateFiltering" class="spinner-border spinner-border-sm me-2"></span>
+      <i *ngIf="!isDateFiltering" class="fas fa-filter me-1"></i>
+      Apply Filter
+    </button>
+  </div>
+</ng-template>
+
 <!-- Add/Edit Separation Modal -->
 <ng-template #separationModal let-modal>
   <div class="modal-header bg-primary text-white">
@@ -189,7 +248,7 @@
     </h4>
     <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  
+
   <div class="modal-body">
     <form [formGroup]="form" (ngSubmit)="saveSeparation()">
       <div class="row">
@@ -198,76 +257,58 @@
           <label for="empName" class="form-label fw-semibold">
             Employee Name <span class="text-danger">*</span>
           </label>
-          
+
           <!-- For Employees - Read-only field with their name -->
           <div *ngIf="isCurrentUserEmployee" class="employee-search-container">
-            <input 
-              type="text" 
-              id="empName"
-              class="form-control bg-light"
-              formControlName="empName"
-              [placeholder]="employeeNamePlaceholder"
-              readonly>
+            <input type="text" id="empName" class="form-control bg-light" formControlName="empName"
+              [placeholder]="employeeNamePlaceholder" readonly>
             <small class="form-text text-muted">
               <i class="fas fa-info-circle me-1"></i>
               Your information is automatically filled
             </small>
           </div>
-          
+
           <!-- For Admin/CTO/HR - Searchable dropdown WITHOUT ngModel -->
           <div *ngIf="!isCurrentUserEmployee" class="employee-search-container position-relative">
             <div class="input-group">
-              <input 
-                type="text" 
-                id="empName"
-                class="form-control"
-                formControlName="empName"
-                [placeholder]="employeeNamePlaceholder"
-                (input)="onEmployeeSearch($event)"
-                (focus)="onEmployeeFocus()"
-                (keydown)="onEmployeeKeydown($event)"
-                autocomplete="off">
-              <button 
-                *ngIf="selectedEmployee" 
-                class="btn btn-outline-secondary" 
-                type="button"
-                (click)="clearEmployeeSelection($event)"
-                title="Clear selection">
+              <input type="text" id="empName" class="form-control" formControlName="empName"
+                [placeholder]="employeeNamePlaceholder" (input)="onEmployeeSearch($event)" (focus)="onEmployeeFocus()"
+                (keydown)="onEmployeeKeydown($event)" autocomplete="off">
+              <button *ngIf="selectedEmployee" class="btn btn-outline-secondary" type="button"
+                (click)="clearEmployeeSelection($event)" title="Clear selection">
                 <i class="fas fa-times"></i>
               </button>
             </div>
-            
+
             <!-- Employee Dropdown -->
-            <div *ngIf="showEmployeeDropdown && (filteredEmployees.length > 0 || isLoadingEmployees)" 
-                 class="dropdown-menu show position-absolute w-100 mt-1 shadow-sm border"
-                 style="max-height: 200px; overflow-y: auto; z-index: 1050;">
-              
+            <div *ngIf="showEmployeeDropdown && (filteredEmployees.length > 0 || isLoadingEmployees)"
+              class="dropdown-menu show position-absolute w-100 mt-1 shadow-sm border"
+              style="max-height: 200px; overflow-y: auto; z-index: 1050;">
+
               <div *ngIf="isLoadingEmployees" class="dropdown-item-text text-center py-3">
                 <div class="spinner-border spinner-border-sm text-primary me-2"></div>
                 Searching employees...
               </div>
-              
-              <button *ngFor="let employee of filteredEmployees; let i = index" 
-                      type="button"
-                      class="dropdown-item d-flex justify-content-between align-items-center"
-                      [class.active]="i === selectedEmployeeIndex"
-                      [id]="'employee-option-' + i"
-                      (click)="selectEmployee(employee)">
+
+              <button *ngFor="let employee of filteredEmployees; let i = index" type="button"
+                class="dropdown-item d-flex justify-content-between align-items-center"
+                [class.active]="i === selectedEmployeeIndex" [id]="'employee-option-' + i"
+                (click)="selectEmployee(employee)">
                 <div>
                   <div class="fw-medium">{{ employee.firstName }} {{ employee.lastName }}</div>
                   <small class="text-muted">{{ employee.empCode }} • {{ employee.department || 'N/A' }}</small>
                 </div>
               </button>
-              
-              <div *ngIf="!isLoadingEmployees && filteredEmployees.length === 0 && employeeSearchTerm.length >= 2" 
-                   class="dropdown-item-text text-center py-3 text-muted">
+
+              <div *ngIf="!isLoadingEmployees && filteredEmployees.length === 0 && employeeSearchTerm.length >= 2"
+                class="dropdown-item-text text-center py-3 text-muted">
                 No employees found matching "{{ employeeSearchTerm }}"
               </div>
             </div>
           </div>
-          
-          <div *ngIf="form.get('empName')?.touched && form.get('empName')?.errors?.['required']" 
-               class="text-danger small mt-1">
+
+          <div *ngIf="form.get('empName')?.touched && form.get('empName')?.errors?.['required']"
+            class="text-danger small mt-1">
             Employee name is required
           </div>
         </div>
@@ -282,13 +323,12 @@
           </label>
           <select id="separationTypeId" class="form-select" formControlName="separationTypeId">
             <option value="">Select separation type</option>
-            <option *ngFor="let type of getSeparationTypeOptions()" 
-                    [value]="getSeparationTypeId(type)">
+            <option *ngFor="let type of getSeparationTypeOptions()" [value]="getSeparationTypeId(type)">
               {{ type.separationName }}
             </option>
           </select>
-          <div *ngIf="form.get('separationTypeId')?.touched && form.get('separationTypeId')?.errors?.['required']" 
-               class="text-danger small mt-1">
+          <div *ngIf="form.get('separationTypeId')?.touched && form.get('separationTypeId')?.errors?.['required']"
+            class="text-danger small mt-1">
             Separation type is required
           </div>
         </div>
@@ -299,8 +339,8 @@
             Last Working Date <span class="text-danger">*</span>
           </label>
           <input type="date" id="lastWorkingDate" class="form-control" formControlName="lastWorkingDate">
-          <div *ngIf="form.get('lastWorkingDate')?.touched && form.get('lastWorkingDate')?.errors?.['required']" 
-               class="text-danger small mt-1">
+          <div *ngIf="form.get('lastWorkingDate')?.touched && form.get('lastWorkingDate')?.errors?.['required']"
+            class="text-danger small mt-1">
             Last working date is required
           </div>
         </div>
@@ -310,10 +350,10 @@
           <label for="noticePeriodServed" class="form-label fw-semibold">
             Notice Period Served (Days) <span class="text-danger">*</span>
           </label>
-          <input type="number" id="noticePeriodServed" class="form-control" 
-                 formControlName="noticePeriodServed" min="0">
-          <div *ngIf="form.get('noticePeriodServed')?.touched && form.get('noticePeriodServed')?.errors" 
-               class="text-danger small mt-1">
+          <input type="number" id="noticePeriodServed" class="form-control" formControlName="noticePeriodServed"
+            min="0">
+          <div *ngIf="form.get('noticePeriodServed')?.touched && form.get('noticePeriodServed')?.errors"
+            class="text-danger small mt-1">
             <span *ngIf="form.get('noticePeriodServed')?.errors?.['required']">Notice period is required</span>
             <span *ngIf="form.get('noticePeriodServed')?.errors?.['min']">Notice period cannot be negative</span>
           </div>
@@ -324,30 +364,26 @@
           <label for="separationReason" class="form-label fw-semibold">
             Separation Reason <span class="text-danger">*</span>
           </label>
-          <textarea id="separationReason" class="form-control" formControlName="separationReason" 
-                    rows="3" placeholder="Provide detailed reason for separation"></textarea>
-          <div *ngIf="form.get('separationReason')?.touched && form.get('separationReason')?.errors?.['required']" 
-               class="text-danger small mt-1">
+          <textarea id="separationReason" class="form-control" formControlName="separationReason" rows="3"
+            placeholder="Provide detailed reason for separation"></textarea>
+          <div *ngIf="form.get('separationReason')?.touched && form.get('separationReason')?.errors?.['required']"
+            class="text-danger small mt-1">
             Separation reason is required
           </div>
         </div>
 
         <!-- Resignation Letter Path -->
-        <div class="col-md-8 mb-3">
-          <label for="resignationLetterPath" class="form-label fw-semibold">
-            Resignation Letter Path
-          </label>
-          <input type="text" id="resignationLetterPath" class="form-control" 
-                 formControlName="resignationLetterPath" 
-                 placeholder="Optional: Path to resignation letter document">
+        <div class="col-md-6 mb-3">
+          <label for="resignationLetterPath" class="form-label fw-semibold">Resignation Letter Path</label>
+          <input type="file" class="form-control" id="resignationLetterPath" formControlName="resignationLetterPath"
+            placeholder="Optional: Path to resignation letter document">
         </div>
 
         <!-- Rehire Eligible -->
-        <div class="col-md-4 mb-3">
+        <div class="col-md-6 mb-3">
           <label class="form-label fw-semibold">Rehire Eligibility</label>
           <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="rehireEligible" 
-                   formControlName="rehireEligible">
+            <input class="form-check-input" type="checkbox" id="rehireEligible" formControlName="rehireEligible">
             <label class="form-check-label" for="rehireEligible">
               Eligible for Rehire
             </label>
@@ -359,13 +395,13 @@
           <label for="rehireNotes" class="form-label fw-semibold">
             Rehire Notes
           </label>
-          <textarea id="rehireNotes" class="form-control" formControlName="rehireNotes" 
-                    rows="2" placeholder="Additional notes regarding rehire eligibility"></textarea>
+          <textarea id="rehireNotes" class="form-control" formControlName="rehireNotes" rows="2"
+            placeholder="Additional notes regarding rehire eligibility"></textarea>
         </div>
       </div>
     </form>
   </div>
-  
+
   <div class="modal-footer bg-light">
     <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
       <i class="fas fa-times me-1"></i> Cancel
@@ -389,7 +425,7 @@
     </h4>
     <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()"></button>
   </div>
-  
+
   <div class="modal-body" *ngIf="currentSeparation">
     <div class="row">
       <!-- Employee Information -->
@@ -410,10 +446,11 @@
         <div class="card bg-light">
           <div class="card-body py-2">
             <p class="mb-1"><strong>Type:</strong> {{ getSeparationTypeName(currentSeparation) }}</p>
-            <p class="mb-1"><strong>Last Working Date:</strong> {{ currentSeparation.lastWorkingDate | date:'mediumDate' }}</p>
+            <p class="mb-1"><strong>Last Working Date:</strong> {{ currentSeparation.lastWorkingDate | date:'mediumDate'
+              }}</p>
             <p class="mb-1"><strong>Notice Period:</strong> {{ currentSeparation.noticePeriodServed }} days</p>
             <p class="mb-0">
-              <strong>Status:</strong> 
+              <strong>Status:</strong>
               <span class="badge ms-1" [class]="getStatusBadgeClass(currentSeparation.status)">
                 {{ currentSeparation.status || 'Pending' }}
               </span>
@@ -438,8 +475,9 @@
         <div class="card bg-light">
           <div class="card-body py-2">
             <p class="mb-1">
-              <strong>Eligible:</strong> 
-              <span class="badge ms-1" [class]="currentSeparation.rehireEligible ? 'bg-success' : 'bg-warning text-dark'">
+              <strong>Eligible:</strong>
+              <span class="badge ms-1"
+                [class]="currentSeparation.rehireEligible ? 'bg-success' : 'bg-warning text-dark'">
                 {{ currentSeparation.rehireEligible ? 'Yes' : 'No' }}
               </span>
             </p>
@@ -455,8 +493,9 @@
         <h6 class="fw-bold text-primary mb-2">Process Information</h6>
         <div class="card bg-light">
           <div class="card-body py-2">
-            <p class="mb-1"><strong>Initiated By:</strong> {{ getInitiatorName(currentSeparation) }}</p>
-            <p class="mb-1"><strong>Initiated Date:</strong> {{ currentSeparation.initiationDate | date:'mediumDate' }}</p>
+            <!-- <p class="mb-1"><strong>Initiated By:</strong> {{ getInitiatorName(currentSeparation) }}</p> -->
+            <p class="mb-1"><strong>Initiated Date:</strong> {{ currentSeparation.initiationDate | date:'mediumDate' }}
+            </p>
             <p class="mb-1" *ngIf="currentSeparation.approvedBy">
               <strong>Approved By:</strong> {{ getApproverName(currentSeparation) }}
             </p>
@@ -473,7 +512,7 @@
         <div class="card bg-light">
           <div class="card-body py-2">
             <p class="mb-0">
-              <strong>Resignation Letter:</strong> 
+              <strong>Resignation Letter:</strong>
               <a href="{{ currentSeparation.resignationLetterPath }}" target="_blank" class="text-decoration-none ms-2">
                 <i class="fas fa-external-link-alt me-1"></i>View Document
               </a>
@@ -493,37 +532,27 @@
       </div>
     </div>
   </div>
-  
+
   <div class="modal-footer bg-light">
-    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
-      <i class="fas fa-times me-1"></i> Close
-    </button>
-    
     <!-- Action buttons based on user permissions -->
     <div class="btn-group" *ngIf="currentSeparation">
-      <button 
-        *ngIf="canEditSeparation(currentSeparation)"
-        type="button" 
-        class="btn btn-warning"
+          <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
+      <i class="fas fa-times me-1"></i> Close
+    </button>
+      <button *ngIf="canEditSeparation(currentSeparation)" type="button" class="btn btn-warning"
         (click)="modal.dismiss(); openEditModal(currentSeparation)">
         <i class="fas fa-edit me-1"></i> Edit
       </button>
-      
-      <button 
-        *ngIf="canUpdateStatus(currentSeparation)"
-        type="button" 
-        class="btn btn-info"
+
+      <button *ngIf="canUpdateStatus(currentSeparation)" type="button" class="btn btn-info"
         (click)="modal.dismiss(); openStatusModal(currentSeparation)">
         <i class="fas fa-tasks me-1"></i> Update Status
       </button>
-      
-      <button 
-        *ngIf="canDeleteSeparation(currentSeparation)"
-        type="button" 
-        class="btn btn-danger"
+
+      <!-- <button *ngIf="canDeleteSeparation(currentSeparation)" type="button" class="btn btn-danger"
         (click)="modal.dismiss(); deleteSeparation(currentSeparation)">
         <i class="fas fa-trash me-1"></i> Delete
-      </button>
+      </button> -->
     </div>
   </div>
 </ng-template>
@@ -537,20 +566,20 @@
     </h4>
     <button type="button" class="btn-close" (click)="modal.dismiss()"></button>
   </div>
-  
+
   <div class="modal-body" *ngIf="currentSeparation">
     <div class="row mb-3">
       <div class="col-12">
         <div class="alert alert-info">
           <strong>Employee:</strong> {{ currentSeparation.employeeName }}<br>
-          <strong>Current Status:</strong> 
+          <strong>Current Status:</strong>
           <span class="badge ms-1" [class]="getStatusBadgeClass(currentSeparation.status)">
             {{ currentSeparation.status || 'Pending' }}
           </span>
         </div>
       </div>
     </div>
-    
+
     <form [formGroup]="statusForm" (ngSubmit)="updateStatus()">
       <div class="row">
         <div class="col-md-6 mb-3">
@@ -563,12 +592,12 @@
               {{ option.label }}
             </option>
           </select>
-          <div *ngIf="statusForm.get('status')?.touched && statusForm.get('status')?.errors?.['required']" 
-               class="text-danger small mt-1">
+          <div *ngIf="statusForm.get('status')?.touched && statusForm.get('status')?.errors?.['required']"
+            class="text-danger small mt-1">
             Status is required
           </div>
         </div>
-        
+
         <div class="col-md-6 mb-3">
           <label class="form-label fw-semibold">Status History</label>
           <div class="small text-muted">
@@ -587,13 +616,13 @@
           <label for="notes" class="form-label fw-semibold">
             Notes
           </label>
-          <textarea id="notes" class="form-control" formControlName="notes" 
-                    rows="3" placeholder="Add any notes about this status change"></textarea>
+          <textarea id="notes" class="form-control" formControlName="notes" rows="3"
+            placeholder="Add any notes about this status change"></textarea>
         </div>
       </div>
     </form>
   </div>
-  
+
   <div class="modal-footer bg-light">
     <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
       <i class="fas fa-times me-1"></i> Cancel
