@@ -115,8 +115,6 @@ loadUserPermissions() {
   
   this.menuPermissionService.getUserPermissions(this.userId!, false).subscribe({
     next: (permissions) => {
-      console.log('Loaded permissions:', permissions);
-      
       const selectedPermission = permissions.find(p => p.menuId === this.selectedMenuId);
       if (selectedPermission && selectedPermission.expiryDate) {
         const expiryDate = new Date(selectedPermission.expiryDate);
@@ -243,6 +241,39 @@ private loadFullMenuHierarchy() {
     }
   });
 }
+private collectAllMenuIds(groups: PermissionGroup[]): string[] {
+    const ids: string[] = [];
+    
+    const processGroup = (group: PermissionGroup) => {
+      ids.push(group.id);
+      if (group.subGroups) {
+        group.subGroups.forEach(processGroup as any);
+      }
+    };
+    
+    groups.forEach(processGroup);
+    return ids;
+  }
+
+  private findMenuById(menuId: string): PermissionGroup | PermissionSubGroup | undefined {
+  const findInGroups = (groups: PermissionGroup[]): PermissionGroup | PermissionSubGroup | undefined => {
+    for (const group of groups) {
+      if (group.id === menuId) return group;
+      if (group.subGroups) {
+        const subGroup = group.subGroups.find(sg => sg.id === menuId);
+        if (subGroup) return subGroup;
+        
+        // Recursively search in nested sub-groups
+        const nestedResult = findInGroups(group.subGroups as unknown as PermissionGroup[]);
+        if (nestedResult) return nestedResult;
+      }
+    }
+    return undefined;
+  };
+  
+  return findInGroups(this.permissionGroups());
+}
+
 private transformMenuToPermissionGroups(menuItems: any[], userPermissions: any[]): PermissionGroup[] {
   return menuItems
     .filter(menu => menu.isActive)
@@ -387,6 +418,15 @@ savePermissions() {
     Swal.fire('Error', 'Please select an expiry date for temporary permissions', 'error');
     return;
   }
+  
+  // Find the selected menu using the findMenuById method which handles nested structures
+  const selectedMenu = this.findMenuById(this.selectedMenuId!);
+  
+  if (!selectedMenu) {
+    console.error('Selected menu not found in the menu structure');
+    Swal.fire('Error', 'Selected menu not found. Please try selecting the menu again.', 'error');
+    return;
+  }
 
   Swal.fire({
     title: 'Are you sure?',
@@ -396,6 +436,12 @@ savePermissions() {
     confirmButtonText: 'Yes, save changes',
     cancelButtonText: 'Cancel',
     showLoaderOnConfirm: true,
+    preConfirm: () => {
+      return new Promise((resolve) => {
+        // The actual save logic will be handled in the .then() block
+        resolve(true);
+      });
+    },
   }).then((result) => {
     if (result.isConfirmed) {
       // First check if user has any existing permissions for the selected menu
@@ -425,29 +471,38 @@ savePermissions() {
 
 private createPermissions(reason: string) {
   if (!this.currentUser) {
+    console.error('User not authenticated');
     Swal.fire('Error', 'User not authenticated', 'error');
     return;
   }
 
-  const selectedGroup = this.permissionGroups().find(g => g.id === this.selectedMenuId);
-  if (!selectedGroup) {
+  if (!this.selectedMenuId) {
+    console.error('No menu selected');
+    Swal.fire('Error', 'No menu selected', 'error');
+    return;
+  }
+
+  const selectedMenu = this.findMenuById(this.selectedMenuId);
+  
+  if (!selectedMenu) {
+    console.error('Selected menu not found in createPermissions');
     Swal.fire('Error', 'Selected menu not found', 'error');
     return;
   }
 
   const actionNames: string[] = [];
   
-  if (selectedGroup.permissions) {
-    if (selectedGroup.permissions.view) actionNames.push('VIEW');
-    if (selectedGroup.permissions.create) actionNames.push('CREATE');
-    if (selectedGroup.permissions.update) actionNames.push('UPDATE');
-    if (selectedGroup.permissions.delete) actionNames.push('DELETE');
-    if (selectedGroup.permissions.export) actionNames.push('EXPORT');
-    if (selectedGroup.permissions.approve) actionNames.push('APPROVE');
+  if (selectedMenu.permissions) {
+    if (selectedMenu.permissions.view) actionNames.push('VIEW');
+    if (selectedMenu.permissions.create) actionNames.push('CREATE');
+    if (selectedMenu.permissions.update) actionNames.push('UPDATE');
+    if (selectedMenu.permissions.delete) actionNames.push('DELETE');
+    if (selectedMenu.permissions.export) actionNames.push('EXPORT');
+    if (selectedMenu.permissions.approve) actionNames.push('APPROVE');
   }
   
-  if (selectedGroup.subGroups) {
-    selectedGroup.subGroups.forEach(subGroup => {
+  if ('subGroups' in selectedMenu && selectedMenu.subGroups) {
+    selectedMenu.subGroups.forEach(subGroup => {
       if (subGroup.permissions.view) actionNames.push('VIEW');
       if (subGroup.permissions.create) actionNames.push('CREATE');
       if (subGroup.permissions.update) actionNames.push('UPDATE');
@@ -465,7 +520,7 @@ private createPermissions(reason: string) {
   const permissionData = {
     userId: this.userId,
     menuId: this.selectedMenuId,
-    menuName: selectedGroup.name,
+    menuName: selectedMenu.name,
     actionNames: [...new Set(actionNames)],
     permissionType: this.permissionType,
     grantedBy: this.currentUser.userId,
@@ -499,29 +554,36 @@ private createPermissions(reason: string) {
 // In RBAC.component.ts
 private updatePermissions(reason: string) {
   if (!this.currentUser || !this.userId || !this.selectedMenuId) {
+    console.error('Missing required information:', {
+      hasUser: !!this.currentUser,
+      userId: this.userId,
+      selectedMenuId: this.selectedMenuId
+    });
     Swal.fire('Error', 'Missing required information', 'error');
     return;
   }
 
-  const selectedGroup = this.permissionGroups().find(g => g.id === this.selectedMenuId);
-  if (!selectedGroup) {
+  const selectedMenu = this.findMenuById(this.selectedMenuId);
+  
+  if (!selectedMenu) {
+    console.error('Selected menu not found in updatePermissions');
     Swal.fire('Error', 'Selected menu not found', 'error');
     return;
   }
 
   const actionNames: string[] = [];
   
-  if (selectedGroup.permissions) {
-    if (selectedGroup.permissions.view) actionNames.push('VIEW');
-    if (selectedGroup.permissions.create) actionNames.push('CREATE');
-    if (selectedGroup.permissions.update) actionNames.push('UPDATE');
-    if (selectedGroup.permissions.delete) actionNames.push('DELETE');
-    if (selectedGroup.permissions.export) actionNames.push('EXPORT');
-    if (selectedGroup.permissions.approve) actionNames.push('APPROVE');
+  if (selectedMenu.permissions) {
+    if (selectedMenu.permissions.view) actionNames.push('VIEW');
+    if (selectedMenu.permissions.create) actionNames.push('CREATE');
+    if (selectedMenu.permissions.update) actionNames.push('UPDATE');
+    if (selectedMenu.permissions.delete) actionNames.push('DELETE');
+    if (selectedMenu.permissions.export) actionNames.push('EXPORT');
+    if (selectedMenu.permissions.approve) actionNames.push('APPROVE');
   }
 
-  if (selectedGroup.subGroups) {
-    selectedGroup.subGroups.forEach(subGroup => {
+  if ('subGroups' in selectedMenu && selectedMenu.subGroups) {
+    selectedMenu.subGroups.forEach(subGroup => {
       if (subGroup.permissions.view) actionNames.push('VIEW');
       if (subGroup.permissions.create) actionNames.push('CREATE');
       if (subGroup.permissions.update) actionNames.push('UPDATE');

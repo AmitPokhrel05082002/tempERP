@@ -16,7 +16,7 @@ enum UserRole {
 }
 
 @Component({
-  selector: 'app-leave-form',
+  selector: 'app-leave-application',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './leave-form.component.html',

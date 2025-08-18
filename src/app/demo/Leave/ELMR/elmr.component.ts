@@ -37,7 +37,7 @@ interface LeaveRequestUI {
 @Component({
   selector: 'app-elmr',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, LeaveFormComponent, QRCodeComponent],
+  imports: [CommonModule, FormsModule, RouterLink, QRCodeComponent],
   templateUrl: './elmr.component.html',
   styleUrls: ['./elmr.component.scss'],
   providers: [LeaveService, DepartmentService]
@@ -73,6 +73,10 @@ export class ELMRComponent implements OnInit {
   // Data Stores
   leaveRequests: LeaveRequestUI[] = [];
   allLeaveRequests: LeaveRequestUI[] = [];
+  
+  isCurrentUserEmployee(): boolean {
+    return this.authService.isEmployee();
+  }
 
   // Services
   private http = inject(HttpClient);
@@ -92,14 +96,19 @@ export class ELMRComponent implements OnInit {
 
   applyFiltersAndClose(): void {
     this.applyFilters();
-    this.showFilters = false; // This will close the dropdown
+    this.showFilters = false;
   }
   
   canManageLeaves(): boolean {
-    return this.authService.isAdmin() || this.authService.isCTO();
+    return this.authService.isAdmin() || this.authService.isCTO() || this.authService.isManager();
   }
 
   loadDepartments(): void {
+    // Only load departments if user can see department controls
+    if (!this.canSeeDepartmentControls() || this.isCurrentUserEmployee()) {
+      return;
+    }
+
     this.departmentService.getDepartments().subscribe({
       next: (response: any) => {
         if (response.success && response.data) {
@@ -120,34 +129,125 @@ export class ELMRComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = null;
     
-    combineLatest([
-      this.leaveService.getLeaveRequests('current'),
-      this.leaveService.getLeaveRequests('all')
-    ]).pipe(
-      finalize(() => {
-        this.isLoading = false;
-      })
-    ).subscribe({
-      next: ([currentData, allData]) => {
-        const currentLeaves = Array.isArray(currentData) ? currentData : [];
-        this.leaveRequests = this.mapApiResponseToUI(currentLeaves);
-        
-        const allLeaves = Array.isArray(allData) ? allData : [];
-        this.allLeaveRequests = this.mapApiResponseToUI(allLeaves);
-      },
-      error: (error) => {
-        console.error('Error loading leave requests:', error);
-        this.errorMessage = 'Failed to load leave requests. Please try again later.';
-        Swal.fire({
-          title: 'Error!',
-          text: this.errorMessage,
-          icon: 'error',
-          confirmButtonText: 'OK'
+    if (this.isCurrentUserEmployee()) {
+      // For employees, only load their own requests
+      this.leaveService.getLeaveRequests('current').pipe(
+        finalize(() => {
+          this.isLoading = false;
+        })
+      ).subscribe({
+        next: (currentData) => {
+          const currentLeaves = Array.isArray(currentData) ? currentData : [];
+          const filteredCurrentLeaves = this.filterLeavesByUserRole(currentLeaves);
+          this.leaveRequests = this.mapApiResponseToUI(filteredCurrentLeaves);
+          this.allLeaveRequests = this.leaveRequests; // For employees, both are the same
+        },
+        error: (error) => {
+          this.handleLoadError(error);
+        }
+      });
+    } else {
+      // For admins/managers, first get the manager's department
+      const currentUser = this.authService.currentUserValue;
+      if (currentUser?.deptId) {
+        this.departmentService.getDepartmentById(currentUser.deptId).subscribe({
+          next: (deptResponse: any) => {
+            if (deptResponse.success && deptResponse.data) {
+              const managerDepartment = deptResponse.data.dept_name;
+              
+              // Now load both current and all requests
+              combineLatest([
+                this.leaveService.getLeaveRequests('current'),
+                this.leaveService.getLeaveRequests('all')
+              ]).pipe(
+                finalize(() => {
+                  this.isLoading = false;
+                  
+                })
+              ).subscribe({
+                next: ([currentData, allData]) => {
+                  // Filter leaves by manager's department
+                  let currentLeaves = Array.isArray(currentData) ? currentData : [];
+                  let allLeaves = Array.isArray(allData) ? allData : [];
+                  
+                  // Filter by department if manager
+                  if (this.authService.isManager()) {
+                    currentLeaves = currentLeaves.filter(leave => 
+                      leave.division === managerDepartment
+                    );
+                    allLeaves = allLeaves.filter(leave => 
+                      leave.division === managerDepartment
+                    );
+                  }
+                  
+                  this.leaveRequests = this.mapApiResponseToUI(currentLeaves);
+                  this.allLeaveRequests = this.mapApiResponseToUI(allLeaves);
+                },
+                error: (error) => {
+                  this.handleLoadError(error);
+                }
+              });
+            } else {
+              this.isLoading = false;
+              this.handleLoadError(new Error('Failed to load department information'));
+            }
+          },
+          error: (error) => {
+            this.isLoading = false;
+            this.handleLoadError(error);
+          }
+        });
+      } else {
+        // If no department ID, just load all requests without filtering
+        combineLatest([
+          this.leaveService.getLeaveRequests('current'),
+          this.leaveService.getLeaveRequests('all')
+        ]).pipe(
+          finalize(() => {
+            this.isLoading = false;
+          })
+        ).subscribe({
+          next: ([currentData, allData]) => {
+            const currentLeaves = Array.isArray(currentData) ? currentData : [];
+            const allLeaves = Array.isArray(allData) ? allData : [];
+            
+            this.leaveRequests = this.mapApiResponseToUI(currentLeaves);
+            this.allLeaveRequests = this.mapApiResponseToUI(allLeaves);
+          },
+          error: (error) => {
+            this.handleLoadError(error);
+          }
         });
       }
+    }
+  }
+  /**
+   * Filter leave requests based on user role
+   * @param leaveRequests - Array of leave requests to filter
+   * @returns Filtered array based on user permissions
+   */
+  private filterLeavesByUserRole(leaveRequests: any[]): any[] {
+    const currentUser = this.authService.getCurrentUser();
+    
+    if (!currentUser) {
+      return [];
+    }
+  
+    // If user is Admin, CTO or Manager, show all requests
+    if (this.authService.isAdmin() || this.authService.isCTO() || this.authService.isManager()) {
+      return leaveRequests;
+    }
+  
+    // For employees, show only their own requests
+    return leaveRequests.filter(leave => {
+      return leave.empId === currentUser.empId || 
+             leave.empCode === currentUser.empId ||
+             leave.empId === currentUser.userId ||
+             leave.empCode === currentUser.userId ||
+             String(leave.empId) === String(currentUser.empId) ||
+             String(leave.empCode) === String(currentUser.empId);
     });
   }
-
   toggleDatePicker(): void {
     this.showDatePicker = !this.showDatePicker;
   }
@@ -222,6 +322,21 @@ export class ELMRComponent implements OnInit {
     this.applyFilters();
   }
 
+  /**
+   * Checks if any filters are currently applied
+   * @returns boolean - true if any filters are active, false otherwise
+   */
+  hasAppliedFilters(): boolean {
+    return (
+      this.searchTerm.trim() !== '' ||
+      this.selectedDepartment !== 'All Departments' ||
+      this.selectedStatus !== '' ||
+      this.selectedDate !== null ||
+      this.filterStartDate !== '' ||
+      this.filterEndDate !== ''
+    );
+  }
+
   formatDisplayDate(dateString: string | null): string {
     if (!dateString) return 'Select Date';
     try {
@@ -287,22 +402,23 @@ export class ELMRComponent implements OnInit {
 
   get filteredLeaves(): LeaveRequestUI[] {
     if (!this.allLeaveRequests || this.allLeaveRequests.length === 0) return [];
-
-    return this.allLeaveRequests.filter(leave => {
+  
+    const leavesToFilter = this.isCurrentUserEmployee() ? this.leaveRequests : this.allLeaveRequests;
+    
+    return leavesToFilter.filter(leave => {
       const matchesSearch = !this.searchTerm || 
         (leave.name && leave.name.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
         (leave.empCode && leave.empCode.toLowerCase().includes(this.searchTerm.toLowerCase()));
-
+  
       const matchesDepartment = this.selectedDepartment === 'All Departments' || 
         (leave.department && leave.department === this.selectedDepartment);
-
+  
       const matchesDate = !this.selectedDate || 
         (leave.rawDate && leave.rawDate === this.selectedDate);
-
+  
       return matchesSearch && matchesDepartment && matchesDate;
     });
   }
-
   get filteredTodaysLeaves(): LeaveRequestUI[] {
     if (!this.leaveRequests || this.leaveRequests.length === 0) return [];
 
@@ -522,6 +638,16 @@ export class ELMRComponent implements OnInit {
       showConfirmButton: false,
       timer: 3000,
       timerProgressBar: true
+    });
+  }
+  private handleLoadError(error: any): void {
+    console.error('Error loading leave requests:', error);
+    this.errorMessage = 'Failed to load leave requests. Please try again later.';
+    Swal.fire({
+      title: 'Error!',
+      text: this.errorMessage,
+      icon: 'error',
+      confirmButtonText: 'OK'
     });
   }
 }

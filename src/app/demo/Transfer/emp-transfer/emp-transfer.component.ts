@@ -598,48 +598,73 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
   
   loadTransfers(): void {
     this.isLoading = true;
+    this.errorMessage = '';
+    
     this.transferService.getAllTransfers()
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
-        next: async (transfers: EmployeeTransfer[]) => {
-          // Get the current user's employee ID
-          const currentUser = this.authService.currentUserValue;
-          const currentEmpId = currentUser?.empId;
-          
-          // Filter transfers to only show those for the current employee
-          this.transfers = (transfers || []).filter(transfer => {
-            // If user is admin/CTO, show all transfers
-            if (this.authService.isAdmin() || this.authService.isCTO()) {
-              return true;
+        next: async (response: any) => {
+          try {
+            // Handle different response formats
+            const transfers = response?.data || response || [];
+            
+            if (!Array.isArray(transfers)) {
+              console.error('Unexpected response format from getAllTransfers:', response);
+              throw new Error('Invalid data format received from server');
             }
-            // For employees, only show their own transfers
-            return transfer.empId === currentEmpId;
-          });
-          
-          // Get all unique employee IDs (both requester and approver)
-          const allEmployeeIds = new Set<string>();
-          this.transfers.forEach(transfer => {
-            allEmployeeIds.add(transfer.empId);
-            if (transfer.approvedBy) {
-              allEmployeeIds.add(transfer.approvedBy);
+            
+            // Get the current user's employee ID
+            const currentUser = this.authService.currentUserValue;
+            const currentEmpId = currentUser?.empId;
+            
+            // Filter transfers based on user role
+            this.transfers = transfers.filter(transfer => {
+              // If user is admin/CTO, show all transfers
+              if (this.authService.isAdmin() || this.authService.isCTO()) {
+                return true;
+              }
+              // For employees, only show their own transfers
+              return transfer.empId === currentEmpId;
+            });
+            
+            if (this.transfers.length === 0) {
+              console.log('No transfer records found for the current user/role');
             }
-          });
-          
-          // Load transfer types and employee names in parallel
-          const uniqueTypeIds = [...new Set(this.transfers.map(t => t.transferTypeId))];
-          const uniqueEmpIds = Array.from(allEmployeeIds);
-          
-          await Promise.all([
-            this.loadTransferTypes(uniqueTypeIds),
-            this.loadEmployeeNames(uniqueEmpIds)
-          ]);
-          
-          this.filteredTransfers = [...this.transfers];
-          this.updatePagination();
+            
+            // Get all unique employee IDs (both requester and approver)
+            const allEmployeeIds = new Set<string>();
+            this.transfers.forEach(transfer => {
+              if (transfer.empId) allEmployeeIds.add(transfer.empId);
+              if (transfer.approvedBy) allEmployeeIds.add(transfer.approvedBy);
+            });
+            
+            // Get unique transfer type IDs
+            const uniqueTypeIds = [...new Set(this.transfers
+              .map(t => t.transferTypeId)
+              .filter(Boolean))];
+              
+            const uniqueEmpIds = Array.from(allEmployeeIds);
+            
+            // Load additional data in parallel
+            await Promise.all([
+              uniqueTypeIds.length > 0 ? this.loadTransferTypes(uniqueTypeIds) : Promise.resolve(),
+              uniqueEmpIds.length > 0 ? this.loadEmployeeNames(uniqueEmpIds) : Promise.resolve()
+            ]);
+            
+            // Update filtered transfers and pagination
+            this.filteredTransfers = [...this.transfers];
+            this.updatePagination();
+            
+          } catch (error) {
+            console.error('Error processing transfer data:', error);
+            this.errorMessage = 'Error processing transfer data. Please try again.';
+            this.showError(this.errorMessage);
+          }
         },
         error: (error) => {
+          console.error('Error loading transfers:', error);
           this.errorMessage = 'Failed to load transfers. Please try again later.';
-          this.showError('Failed to load transfers. Please try again later.');
+          this.showError(this.errorMessage);
         }
       });
   }

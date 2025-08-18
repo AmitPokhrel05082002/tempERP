@@ -28,7 +28,7 @@
     <table>
       <thead>
         <tr>
-          <th>User ID</th>
+          <th>Username</th>
           <th>Permission Type</th>
           <th>Granted By</th>
           <th>Active</th>
@@ -37,7 +37,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let group of paginatedPermissions">
-          <td>{{ group.userId }}</td>
+          <td>{{ group.userName }}</td>
           <td>{{ group.permissionTypes }}</td>
           <td>{{ group.permissions[0]?.grantedByUsername || 'System' }}</td>
           <td>
@@ -47,7 +47,7 @@
           </td>
           <td>
             <div class="action-buttons">
-              <button class="edit-btn" (click)="openEditModal(group.permissions[0])" title="View">
+              <button class="edit-btn" [routerLink]="['/rbac']" [queryParams]="{userId: group.userId}" title="View RBAC">
                 <i class="bi bi-eye"></i>
               </button>
             </div>

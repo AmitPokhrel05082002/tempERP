@@ -25,6 +25,7 @@ export class MenuPermissionsComponent implements OnInit {
   filteredPermissions: MenuPermission[] = [];
   groupedPermissions: {[key: string]: MenuPermission[]} = {};
   currentPermission: MenuPermission | null = null;
+  userNames: {[key: string]: string} = {}; // Cache for usernames
   
   form: FormGroup;
   isEditMode = false;
@@ -81,6 +82,17 @@ export class MenuPermissionsComponent implements OnInit {
     this.groupedPermissions = this.filteredPermissions.reduce((acc, permission) => {
       if (!acc[permission.userId]) {
         acc[permission.userId] = [];
+        // Fetch username for this user if not already in cache
+        if (!this.userNames[permission.userId] && permission.userId) {
+          this.menuPermissionService.getUserAccount(permission.userId).subscribe({
+            next: (user) => {
+              this.userNames[permission.userId] = user.username || permission.userId;
+            },
+            error: () => {
+              this.userNames[permission.userId] = permission.userId; // Fallback to user ID if API fails
+            }
+          });
+        }
       }
       // Only add if we don't already have this permission type for the user
       if (!acc[permission.userId].some(p => p.permissionType === permission.permissionType)) {
@@ -133,10 +145,11 @@ export class MenuPermissionsComponent implements OnInit {
     return this.hasAnyActivePermission(permissions) ? 'bg-success' : 'bg-danger';
   }
 
-  get paginatedPermissions(): {userId: string, permissions: MenuPermission[], permissionTypes: string}[] {
+  get paginatedPermissions(): {userId: string, userName: string, permissions: MenuPermission[], permissionTypes: string}[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
     const userGroups = Object.entries(this.groupedPermissions).map(([userId, permissions]) => ({
       userId,
+      userName: this.userNames[userId] || userId, // Use cached username or fallback to userId
       permissions,
       // Get unique permission types for display
       permissionTypes: [...new Set(permissions.map(p => p.permissionType))].join(', '),
@@ -162,13 +175,19 @@ export class MenuPermissionsComponent implements OnInit {
   }
 
   openEditModal(permission: MenuPermission): void {
-    // Navigate to RBAC component with the permission data
-    const queryParams = {
+    this.isEditMode = true;
+    this.currentPermission = permission;
+    
+    this.form.patchValue({
       userId: permission.userId,
       menuId: permission.menuId,
-      menuName: permission.menuName
-    };
-    this.router.navigate(['/rbac'], { queryParams });
+      menuName: permission.menuName,
+      actionNames: permission.actionNames.join(', '),
+      permissionType: permission.permissionType,
+      isActive: permission.isActive
+    });
+    
+    this.modalRef = this.modalService.open(this.permissionModalRef, { size: 'lg' });
   }
 
   savePermission(): void {

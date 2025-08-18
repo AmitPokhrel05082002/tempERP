@@ -91,12 +91,12 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/other/sample-page/sample-page.component')
       },
      {
-        path: 'elmr',
-        loadComponent: () => import('./demo/Leave/ELMR/elmr.component').then((c)=> c.ELMRComponent)
+        path: 'leave-list',
+        loadComponent: () => import('./demo/Leave/ELMR/elmr.component').then((c) => c.ELMRComponent)
       },
       {
         path: 'balanceleave',
-        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c)=>c.BalanceleaveComponent)
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
       },
 
       {
@@ -265,6 +265,10 @@ export const routes: Routes = [
       {
         path: 'balanceleave',
         loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
+      },
+      {
+        path: 'leave-application',
+        loadComponent: () => import('./demo/Leave/leave-form/leave-form.component').then((c) => c.LeaveFormComponent)
       },
       {
         path: 'leave-form',
