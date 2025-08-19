@@ -31,6 +31,8 @@ export interface User {
   mustChangePassword: boolean;
   accessToken: string;
   refreshToken: string;
+  isDeptHead: boolean;
+  deptID: string | null;  // Changed to explicitly show it can be null
   permissions?: Permission[];
   getRoleBasedId: () => string;
   
@@ -120,9 +122,11 @@ export class AuthService {
       : (user.empId || user.userId);
   }
 
-  // ===============================
-  // BASIC ROLE CHECKING METHODS
-  // ===============================
+  // Define role constants
+  readonly ADMIN_ROLE = 'Admin';
+  readonly CTO_ROLE = 'Manager';
+  readonly EMPLOYEE_ROLE = 'Employee';
+
 
   /**
    * Check if current user is an Admin
@@ -253,10 +257,7 @@ export class AuthService {
    */
   canViewAllBranches(): boolean {
     const user = this.currentUserValue;
-    if (!user) return false;
-    
-    // Only Admin and HR can see all branches
-    return this.hasAdminAccess() || this.isHR();
+    return user ? ['Admin', 'Manager'].includes(user.roleName) : false;
   }
 
   /**
@@ -337,120 +338,89 @@ export class AuthService {
   login(username: string, password: string): Observable<boolean> {
     const url = `${environment.apiUrl}/api/auth/login`;
 
-    return this.http.post<any>(url, { username, password }).pipe(
-      switchMap(loginResponse => {
-        if (!loginResponse.success) {
-          throw new Error('Login failed');
+  return this.http.post<any>(url, { username, password }).pipe(
+    switchMap(loginResponse => {
+      if (!loginResponse.success) {
+        throw new Error('Login failed');
+      }
+      const userData = loginResponse.data.user;
+      
+      // New logic: user is department head if they have a deptID
+      const isDeptHead = !!userData.deptID;
+
+      const roleId = userData.role.roleId;
+      const roleName = userData.role.roleName;
+      const roleCode = userData.role.roleCode;
+
+      const baseUser: User = {
+        userId: userData.userId,
+        empId: roleName === 'Employee' ? userData.empId : undefined,
+        ctoId: roleName === 'Manager' ? (userData.ctoId || userData.userId) : undefined,
+        username: userData.username,
+        email: userData.email,
+        accountStatus: userData.accountStatus,
+        roleId: roleId,
+        roleName: roleName,
+        roleCode: roleCode,
+        mustChangePassword: userData.mustChangePassword,
+        accessToken: loginResponse.data.accessToken,
+        refreshToken: loginResponse.data.refreshToken,
+        isDeptHead: isDeptHead,
+        deptID: userData.deptID || null, // Ensure deptID is either string or null
+        getRoleBasedId: function() {
+          return this.roleName === 'Manager' 
+            ? (this.ctoId || this.userId) 
+            : (this.empId || this.userId);
         }
+      };
 
-        const userData = loginResponse.data.user;
-        const roleId = userData.role.roleId;
-        const roleName = userData.role.roleName;
-        const roleCode = userData.role.roleCode;
-
-        // Enhanced manager-specific handling
-        let empId = userData.empId;
-        let ctoId = userData.ctoId;
-        let deptId = userData.deptID || userData.deptId;
-        let isDeptHead = userData.isDeptHead || false;
-
-        // UPDATED: Validate manager data - focus on deptId presence
-        if (roleName === this.MANAGER_ROLE) {
-          console.log('Manager login detected:', {
-            isDeptHead: isDeptHead,
-            deptId: deptId,
-            empId: empId,
-            hasDepartmentAccess: !!deptId  // UPDATED: Access based on deptId
-          });
-
-          // UPDATED: Manager access is now based on having deptId
-          if (!deptId) {
-            console.warn('Manager login: No department ID found - limited access');
-          } else {
-            console.log('Manager login: Department ID found - granting department access');
-          }
-
-        }
-
-        // Create the base user object with enhanced role-based ID handling
-        const baseUser: User = {
-          userId: userData.userId,
-          deptId: deptId,
-          deptID: userData.deptID,
-          isDeptHead: isDeptHead,
-          empId: empId,
-          ctoId: roleName === this.CTO_ROLE ? (ctoId || userData.userId) : undefined,
-          username: userData.username,
-          email: userData.email,
-          accountStatus: userData.accountStatus,
-          roleId: roleId,
-          roleName: roleName,
-          roleCode: roleCode,
-          mustChangePassword: userData.mustChangePassword,
-          accessToken: loginResponse.data.accessToken,
-          refreshToken: loginResponse.data.refreshToken,
-          getRoleBasedId: function() {
-            if (this.roleName === 'CTO') {
-              return this.ctoId || this.userId;
-            } else if (this.roleName === 'Manager' || this.roleName === 'Employee') {
-              return this.empId || this.userId;
-            }
-            return this.userId;
-          },
-          getDepartmentId: function() {
-            return this.deptID || this.deptId;
-          }
-        };
-
-        // Get permissions for this role
-        return this.http.get<Permission[]>(
-          `${environment.apiUrl}/api/v1/role-permissions/role/${roleId}/permissions`
-        ).pipe(
-          tap(permissions => {
-            const completeUser = {
-              ...baseUser,
-              permissions: permissions
-            };
-            
-            console.log('Complete user object created:', {
-              roleName: completeUser.roleName,
-              isDeptHead: completeUser.isDeptHead,
-              deptId: completeUser.getDepartmentId?.(),
-              empId: completeUser.empId,
-              permissions: permissions.length,
-              hasManagerDeptAccess: completeUser.roleName === 'Manager' ? !!completeUser.getDepartmentId?.() : 'N/A'
-            });
-            
-            localStorage.setItem('currentUser', JSON.stringify(completeUser));
-            this.currentUserSubject.next(completeUser);
-            this.permissionsSubject.next(permissions);
-          }),
-          map(() => true),
-          catchError(permError => {
-            console.error('Error fetching permissions:', permError);
-            // Still allow login but without permissions
-            const completeUser = {
-              ...baseUser,
-              permissions: []
-            };
-            localStorage.setItem('currentUser', JSON.stringify(completeUser));
-            this.currentUserSubject.next(completeUser);
-            this.permissionsSubject.next([]);
-            return of(true);
-          })
-        );
-      }),
-      catchError(error => {
-        console.error('Login error', error);
-        return of(false);
-      })
-    );
-  }
-
-  /**
-   * Refresh the current user's access token
-   */
-  refreshToken(): Observable<any> {
+      // Since we already have role info, we can skip the first role fetch
+      // Just get permissions for this role
+      return this.http.get<Permission[]>(
+        `${environment.apiUrl}/api/v1/role-permissions/role/${roleId}/permissions`
+      ).pipe(
+        tap(permissions => {
+          const completeUser = {
+            ...baseUser,
+            permissions: permissions
+          };
+          localStorage.setItem('currentUser', JSON.stringify(completeUser));
+          this.currentUserSubject.next(completeUser);
+          this.permissionsSubject.next(permissions);
+        }),
+        map(() => true)
+      );
+    }),
+    catchError(error => {
+      console.error('Login error', error);
+      return of(false);
+    })
+  );
+}
+refreshUserData(): Observable<User> {
+  return this.http.get<any>(`${environment.apiUrl}/api/auth/current-user`).pipe(
+    map(response => {
+      const userData = response.data;
+      // New logic: department head status based on deptID
+      const isDeptHead = !!userData.deptID;
+      
+      const updatedUser = {
+        ...this.currentUserValue,
+        isDeptHead: isDeptHead,
+        deptID: userData.deptID || null
+      };
+      
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+      return updatedUser;
+    }),
+    catchError(error => {
+      console.error('Error refreshing user data:', error);
+      return throwError(() => error);
+    })
+  );
+}
+refreshToken(): Observable<any> {
     const user = this.currentUserValue;
     if (!user?.refreshToken) {
       this.logout();
@@ -639,18 +609,9 @@ export class AuthService {
     );
   }
 
-  /**
-   * Check permission for specific module and action
-   */
-  public hasPermissionForModule(moduleName: string, actionType: string): boolean {
-    const user = this.currentUserValue;
-    if (!user || !user.permissions) return false;
-    
-    return user.permissions.some(p => 
-      p.moduleName.toLowerCase() === moduleName.toLowerCase() && 
-      p.actionType.toLowerCase() === actionType.toLowerCase()
-    );
-  }
+  hasReadOnlyAccess(): boolean {
+  return this.isEmployee() || this.isCTO();
+}
 
   // ===============================
   // MODULE-SPECIFIC PERMISSION CHECKS

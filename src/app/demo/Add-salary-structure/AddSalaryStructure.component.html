@@ -1,0 +1,269 @@
+<div class="salary-structure-container">
+    <!-- Header Section -->
+    <div class="header">
+        <div class="title">
+            <h2>Salary Structures</h2>
+            <p>Manage and track salary structures in the system.</p>
+        </div>
+        <div class="controls">
+            <button class="btn btn-primary" (click)="openSalaryStructureModal(salaryStructureModal)">
+                <i class="bi bi-plus-lg me-1"></i> Add New Salary Structure
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filter Row -->
+    <div class="search-filter-row">
+        <div class="d-flex justify-content-end w-100">
+            <div class="search-filter-content">
+                <div class="search-input-wrapper">
+                    <i class="bi bi-search"></i>
+                    <input type="text" class="form-control"
+                        placeholder="Search by grade, component or revision cycle..." [(ngModel)]="searchQuery"
+                        (input)="applySearchSalaryStructure()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="text-center p-4">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading salary structures...</p>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="errorMessage" class="alert alert-danger" role="alert">
+        {{ errorMessage }}
+    </div>
+
+    <!-- Salary Structures Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle" *ngIf="!isLoading">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Grade</th>
+                    <th class="text-start">Component</th>
+                    <th class="text-center">Component Value</th>
+                    <th class="text-center">Variable</th>
+                    <th class="text-center">Performance Linked</th>
+                    <th class="text-center">Revision Cycle</th>
+                    <th class="text-center">Effective From</th>
+                    <th class="text-center">Effective To</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <ng-container *ngIf="filteredSalaryStructures.length > 0; else noData">
+                    <tr *ngFor="let structure of paginatedSalaryStructures" class="table-row">
+                        <td class="text-start">{{ getGradeName(structure.gradeId) || 'N/A' }}</td>
+                        <td class="text-start">{{ getComponentName(structure.componentId) || 'N/A' }}</td>
+                        <td class="text-center">{{ structure.componentValue | currency:'Nu':'symbol':'1.2-2' }}</td>
+                        <td class="text-center">
+                            <span class="badge" [ngClass]="structure.isVariable ? 'bg-success' : 'bg-secondary'">
+                                {{ structure.isVariable ? 'Yes' : 'No' }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge" [ngClass]="structure.performanceLinked ? 'bg-info' : 'bg-secondary'">
+                                {{ structure.performanceLinked ? 'Yes' : 'No' }}
+                            </span>
+                        </td>
+                        <td class="text-center">{{ structure.revisionCycle || 'N/A' }}</td>
+                        <td class="text-center">{{ structure.effectiveFrom | date:'mediumDate' }}</td>
+                        <td class="text-center">{{ structure.effectiveTo | date:'mediumDate' }}</td>
+                        <td class="text-center">
+                            <div class="action-buttons">
+                                <button class="btn btn-sm btn-outline-primary me-1"
+                                    (click)="editSalaryStructure(structure, salaryStructureModal)" title="Edit">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger"
+                                    (click)="deleteSalaryStructure(structure.id)" title="Delete">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                </ng-container>
+
+                <ng-template #noData>
+                    <tr>
+                        <td colspan="9" class="text-center py-4">
+                            <div class="text-muted">No data available</div>
+                        </td>
+                    </tr>
+                </ng-template>
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div *ngIf="filteredSalaryStructures.length > 0 && !isLoading"
+            class="d-flex justify-content-between align-items-center mt-4">
+            <div class="text-muted">
+                Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
+                {{ currentPage * itemsPerPage > filteredSalaryStructures.length ? filteredSalaryStructures.length :
+                currentPage * itemsPerPage }}
+                of {{ filteredSalaryStructures.length }} entries
+            </div>
+            <nav>
+                <ul class="pagination mb-0">
+                    <li class="page-item" [class.disabled]="currentPage === 1">
+                        <a class="page-link" href="javascript:void(0)"
+                            (click)="onPageChangeSalaryStructure(currentPage - 1)">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item" *ngFor="let page of pages" [class.active]="page === currentPage">
+                        <a class="page-link" href="javascript:void(0)" (click)="onPageChangeSalaryStructure(page)">
+                            {{ page }}
+                        </a>
+                    </li>
+                    <li class="page-item" [class.disabled]="currentPage === totalPages">
+                        <a class="page-link" href="javascript:void(0)"
+                            (click)="onPageChangeSalaryStructure(currentPage + 1)">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Salary Structure Modal -->
+<ng-template #salaryStructureModal let-modal>
+    <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title fw-bold">{{ isEditMode ? 'Edit' : 'Add New' }} Salary Structure</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="modal.dismiss()" aria-label="Close"></button>
+    </div>
+    <div class="modal-body">
+        <form [formGroup]="form" (ngSubmit)="saveSalaryStructure()">
+            <div formArrayName="structures">
+                <div *ngFor="let structure of structures.controls; let i = index" [formGroupName]="i"
+                    class="structure-group mb-4 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Structure #{{i + 1}}</h6>
+                        <button *ngIf="structures.length > 1" type="button" class="btn btn-sm btn-outline-danger"
+                            (click)="removeStructure(i)">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="gradeId-{{i}}" class="form-label">Grade *</label>
+                            <select class="form-select" id="gradeId-{{i}}" formControlName="gradeId"
+                                [class.is-invalid]="structure.get('gradeId')?.invalid && structure.get('gradeId')?.touched">
+                                <option value="">Select Grade</option>
+                                <option *ngFor="let grade of grades" [value]="grade.gradeId">
+                                    {{ grade.gradeName }}
+                                </option>
+                            </select>
+                            <div *ngIf="structure.get('gradeId')?.invalid && structure.get('gradeId')?.touched"
+                                class="invalid-feedback">
+                                Grade is required
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="componentId-{{i}}" class="form-label">Component *</label>
+                            <select class="form-select" id="componentId-{{i}}" formControlName="componentId"
+                                [class.is-invalid]="structure.get('componentId')?.invalid && structure.get('componentId')?.touched">
+                                <option value="">Select Component</option>
+                                <option *ngFor="let component of components" [value]="component.componentId">
+                                    {{ component.componentName }}
+                                </option>
+                            </select>
+                            <div *ngIf="structure.get('componentId')?.invalid && structure.get('componentId')?.touched"
+                                class="invalid-feedback">
+                                Component is required
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="componentValue-{{i}}" class="form-label">Component Value *</label>
+                            <input type="number" class="form-control" id="componentValue-{{i}}"
+                                formControlName="componentValue" min="0" step="0.01"
+                                [class.is-invalid]="structure.get('componentValue')?.invalid && structure.get('componentValue')?.touched">
+                            <div *ngIf="structure.get('componentValue')?.errors?.['required'] && structure.get('componentValue')?.touched"
+                                class="invalid-feedback">
+                                Component value is required
+                            </div>
+                            <div *ngIf="structure.get('componentValue')?.errors?.['min']" class="invalid-feedback">
+                                Value must be positive
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="revisionCycle-{{i}}" class="form-label">Revision Cycle</label>
+                            <select class="form-select" id="revisionCycle-{{i}}" formControlName="revisionCycle">
+                                <option value="">Select Revision Cycle</option>
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Half-Yearly">Half-Yearly</option>
+                                <option value="Yearly">Yearly</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" id="isVariable-{{i}}"
+                                    formControlName="isVariable">
+                                <label class="form-check-label" for="isVariable-{{i}}">
+                                    Is Variable Component
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-4 pt-2">
+                                <input class="form-check-input" type="checkbox" id="performanceLinked-{{i}}"
+                                    formControlName="performanceLinked">
+                                <label class="form-check-label" for="performanceLinked-{{i}}">
+                                    Performance Linked
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="effectiveFrom-{{i}}" class="form-label">Effective From *</label>
+                            <input type="date" class="form-control" id="effectiveFrom-{{i}}"
+                                formControlName="effectiveFrom"
+                                [value]="structure.get('effectiveFrom')?.value | date:'yyyy-MM-dd'"
+                                [class.is-invalid]="structure.get('effectiveFrom')?.invalid && structure.get('effectiveFrom')?.touched">
+                            <div *ngIf="structure.get('effectiveFrom')?.errors?.['required'] && structure.get('effectiveFrom')?.touched"
+                                class="invalid-feedback">
+                                Effective from date is required
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="effectiveTo-{{i}}" class="form-label">Effective To</label>
+                            <input type="date" class="form-control" id="effectiveTo-{{i}}"
+                                formControlName="effectiveTo">
+                            <div *ngIf="structure.get('effectiveTo')?.errors?.['dateRange']" class="invalid-feedback">
+                                Effective To date must be after Effective From date
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3" *ngIf="showAddButton">
+  <button type="button" class="btn btn-outline-primary" (click)="addNewStructure()">
+    <i class="bi bi-plus-lg"></i> Add Another Structure
+  </button>
+</div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" (click)="modal.dismiss()">Cancel</button>
+                <button type="submit" class="btn btn-primary" [disabled]="form.invalid">
+                    {{ isEditMode ? 'Update' : 'Save' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</ng-template>
