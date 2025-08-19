@@ -43,7 +43,7 @@ interface User {
 }
 
 @Component({
-  selector: 'app-rbac',
+  selector: 'app-RBAC',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './RBAC.component.html',
@@ -115,6 +115,9 @@ loadUserPermissions() {
   
   this.menuPermissionService.getUserPermissions(this.userId!, false).subscribe({
     next: (permissions) => {
+      console.log('Loaded user permissions:', permissions); // Debug log
+      
+      // Set expiry date/time if available
       const selectedPermission = permissions.find(p => p.menuId === this.selectedMenuId);
       if (selectedPermission && selectedPermission.expiryDate) {
         const expiryDate = new Date(selectedPermission.expiryDate);
@@ -122,11 +125,27 @@ loadUserPermissions() {
         this.expiryTime = `${this.padZero(expiryDate.getHours())}:${this.padZero(expiryDate.getMinutes())}`;
       }
       
+      // Load the menu hierarchy and map the permissions
       this.menuHierarchyService.getMenuHierarchy().subscribe({
         next: (menuItems) => {
-          // Clear and rebuild the permission groups with fresh data
+          // Transform the menu items to include the user's permissions
           const groups = this.transformMenuToPermissionGroups(menuItems, permissions);
           this.permissionGroups.set(groups);
+          
+          // If we have a selected menu ID, expand its parent group
+          if (this.selectedMenuId) {
+            const groups = this.permissionGroups();
+            const group = groups.find(g => 
+              g.id === this.selectedMenuId || 
+              (g.subGroups && g.subGroups.some(sg => sg.id === this.selectedMenuId))
+            );
+            
+            if (group) {
+              group.expanded = true;
+              this.permissionGroups.set([...groups]);
+            }
+          }
+          
           this.loading.set(false);
         },
         error: (err) => {
@@ -279,18 +298,20 @@ private transformMenuToPermissionGroups(menuItems: any[], userPermissions: any[]
     .filter(menu => menu.isActive)
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .map(menu => {
+      // Find all permissions for this menu item
       const menuPermissions = userPermissions.filter(p => p.menuId === menu.menuId);
       
       const group: PermissionGroup = {
         id: menu.menuId,
         name: menu.menuName,
-        expanded: menu.menuId === this.selectedMenuId,
+        expanded: menu.menuId === this.selectedMenuId || this.isEditMode,
         icon: menu.menuIndication,
         subGroups: menu.children 
           ? menu.children
               .filter(child => child.isActive)
               .sort((a, b) => a.displayOrder - b.displayOrder)
               .map(child => {
+                // Find all permissions for this child menu item
                 const childPerms = userPermissions.filter(p => p.menuId === child.menuId);
                 return {
                   id: child.menuId,
@@ -371,23 +392,96 @@ private transformMenuToPermissionGroups(menuItems: any[], userPermissions: any[]
 
   toggleAllPermissions(groupId: string, subGroupId: string | undefined, checked: boolean) {
     const groups = this.permissionGroups();
-    const group = groups.find(g => g.id === groupId);
-    if (!group) return;
-
-    if (subGroupId !== undefined) {
-      const subGroup = group.subGroups?.find(sg => sg.id === subGroupId);
-      if (subGroup) {
-        Object.keys(subGroup.permissions).forEach(key => {
-          subGroup.permissions[key as keyof typeof subGroup.permissions] = checked;
-        });
-      }
-    } else if (group.permissions) {
-      Object.keys(group.permissions).forEach(key => {
-        group.permissions![key as keyof typeof group.permissions] = checked;
-      });
-    }
+    const groupIndex = groups.findIndex(g => g.id === groupId);
     
-    this.permissionGroups.set([...groups]);
+    if (groupIndex !== -1) {
+      const group = {...groups[groupIndex]};
+      
+      if (subGroupId && group.subGroups) {
+        // Update specific subgroup
+        group.subGroups = group.subGroups.map(sg => 
+          sg.id === subGroupId 
+            ? {
+                ...sg,
+                permissions: {
+                  view: checked,
+                  create: checked,
+                  update: checked,
+                  delete: checked,
+                  export: checked,
+                  ...(sg.permissions.approve !== undefined && { approve: checked })
+                }
+              }
+            : sg
+        );
+      } else if (!subGroupId && group.permissions) {
+        // Update group's direct permissions
+        group.permissions = {
+          view: checked,
+          create: checked,
+          update: checked,
+          delete: checked,
+          export: checked,
+          ...(group.permissions.approve !== undefined && { approve: checked })
+        };
+      }
+      
+      groups[groupIndex] = group;
+      this.permissionGroups.set([...groups]);
+    }
+  }
+
+  // Toggle a specific permission for all submodules in a group
+  togglePermissionForAllSubmodules(groupId: string, permissionType: string, checked: boolean) {
+    const groups = this.permissionGroups();
+    const groupIndex = groups.findIndex(g => g.id === groupId);
+    
+    if (groupIndex !== -1 && groups[groupIndex].subGroups) {
+      const group = {...groups[groupIndex]};
+      
+      if (group.subGroups) {
+        group.subGroups = group.subGroups.map(sg => ({
+          ...sg,
+          permissions: {
+            ...sg.permissions,
+            [permissionType]: checked
+          }
+        }));
+      }
+      
+      groups[groupIndex] = group;
+      this.permissionGroups.set([...groups]);
+    }
+  }
+
+  // Check if a specific permission is checked for all submodules in a group
+  isPermissionCheckedForAllSubmodules(groupId: string, permissionType: string): boolean {
+    const group = this.permissionGroups().find(g => g.id === groupId);
+    if (!group?.subGroups?.length) return false;
+    
+    return group.subGroups.every(sg => 
+      sg.permissions[permissionType as keyof typeof sg.permissions] === true
+    );
+  }
+  
+  // Check if a specific permission is partially checked for submodules in a group
+  isPermissionIndeterminate(groupId: string, permissionType: string): boolean {
+    const group = this.permissionGroups().find(g => g.id === groupId);
+    if (!group?.subGroups?.length) return false;
+    
+    const hasSomeChecked = group.subGroups.some(sg => 
+      sg.permissions[permissionType as keyof typeof sg.permissions] === true
+    );
+    const hasSomeUnchecked = group.subGroups.some(sg => 
+      sg.permissions[permissionType as keyof typeof sg.permissions] !== true
+    );
+    
+    return hasSomeChecked && hasSomeUnchecked;
+  }
+
+  // Check if any subgroup has approve permission
+  hasSubgroupWithApprove(group: any): boolean {
+    return group.subGroups && group.subGroups.some((sg: any) => sg.permissions.approve !== undefined);
   }
 
 getMenuName(menuId: string): string {
