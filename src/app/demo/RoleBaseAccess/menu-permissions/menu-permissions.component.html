@@ -28,39 +28,55 @@
     <table>
       <thead>
         <tr>
+          <th>Employee Name</th>
           <th>Username</th>
-          <th>Permission Type</th>
-          <th>Granted By</th>
+          <th>Email</th>
+          <th>Account Status</th>
+          <th>Permission Types</th>
           <th>Active</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let group of paginatedPermissions">
-          <td>{{ group.userName }}</td>
-          <td>{{ group.permissionTypes }}</td>
-          <td>{{ group.permissions[0]?.grantedByUsername || 'System' }}</td>
+        <tr *ngFor="let user of paginatedUserAccounts">
+          <td>{{ user.employeeName }}</td>
+          <td>{{ user.username }}</td>
+          <td>{{ user.email }}</td>
           <td>
-            <span class="badge" [ngClass]="getActiveStatusClass(group.permissions)">
-              {{ getActiveStatusText(group.permissions) }}
+            <span class="badge" [ngClass]="user.accountStatus === 'Active' ? 'bg-success' : 'bg-danger'">
+              {{ user.accountStatus }}
+            </span>
+          </td>
+          <td>
+            <span *ngIf="getUserPermissions(user.userId).length > 0">
+              {{ getPermissionTypes(getUserPermissions(user.userId)) }}
+            </span>
+            <span *ngIf="getUserPermissions(user.userId).length === 0" class="text-muted">
+              No permissions
+            </span>
+          </td>
+          <td>
+            <span *ngIf="getUserPermissions(user.userId).length > 0" class="badge" 
+                  [ngClass]="getActiveStatusClass(getUserPermissions(user.userId))">
+              {{ getActiveStatusText(getUserPermissions(user.userId)) }}
+            </span>
+            <span *ngIf="getUserPermissions(user.userId).length === 0" class="text-muted">
+              -
             </span>
           </td>
           <td>
             <div class="action-buttons">
-              <button class="edit-btn" [routerLink]="['/rbac']" [queryParams]="{userId: group.userId}" title="View RBAC">
+              <button class="edit-btn" [routerLink]="['/rbac']" [queryParams]="{userId: user.userId, menuId: 'all'}" title="View RBAC">
                 <i class="bi bi-eye"></i>
               </button>
             </div>
           </td>
         </tr>
-        <tr *ngIf="filteredPermissions.length === 0">
-          <td colspan="7" class="text-center">
+        <tr *ngIf="filteredUserAccounts.length === 0">
+          <td colspan="6" class="text-center">
             <div class="text-muted">
               <i class="bi bi-inbox"></i>
-              <p>No permission records found</p>
-              <button class="btn btn-sm btn-outline-primary" (click)="openAddModal()">
-                <i class="bi bi-plus-lg me-1"></i> Add New Permission
-              </button>
+              <p>No user accounts found</p>
             </div>
           </td>
         </tr>
@@ -69,7 +85,7 @@
   </div>
 
   <!-- Pagination -->
-  <div class="simple-pagination" *ngIf="filteredPermissions.length > 0">
+  <div class="simple-pagination" *ngIf="filteredUserAccounts.length > 0">
     <button 
       (click)="onPageChange(currentPage - 1)" 
       [disabled]="currentPage === 1">

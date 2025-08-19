@@ -74,9 +74,9 @@
 
     <div class="header-divider"></div>
 
-    <!-- Updated Filter Section -->
-    <div class="filter-container d-flex flex-wrap align-items-stretch gap-2 mb-4" *ngIf="canSeeDepartmentControls() && !isCurrentUserEmployee()">
-      <!-- Department Select -->
+    <!-- Department Filter Section -->
+    <div *ngIf="!authService.isManager()" class="filter-container d-flex flex-wrap align-items-stretch gap-2 mb-4">
+      <!-- Department Select (only for non-managers) -->
       <div class="filter-item">
         <select class="form-select form-select-sm h-100" [(ngModel)]="selectedDepartment" (change)="onDepartmentChange()">
           <option value="All Departments">All Departments</option>
@@ -85,7 +85,7 @@
       </div>
 
       <!-- Search Input -->
-      <div class="search-container ms-md-auto" *ngIf="canSeeDepartmentControls() && !isCurrentUserEmployee()">
+      <div class="search-container ms-md-auto" *ngIf="!isCurrentUserEmployee()">
         <div class="input-group">
           <span class="input-group-text"><i class="bi bi-search"></i></span>
           <input type="text" class="form-control form-control-sm border-start-0" 

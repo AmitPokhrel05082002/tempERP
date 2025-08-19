@@ -613,19 +613,45 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
               throw new Error('Invalid data format received from server');
             }
             
-            // Get the current user's employee ID
+            // Get the current user's employee ID and department
             const currentUser = this.authService.currentUserValue;
             const currentEmpId = currentUser?.empId;
+            const managerDeptId = currentUser?.deptId;
+            
+            console.log('Current User:', currentUser);
+            console.log('Manager Department ID:', managerDeptId);
+            console.log('All transfers from API:', transfers);
             
             // Filter transfers based on user role
             this.transfers = transfers.filter(transfer => {
               // If user is admin/CTO, show all transfers
               if (this.authService.isAdmin() || this.authService.isCTO()) {
+                console.log('Admin/CTO access - showing all transfers');
                 return true;
               }
+              
+              // For managers - show transfers from or to their department
+              if (this.authService.isManager()) {
+                const isFromMyDept = transfer.departmentId === managerDeptId;
+                const isToMyDept = transfer.toDeptId === managerDeptId;
+                const isMyTransfer = transfer.empId === currentEmpId;
+                
+                // Show transfer if it's from manager's department, to manager's department, or manager's own transfer
+                console.log(`Checking transfer ${transfer.transferId || 'N/A'} - From Dept: ${transfer.departmentId}, To Dept: ${transfer.toDeptId}, Manager's Dept: ${managerDeptId}`);
+                console.log(`isFromMyDept: ${isFromMyDept}, isToMyDept: ${isToMyDept}, isMyTransfer: ${isMyTransfer}`);
+                
+                return isFromMyDept || isToMyDept || isMyTransfer;
+              }
+              
               // For employees, only show their own transfers
-              return transfer.empId === currentEmpId;
+              const isMyTransfer = transfer.empId === currentEmpId;
+              if (!isMyTransfer) {
+                console.log(`Filtering out transfer ${transfer.transferId} - not owned by employee`);
+              }
+              return isMyTransfer;
             });
+            
+            console.log('Filtered transfers:', this.transfers);
             
             if (this.transfers.length === 0) {
               console.log('No transfer records found for the current user/role');

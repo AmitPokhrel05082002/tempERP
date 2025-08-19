@@ -23,9 +23,11 @@ import { MenuPermissionService, MenuPermission } from '../../../services/menu-pe
 export class MenuPermissionsComponent implements OnInit {
   permissions: MenuPermission[] = [];
   filteredPermissions: MenuPermission[] = [];
-  groupedPermissions: {[key: string]: MenuPermission[]} = {};
+  userAccounts: any[] = [];
+  filteredUserAccounts: any[] = [];
   currentPermission: MenuPermission | null = null;
-  userNames: {[key: string]: string} = {}; // Cache for usernames
+  userPermissions: {[key: string]: MenuPermission[]} = {}; // Cache for user permissions
+  employeeNames: {[key: string]: string} = {}; // Cache for employee names
   
   form: FormGroup;
   isEditMode = false;
@@ -62,41 +64,50 @@ export class MenuPermissionsComponent implements OnInit {
 
   loadPermissions(): void {
     this.isLoading = true;
-    this.menuPermissionService.getMenuPermissions().subscribe({
-      next: (permissions) => {
-        this.permissions = permissions;
-        this.filteredPermissions = [...this.permissions];
-        this.groupPermissionsByUser();
-        this.updatePagination();
-        this.isLoading = false;
+    // First load user accounts
+    this.menuPermissionService.getAllUserAccounts().subscribe({
+      next: (accounts) => {
+        this.userAccounts = accounts;
+        this.filteredUserAccounts = [...this.userAccounts];
+        
+        // Fetch employee names for all accounts
+        this.userAccounts.forEach(account => {
+          if (account.empId) {
+            this.menuPermissionService.getEmployeeName(account.empId).subscribe(name => {
+              this.employeeNames[account.empId] = name;
+            });
+          }
+        });
+        
+        // Then load permissions
+        this.menuPermissionService.getMenuPermissions().subscribe({
+          next: (permissions) => {
+            this.permissions = permissions;
+            this.filteredPermissions = [...this.permissions];
+            this.groupPermissionsByUser();
+            this.updatePagination();
+            this.isLoading = false;
+          },
+          error: (error) => {
+            console.error('Error loading permissions:', error);
+            this.isLoading = false;
+            Swal.fire('Error', 'Failed to load permissions', 'error');
+          }
+        });
       },
       error: (error) => {
-        console.error('Error loading permissions:', error);
+        console.error('Error loading user accounts:', error);
         this.isLoading = false;
-        Swal.fire('Error', 'Failed to load permissions', 'error');
+        Swal.fire('Error', 'Failed to load user accounts', 'error');
       }
     });
   }
 
   groupPermissionsByUser(): void {
-    this.groupedPermissions = this.filteredPermissions.reduce((acc, permission) => {
-      if (!acc[permission.userId]) {
-        acc[permission.userId] = [];
-        // Fetch username for this user if not already in cache
-        if (!this.userNames[permission.userId] && permission.userId) {
-          this.menuPermissionService.getUserAccount(permission.userId).subscribe({
-            next: (user) => {
-              this.userNames[permission.userId] = user.username || permission.userId;
-            },
-            error: () => {
-              this.userNames[permission.userId] = permission.userId; // Fallback to user ID if API fails
-            }
-          });
-        }
-      }
-      // Only add if we don't already have this permission type for the user
-      if (!acc[permission.userId].some(p => p.permissionType === permission.permissionType)) {
-        acc[permission.userId].push(permission);
+    this.userPermissions = this.userAccounts.reduce((acc, user) => {
+      const userPerms = this.permissions.filter(p => p.userId === user.userId);
+      if (userPerms.length > 0) {
+        acc[user.userId] = userPerms;
       }
       return acc;
     }, {} as {[key: string]: MenuPermission[]});
@@ -104,6 +115,7 @@ export class MenuPermissionsComponent implements OnInit {
 
   applySearch(): void {
     if (!this.searchQuery.trim()) {
+      this.filteredUserAccounts = [...this.userAccounts];
       this.filteredPermissions = [...this.permissions];
       this.groupPermissionsByUser();
       this.currentPage = 1;
@@ -112,12 +124,10 @@ export class MenuPermissionsComponent implements OnInit {
     }
 
     const query = this.searchQuery.toLowerCase().trim();
-    this.filteredPermissions = this.permissions.filter(permission => 
-      permission.userId.toLowerCase().includes(query) ||
-      permission.menuName.toLowerCase().includes(query) ||
-      permission.permissionType.toLowerCase().includes(query) ||
-      permission.grantedByUsername?.toLowerCase().includes(query) ||
-      permission.actionNames.some(action => action.toLowerCase().includes(query))
+    this.filteredUserAccounts = this.userAccounts.filter(user => 
+      user.username.toLowerCase().includes(query) ||
+      user.email.toLowerCase().includes(query) ||
+      user.accountStatus.toLowerCase().includes(query)
     );
     
     this.currentPage = 1;
@@ -126,8 +136,8 @@ export class MenuPermissionsComponent implements OnInit {
   }
 
   updatePagination(): void {
-    const totalGroups = Object.keys(this.groupedPermissions).length;
-    this.totalPages = Math.ceil(totalGroups / this.itemsPerPage);
+    const totalItems = this.filteredUserAccounts.length;
+    this.totalPages = Math.ceil(totalItems / this.itemsPerPage);
     if (this.currentPage > this.totalPages && this.totalPages > 0) {
       this.currentPage = this.totalPages;
     }
@@ -145,18 +155,24 @@ export class MenuPermissionsComponent implements OnInit {
     return this.hasAnyActivePermission(permissions) ? 'bg-success' : 'bg-danger';
   }
 
-  get paginatedPermissions(): {userId: string, userName: string, permissions: MenuPermission[], permissionTypes: string}[] {
+  get paginatedUserAccounts(): any[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    const userGroups = Object.entries(this.groupedPermissions).map(([userId, permissions]) => ({
-      userId,
-      userName: this.userNames[userId] || userId, // Use cached username or fallback to userId
-      permissions,
-      // Get unique permission types for display
-      permissionTypes: [...new Set(permissions.map(p => p.permissionType))].join(', '),
-      // Get all action names
-      actionNames: [...new Set(permissions.flatMap(p => p.actionNames))].join(', ')
-    }));
-    return userGroups.slice(startIndex, startIndex + this.itemsPerPage);
+    return this.filteredUserAccounts.map(account => ({
+      ...account,
+      employeeName: this.employeeNames[account.empId] || 'N/A'
+    })).slice(startIndex, startIndex + this.itemsPerPage);
+  }
+
+  getUserPermissions(userId: string): MenuPermission[] {
+    return this.userPermissions[userId] || [];
+  }
+
+  getPermissionTypes(permissions: MenuPermission[]): string {
+    return [...new Set(permissions.map(p => p.permissionType))].join(', ');
+  }
+
+  getActionNames(permissions: MenuPermission[]): string {
+    return [...new Set(permissions.flatMap(p => p.actionNames))].join(', ');
   }
 
   onPageChange(page: number): void {

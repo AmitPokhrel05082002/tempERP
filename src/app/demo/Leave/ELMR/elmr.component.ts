@@ -55,7 +55,7 @@ export class ELMRComponent implements OnInit {
   qrData = window.location.origin + '/leave-form';
   qrCodeImage = 'assets/frame (2).png';
   searchTerm = '';
-  departments: string[] = ['All Departments'];
+  departments: string[] = [];
   selectedDepartment = 'All Departments';
   selectedDate: string | null = null;
   showDatePicker = false;
@@ -73,6 +73,7 @@ export class ELMRComponent implements OnInit {
   // Data Stores
   leaveRequests: LeaveRequestUI[] = [];
   allLeaveRequests: LeaveRequestUI[] = [];
+  managerDepartment: string | null = null;
   
   isCurrentUserEmployee(): boolean {
     return this.authService.isEmployee();
@@ -82,16 +83,49 @@ export class ELMRComponent implements OnInit {
   private http = inject(HttpClient);
   private leaveService = inject(LeaveService);
   private router = inject(Router);
-  private authService = inject(AuthService);
+  authService = inject(AuthService);  // Made public for template access
   private departmentService = inject(DepartmentService);
 
   ngOnInit(): void {
     this.loadDepartments();
     this.loadLeaveRequests();
+    this.setupManagerDepartment();
+  }
+
+  private setupManagerDepartment(): void {
+    if (this.authService.isManager()) {
+      const user = this.authService.currentUserValue;
+      const deptId = user?.deptId || user?.deptID;
+      
+      if (deptId) {
+        this.departmentService.getDepartmentById(deptId).subscribe({
+          next: (response) => {
+            if (response && response.success) {
+              this.managerDepartment = response.data?.dept_name || 'Department';
+              // Set the department filter internally but don't show the filter UI
+              this.selectedDepartment = response.data?.dept_name || 'All Departments';
+              // Force load the leave requests for this department
+              this.loadLeaveRequests();
+            } else {
+              this.managerDepartment = 'Department';
+              this.loadLeaveRequests();
+            }
+          },
+          error: (error) => {
+            console.error('Error fetching department:', error);
+            this.managerDepartment = 'Department';
+            this.loadLeaveRequests();
+          }
+        });
+      } else {
+        this.managerDepartment = 'Department';
+        this.loadLeaveRequests();
+      }
+    }
   }
 
   canSeeDepartmentControls(): boolean {
-    return this.authService.isAdmin() || this.authService.hasPermission('HR_MANAGER');
+    return this.authService.isAdmin() || this.authService.hasPermission('HR_MANAGER') || this.authService.isManager();
   }
 
   applyFiltersAndClose(): void {
@@ -106,16 +140,30 @@ export class ELMRComponent implements OnInit {
   loadDepartments(): void {
     // Only load departments if user can see department controls
     if (!this.canSeeDepartmentControls() || this.isCurrentUserEmployee()) {
+      this.departments = ['All Departments'];
       return;
     }
 
     this.departmentService.getDepartments().subscribe({
       next: (response: any) => {
         if (response.success && response.data) {
-          this.departments = [
-            'All Departments',
-            ...response.data.map((dept: any) => dept.dept_name)
-          ];
+          // Remove any existing 'All Departments' and duplicates
+          const uniqueDepartments = new Set<string>();
+          
+          // Add 'All Departments' first
+          uniqueDepartments.add('All Departments');
+          
+          // Add all departments from the response
+          response.data.forEach((dept: any) => {
+            if (dept.dept_name) {
+              uniqueDepartments.add(dept.dept_name);
+            }
+          });
+          
+          this.departments = Array.from(uniqueDepartments);
+        } else {
+          // Fallback to just 'All Departments' if no data
+          this.departments = ['All Departments'];
         }
       },
       error: (error) => {
@@ -153,7 +201,7 @@ export class ELMRComponent implements OnInit {
         this.departmentService.getDepartmentById(currentUser.deptId).subscribe({
           next: (deptResponse: any) => {
             if (deptResponse.success && deptResponse.data) {
-              const managerDepartment = deptResponse.data.dept_name;
+              this.managerDepartment = deptResponse.data.dept_name;
               
               // Now load both current and all requests
               combineLatest([
@@ -162,26 +210,79 @@ export class ELMRComponent implements OnInit {
               ]).pipe(
                 finalize(() => {
                   this.isLoading = false;
-                  
                 })
               ).subscribe({
                 next: ([currentData, allData]) => {
-                  // Filter leaves by manager's department
-                  let currentLeaves = Array.isArray(currentData) ? currentData : [];
-                  let allLeaves = Array.isArray(allData) ? allData : [];
+                  // First map to UI model to ensure consistent data structure
+                  let currentLeaves = this.mapApiResponseToUI(Array.isArray(currentData) ? currentData : []);
+                  let allLeaves = this.mapApiResponseToUI(Array.isArray(allData) ? allData : []);
                   
                   // Filter by department if manager
-                  if (this.authService.isManager()) {
-                    currentLeaves = currentLeaves.filter(leave => 
-                      leave.division === managerDepartment
+                  if (this.authService.isManager() && this.managerDepartment) {
+                    const managerDeptLower = this.managerDepartment.toLowerCase().trim();
+                    console.log('Manager Department:', this.managerDepartment);
+                    console.log('Manager Department (lower):', managerDeptLower);
+                    
+                    console.log('All current leaves before filtering:', currentLeaves);
+                    console.log('All leaves before filtering:', allLeaves);
+                    
+                    // First, check if any leaves have the department/division set
+                    console.log('Sample of department/division values in currentLeaves:', 
+                      currentLeaves.slice(0, 3).map(l => ({
+                        id: l.id,
+                        name: l.name,
+                        department: l.department,
+                        division: l.division
+                      }))
                     );
-                    allLeaves = allLeaves.filter(leave => 
-                      leave.division === managerDepartment
-                    );
+                    
+                    currentLeaves = currentLeaves.filter(leave => {
+                      const leaveDept = String(leave.department || '').toLowerCase().trim();
+                      const leaveDivision = String(leave.division || '').toLowerCase().trim();
+                      
+                      const matches = leaveDept === managerDeptLower || 
+                                    leaveDivision === managerDeptLower ||
+                                    (leaveDept.includes(managerDeptLower) || 
+                                     managerDeptLower.includes(leaveDept) ||
+                                     leaveDivision.includes(managerDeptLower) ||
+                                     managerDeptLower.includes(leaveDivision));
+                      
+                      console.log('Checking leave:', {
+                        id: leave.id,
+                        name: leave.name,
+                        department: leave.department,
+                        division: leave.division,
+                        matches: matches
+                      });
+                      
+                      return matches;
+                    });
+                    
+                    allLeaves = allLeaves.filter(leave => {
+                      const leaveDept = String(leave.department || '').toLowerCase().trim();
+                      const leaveDivision = String(leave.division || '').toLowerCase().trim();
+                      
+                      return leaveDept === managerDeptLower || 
+                             leaveDivision === managerDeptLower ||
+                             (leaveDept.includes(managerDeptLower) || 
+                              managerDeptLower.includes(leaveDept) ||
+                              leaveDivision.includes(managerDeptLower) ||
+                              managerDeptLower.includes(leaveDivision));
+                    });
+                    
+                    console.log('Number of filtered currentLeaves:', currentLeaves.length);
+                    console.log('Number of filtered allLeaves:', allLeaves.length);
+                    
+                    if (currentLeaves.length === 0) {
+                      console.warn('No leaves matched the department filter. Manager department:', this.managerDepartment);
+                      console.warn('Available departments in data:', 
+                        [...new Set([...currentLeaves, ...allLeaves].map(l => l.department || l.division).filter(Boolean))]
+                      );
+                    }
                   }
                   
-                  this.leaveRequests = this.mapApiResponseToUI(currentLeaves);
-                  this.allLeaveRequests = this.mapApiResponseToUI(allLeaves);
+                  this.leaveRequests = currentLeaves;
+                  this.allLeaveRequests = allLeaves;
                 },
                 error: (error) => {
                   this.handleLoadError(error);
@@ -374,13 +475,17 @@ export class ELMRComponent implements OnInit {
         const normalizedStatus = item.status 
           ? item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()
           : 'Pending';
+
+        // Get department/division from the most likely properties
+        const department = item.department || item.division || item.dept_name || item.division_name || 'N/A';
         
         return {
           id: item.id || `temp-${Math.random().toString(36).substr(2, 9)}`,
           empId: item.empId || '',
           empCode: item.empCode || '',
           name: item.name || 'Unknown Employee',
-          department: item.department || item.division || 'N/A',
+          department: department,
+          division: item.division || department, // Keep original division if available
           fromDate: item.fromDate || '',
           toDate: item.toDate || '',
           totalDays: item.totalDays || 1,
@@ -397,27 +502,82 @@ export class ELMRComponent implements OnInit {
         console.error('Error mapping leave request:', error, item);
         return null;
       }
-    }).filter((item): item is LeaveRequestUI => item !== null);
+    }).filter((item): item is NonNullable<typeof item> => item !== null) as LeaveRequestUI[];
   }
 
   get filteredLeaves(): LeaveRequestUI[] {
-    if (!this.allLeaveRequests || this.allLeaveRequests.length === 0) return [];
-  
-    const leavesToFilter = this.isCurrentUserEmployee() ? this.leaveRequests : this.allLeaveRequests;
+    console.group('filteredLeaves - Debug Info');
     
-    return leavesToFilter.filter(leave => {
+    if (!this.allLeaveRequests || this.allLeaveRequests.length === 0) {
+      console.log('No leave requests available to filter');
+      console.groupEnd();
+      return [];
+    }
+    
+    const leavesToFilter = this.isCurrentUserEmployee() ? this.leaveRequests : this.allLeaveRequests;
+    console.log('Total leaves to filter:', leavesToFilter.length);
+    console.log('Current filters:', {
+      searchTerm: this.searchTerm,
+      selectedDepartment: this.selectedDepartment,
+      selectedDate: this.selectedDate
+    });
+    
+    const filtered = leavesToFilter.filter(leave => {
+      const searchTermLower = this.searchTerm ? this.searchTerm.toLowerCase() : '';
+      const nameLower = leave.name ? leave.name.toLowerCase() : '';
+      const empCodeLower = leave.empCode ? leave.empCode.toLowerCase() : '';
+      
       const matchesSearch = !this.searchTerm || 
-        (leave.name && leave.name.toLowerCase().includes(this.searchTerm.toLowerCase())) ||
-        (leave.empCode && leave.empCode.toLowerCase().includes(this.searchTerm.toLowerCase()));
+        nameLower.includes(searchTermLower) ||
+        empCodeLower.includes(searchTermLower);
   
+      // Normalize department names for comparison
+      const normalizeString = (str: string | null | undefined): string => 
+        (str || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+      
+      const selectedDeptNormalized = normalizeString(this.selectedDepartment);
+      const leaveDeptNormalized = normalizeString(leave.department);
+      const leaveDivisionNormalized = normalizeString(leave.division);
+      
       const matchesDepartment = this.selectedDepartment === 'All Departments' || 
-        (leave.department && leave.department === this.selectedDepartment);
+        (leave.department && leaveDeptNormalized === selectedDeptNormalized) ||
+        (leave.division && leaveDivisionNormalized === selectedDeptNormalized);
+        
+      console.log('Department Matching:', {
+        selectedDepartment: this.selectedDepartment,
+        leaveDepartment: leave.department,
+        leaveDivision: leave.division,
+        normalized: {
+          selected: selectedDeptNormalized,
+          dept: leaveDeptNormalized,
+          division: leaveDivisionNormalized
+        },
+        matches: matchesDepartment
+      });
   
       const matchesDate = !this.selectedDate || 
-        (leave.rawDate && leave.rawDate === this.selectedDate);
+        (leave.rawDate && leave.rawDate.toString() === this.selectedDate.toString());
+      
+      console.log('Leave:', {
+        id: leave.id,
+        name: leave.name,
+        department: leave.department,
+        division: leave.division,
+        rawDate: leave.rawDate,
+        matches: { matchesSearch, matchesDepartment, matchesDate },
+        filterValues: {
+          searchTerm: this.searchTerm,
+          selectedDepartment: this.selectedDepartment,
+          selectedDate: this.selectedDate
+        }
+      });
   
       return matchesSearch && matchesDepartment && matchesDate;
     });
+    
+    console.log('Filtered count:', filtered.length);
+    console.groupEnd();
+    return filtered;
   }
   get filteredTodaysLeaves(): LeaveRequestUI[] {
     if (!this.leaveRequests || this.leaveRequests.length === 0) return [];

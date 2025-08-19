@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { map, switchMap } from 'rxjs/operators';
+import { catchError, map, switchMap } from 'rxjs/operators';
 
 // User Account Interface
 export interface UserAccount {
@@ -19,12 +19,18 @@ export interface UserAccount {
 
 // Employee Profile Interface
 export interface EmployeeProfile {
-  id: string;
-  firstName: string;
-  middleName?: string;
-  lastName: string;
-  fullName: string;
-  // Add other employee fields as needed
+  employee: {
+    empId: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+    // Add other employee fields as needed
+  };
+  contacts: any[];
+  addresses: any[];
+  qualifications: any[];
+  bankDetails: any[];
+  history: any[];
 }
 
 // models/permission.model.ts
@@ -87,6 +93,13 @@ export class MenuPermissionService {
   private apiBaseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
+
+  /**
+   * Get all user accounts
+   */
+  getAllUserAccounts(): Observable<UserAccount[]> {
+    return this.http.get<UserAccount[]>(`${this.apiBaseUrl}/api/auth/user-accounts/all`);
+  }
 
   /**
    * Get all menu permissions
@@ -197,6 +210,22 @@ export class MenuPermissionService {
    */
   getEmployeeProfile(empId: string): Observable<EmployeeProfile> {
     return this.http.get<EmployeeProfile>(`${this.apiBaseUrl}/api/v1/employees/${empId}`);
+  }
+
+  /**
+   * Get employee full name by employee ID
+   * @param empId The ID of the employee
+   */
+  getEmployeeName(empId: string): Observable<string> {
+    return this.getEmployeeProfile(empId).pipe(
+      map(profile => {
+        const employee = profile.employee;
+        return employee.middleName 
+          ? `${employee.firstName} ${employee.middleName} ${employee.lastName}`
+          : `${employee.firstName} ${employee.lastName}`;
+      }),
+      catchError(() => of(empId)) // Return empId if there's an error
+    );
   }
 
   /**
