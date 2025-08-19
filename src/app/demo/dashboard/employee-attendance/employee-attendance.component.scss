@@ -1,4 +1,6 @@
 /* Attendance Management Component - Responsive SCSS */
+
+// Variables
 $primary-color: #23a9d2;
 $primary-hover: #015b9d;
 $secondary-color: #6c757d;
@@ -8,6 +10,31 @@ $danger-color: #dc3545;
 $warning-color: #f59e0b;
 $success-color: #198754;
 $info-color: #0d6efd;
+
+/* Table Styles */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  border: none;
+  
+  th, td {
+    border: none;
+    padding: 0.75rem;
+    vertical-align: middle;
+  }
+  
+  thead {
+    th {
+      border-bottom: 1px solid $border-color;
+    }
+  }
+  
+  tbody {
+    tr:not(:last-child) {
+      border-bottom: 1px solid $border-color;
+    }
+  }
+}
 
 /* Filter Container */
 .filter-container {

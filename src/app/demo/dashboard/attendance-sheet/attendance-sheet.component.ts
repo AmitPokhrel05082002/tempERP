@@ -55,7 +55,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   errorMessage = '';
 
   // Filter properties
-  selectedDepartment = 'All';
+  selectedDepartment = 'All Departments';
   selectedYear = this.currentYear;
   selectedMonth = new Date().getMonth() + 1;
 
@@ -66,7 +66,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   // Available filter options
   availableYears: number[] = [];
   availableMonths: { value: number, name: string }[] = [];
-  departments: string[] = ['All'];
+  departments: string[] = ['All Departments'];
 
   // Statistics
   attendanceRatio = 0;
@@ -135,7 +135,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     
     this.selectedYear = previousMonth.getFullYear();
     this.selectedMonth = previousMonth.getMonth() + 1;
-    this.selectedDepartment = 'All';
+    this.selectedDepartment = 'All Departments';
     this.currentYear = this.selectedYear;
     this.currentMonth = previousMonth.toLocaleString('default', { month: 'long' });
   }
@@ -174,7 +174,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.currentYear = this.selectedYear;
     const selectedMonthObj = this.availableMonths.find(m => m.value === this.selectedMonth);
     this.currentMonth = selectedMonthObj ? selectedMonthObj.name : 'Month';
-    this.currentDepartment = this.selectedDepartment === 'All' ? 'All Departments' : this.selectedDepartment;
+    this.currentDepartment = this.selectedDepartment === 'All Departments' ? 'All Departments' : this.selectedDepartment;
     this.loadAttendanceData();
   }
 
@@ -185,7 +185,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     
     this.selectedYear = previousMonth.getFullYear();
     this.selectedMonth = previousMonth.getMonth() + 1;
-    this.selectedDepartment = 'All';
+    this.selectedDepartment = 'All Departments';
     this.clearSearch();
     this.onFilterChange();
   }
@@ -257,7 +257,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
       loadData$ = this.attendanceService.getAllAttendanceData(
         this.selectedYear,
         this.selectedMonth,
-        this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+        this.selectedDepartment === 'All Departments' ? undefined : this.selectedDepartment
       ).pipe(
         catchError(error => {
           console.warn('API call failed:', error);
@@ -321,7 +321,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
           loadData$ = this.attendanceService.getAllAttendanceData(
             year, 
             month, 
-            this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+            this.selectedDepartment === 'All Departments' ? undefined : this.selectedDepartment
           ).pipe(
             map(data => ({ data, year, month })),
             catchError(() => of({ data: [], year, month }))
@@ -380,7 +380,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
       });
 
       const sortedDepartments = Array.from(uniqueAttendanceGroups).sort();
-      this.departments = ['All', ...sortedDepartments];
+      this.departments = ['All Departments', ...sortedDepartments];
 
       data.forEach(employeeData => {
         if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
@@ -395,7 +395,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
           } else {
             // For HR, Manager, Admin - apply department filter
             const shouldInclude = !this.selectedDepartment || 
-              this.selectedDepartment === 'All' || 
+              this.selectedDepartment === 'All Departments' || 
               attendanceGroup === this.selectedDepartment;
 
             if (shouldInclude) {
@@ -405,7 +405,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         }
       });
     } else {
-      this.departments = ['All'];
+      this.departments = ['All Departments'];
     }
 
     this.updateSummary();

@@ -1,149 +1,293 @@
 <div class="documents-container">
+  <!-- Header -->
   <div class="header">
     <div>
       <h2>Documents</h2>
       <p>Manage and organize all your documents in one place.</p>
     </div>
-    <button class="export-btn" (click)="openUploadModal()">
+    <button class="upload-btn" (click)="openUploadModal()" [disabled]="isLoading">
       <i class="fas fa-upload"></i> Upload File
     </button>
   </div>
 
+  <!-- Controls -->
   <div class="controls">
-    <div class="left-controls">
-      <div class="search-container">
-        <i class="fas fa-search"></i>
-        <input type="text" 
-               placeholder="Search documents..." 
-               class="search-box" 
-               [(ngModel)]="searchQuery"
-               (input)="searchDocuments()" />
-      </div>
-      <button class="filter-btn">
-        <i class="fas fa-filter"></i> Filters
-      </button>
-    </div>
-    <div class="right-controls">
-      <select class="file-type" [(ngModel)]="selectedFileType" (change)="filterByType()">
-        <option value="">All File Types</option>
-        <option value="pdf">PDF</option>
-        <option value="docx">Word</option>
-        <option value="xlsx">Excel</option>
-        <option value="jpg">JPG</option>
-        <option value="png">PNG</option>
-      </select>
+    <!-- <select [(ngModel)]="selectedFileType" (change)="filterByType()" [disabled]="isLoading">
+      <option value="">All Types</option>
+      <option value="pdf">PDF</option>
+      <option value="docx">Word Document</option>
+      <option value="xlsx">Excel Spreadsheet</option>
+      <option value="csv">CSV File</option>
+      <option value="txt">Text File</option>
+      <option value="jpg">JPEG Image</option>
+      <option value="png">PNG Image</option>
+      <option value="zip">ZIP Archive</option>
+      <option value="ppt">PowerPoint</option>
+      <option value="mp4">Video</option>
+      <option value="mp3">Audio</option>
+    </select> -->
 
-      <select class="year-filter" [(ngModel)]="selectedYear" (change)="filterByYear()">
-        <option *ngFor="let year of years" [value]="year">{{year}}</option>
-      </select>
+    <select [(ngModel)]="selectedYear" (change)="filterByYear()" [disabled]="isLoading">
+      <option *ngFor="let year of years" [value]="year">{{year}}</option>
+    </select>
+
+    <div class="search-box">
+      <i class="fas fa-search"></i>
+      <input 
+        type="text" 
+        placeholder="Search documents..." 
+        [(ngModel)]="searchQuery"
+        (input)="searchDocuments()"
+        [disabled]="isLoading">
     </div>
   </div>
 
-  <table class="document-table">
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading">
+    <i class="fas fa-spinner fa-spin"></i> Loading...
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && filteredDocuments.length === 0" class="empty-state">
+    <i class="fas fa-folder-open"></i>
+    <h3>No documents found</h3>
+    <p>Upload your first document or try adjusting your filters.</p>
+    <button class="upload-btn" (click)="openUploadModal()">
+      <i class="fas fa-upload"></i> Upload Document
+    </button>
+  </div>
+
+  <!-- Documents Table -->
+  <table class="documents-table" *ngIf="!isLoading && filteredDocuments.length > 0">
     <thead>
-      <tr class="table-header">
-        <th><input type="checkbox" /></th>
-        <th>Name</th>
+      <tr>
+        <th>File Name</th>
+        <!-- <th>Type</th> -->
         <th>Uploaded By</th>
-        <th>Date Uploaded</th>
+        <th>Department</th>
+        <th>Uploaded Date</th>
         <th>Visibility</th>
-        <th>Action</th>
+        <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       <tr *ngFor="let doc of filteredDocuments">
-        <td><input type="checkbox" /></td>
-        <td>
-          <div class="file-name">
-            <i 
-              [class]="getFileIconClass(doc.fileName)" 
-              [style.color]="getFileIconColor(doc.fileName)"
-            ></i>
-            <div>
-              <div [innerHTML]="highlightMatches(doc.userInputFileName || doc.fileName)"></div>
-              <small>{{ formatFileSize(doc.fileSize) }} • {{doc.fileType}}</small>
-            </div>
+        <!-- File Name with Icon -->
+        <td class="file-cell">
+          <div class="file-icon-container">
+            <i [class]="getFileIconClass(doc.userInputFileName)" 
+               [style.color]="getFileIconColor(doc.userInputFileName)"
+               class="file-type-icon"></i>
+          </div>
+          <div class="file-info">
+            <div class="file-name" [innerHTML]="highlightText(getDisplayName(doc))"></div>
+            <small class="document-code">{{doc.documentCode}}</small>
           </div>
         </td>
-        <td [innerHTML]="highlightMatches(doc.uploadedBy)"></td>
-        <td>{{ formatDate(doc.uploadDate) }}</td>
-        <td>{{ doc.visibleOnlyToMe ? 'Private' : 'Public' }}</td>
+        <!-- File Type with Color Badge -->
+        <!-- <td>
+          <span class="file-type-badge" 
+                [style.background-color]="getFileIconColor(doc.userInputFileName)"
+                [style.color]="'white'">
+            {{getFileTypeDisplayName(getFileExtension(doc.userInputFileName || ''))}}
+          </span>
+        </td> -->
+        <td [innerHTML]="highlightText(getUploadedBy(doc))"></td>
+        <td [innerHTML]="highlightText(getDepartmentName(doc))"></td>
+        <td>{{getCreatedDate(doc)}}</td>
+        <td>
+          <span class="badge" [class.private]="doc.visibleOnlyToMe">
+            {{doc.visibleOnlyToMe ? 'Private' : 'Public'}}
+          </span>
+        </td>
+        
+        <!-- Actions column -->
         <td class="actions">
-          <i class="fas fa-eye action-icon" title="View" (click)="viewDocument(doc.documentCode)"></i>
-          <i class="fas fa-download action-icon" title="Download" (click)="downloadDocument(doc.documentCode)"></i>
-          <i class="fas fa-trash action-icon" title="Delete" (click)="deleteDocument(doc.id)"></i>
+          <!-- View dropdown for better options -->
+          <div class="view-dropdown" *ngIf="doc.documentCode">
+            <button class="view-btn" 
+                    (click)="viewDocument(doc)" 
+                    title="View Document">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+          
+          <button *ngIf="doc.documentCode" 
+                  (click)="downloadDocument(doc.documentCode, $event)" 
+                  title="Download" 
+                  class="download-btn"
+                  [disabled]="isDownloading(doc.documentCode)">
+            <i class="fas fa-download" *ngIf="!isDownloading(doc.documentCode)"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="isDownloading(doc.documentCode)"></i>
+          </button>
+          
+          <!-- Debug button (remove in production) -->
+          <!-- <button *ngIf="doc.documentCode" 
+                  (click)="testDownloadEndpoint(doc.documentCode)" 
+                  title="Test Download (Debug)" 
+                  class="debug-btn"
+                  style="background: #ff6b6b; color: white; margin-left: 5px;">
+            <i class="fas fa-bug"></i>
+          </button> -->
         </td>
       </tr>
     </tbody>
   </table>
 
-  <!-- Edit Modal -->
-  <div class="modal-overlay" *ngIf="showModal">
-    <div class="modal-content">
+  <!-- Upload Modal -->
+  <div class="modal" *ngIf="showUploadModal" (click)="closeUploadModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Edit Document</h3>
-        <button class="close-btn" (click)="closeModal()">&times;</button>
+        <h3>Upload Document</h3>
+        <button class="close-btn" (click)="closeUploadModal()">&times;</button>
       </div>
-      <div class="modal-body" *ngIf="selectedDocument">
+      
+      <div class="modal-body">
         <div class="form-group">
           <label>Display Name</label>
-          <input type="text" [(ngModel)]="selectedDocument.userInputFileName" class="form-control">
+          <input type="text" [(ngModel)]="fileName" placeholder="Enter display name" required>
         </div>
+
         <div class="form-group">
-          <label>Replace File (optional)</label>
-          <div class="file-upload-wrapper">
-            <input type="file" (change)="onFileSelected($event)">
-            <small *ngIf="selectedFile">Selected: {{selectedFile.name}}</small>
+          <label>Select File</label>
+          <div class="file-upload">
+            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" 
+                   accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.md,.jpg,.jpeg,.png,.gif,.bmp,.svg,.zip,.rar,.ppt,.pptx,.mp4,.avi,.mp3,.wav,.json,.xml,.html,.css,.js,.ts">
+            <button type="button" (click)="fileInput.click()" class="file-select-btn">
+              <i class="fas fa-paperclip"></i> Choose File
+            </button>
+            <span *ngIf="selectedFile" class="file-name">
+              {{selectedFile.name}} 
+              <small>({{formatFileSize(selectedFile.size)}})</small>
+            </span>
           </div>
+          <small class="file-help">
+            Supported formats: PDF, Word, Excel, CSV, Text, Images, Archives, PowerPoint, Video, Audio, Code files (Max: 50MB)
+          </small>
+        </div>
+
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" [(ngModel)]="visibleOnlyToMe">
+            Make private (visible only to me)
+          </label>
         </div>
       </div>
+
       <div class="modal-footer">
-        <button class="btn btn-cancel" (click)="closeModal()">Cancel</button>
-        <button class="btn btn-save" (click)="saveChanges()">Save Changes</button>
+        <button (click)="closeUploadModal()" [disabled]="isLoading">Cancel</button>
+        <button (click)="uploadFile()" [disabled]="!selectedFile || !fileName.trim() || isLoading" class="primary">
+          <span *ngIf="isLoading">
+            <i class="fas fa-spinner fa-spin"></i> Uploading...
+          </span>
+          <span *ngIf="!isLoading">
+            <i class="fas fa-upload"></i> Upload
+          </span>
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- Upload File Modal -->
-  <div class="modal-overlay" *ngIf="showUploadModal">
-    <div class="modal-content upload-modal">
+  <!-- View Modal -->
+  <div class="modal view-modal" *ngIf="showViewModal" (click)="closeViewModal()">
+    <div class="modal-content view-modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Upload File</h3>
-        <button class="close-btn" (click)="closeUploadModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="file-upload-card">
-          <div class="file-meta">
-            <div class="file-meta-label">Display Name</div>              
-            <div>
-              <input type="text" [(ngModel)]="fileName" 
-                     placeholder="Enter display name for file">
-            </div>
-          </div>
-          
-          <div class="upload-area" (click)="fileInput.click()">
-            <input #fileInput type="file" class="file-input" (change)="onFileSelected($event)">
-            <div class="upload-icon">
-              <i class="fas fa-cloud-upload-alt"></i>
-            </div>
-            <div class="upload-instructions">
-              <button class="browse-btn" type="button">Choose file</button>
-              <div class="drag-text">or drag and drop your file here</div>
-              <small *ngIf="selectedFile">Selected: {{selectedFile.name}} ({{formatFileSize(selectedFile.size)}})</small>
-            </div>
-          </div>
-
-          <div class="visibility-toggle">
-            <label>
-              <input type="checkbox" [(ngModel)]="visibleOnlyToMe">
-              Make this document private (visible only to me)
-            </label>
-          </div>
+        <h3>{{selectedDocument?.userInputFileName || 'Document Viewer'}}</h3>
+        <div class="header-actions">
+          <span class="file-type-indicator" *ngIf="selectedDocument">
+            {{getFileTypeDisplayName(getFileExtension(selectedDocument.userInputFileName || ''))}}
+          </span>
+          <button *ngIf="selectedDocument?.documentCode" 
+                  (click)="downloadDocument(selectedDocument.documentCode)" 
+                  class="download-btn" 
+                  title="Download"
+                  [disabled]="isDownloading(selectedDocument.documentCode)">
+            <i class="fas fa-download" *ngIf="!isDownloading(selectedDocument.documentCode)"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="isDownloading(selectedDocument.documentCode)"></i>
+          </button>
+          <button class="close-btn" (click)="closeViewModal()">&times;</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-upload" [disabled]="!selectedFile" (click)="uploadFile()">Upload</button>
-        <button class="btn btn-cancel" (click)="closeUploadModal()">Cancel</button>
+      
+      <div class="modal-body view-modal-body">
+        <!-- For Office documents and others that need special handling -->
+        <div *ngIf="safeUrl && !shouldUseIframe()" class="office-viewer">
+          <div class="office-notice">
+            <i class="fas fa-info-circle"></i>
+            <h4>Document Viewer</h4>
+            <p>This file type requires a special viewer.</p>
+            
+            <div class="viewer-options">
+              <button (click)="openWithGoogleDocs()" class="option-btn">
+                <i class="fas fa-external-link-alt"></i> Open with Google Docs
+              </button>
+              
+              <button (click)="openWithOfficeLive()" class="option-btn">
+                <i class="fas fa-external-link-alt"></i> Open with Office Online
+              </button>
+              
+              <button (click)="downloadDocument(selectedDocument?.documentCode)" 
+                      class="option-btn primary"
+                      [disabled]="isDownloading(selectedDocument?.documentCode || '')">
+                <i class="fas fa-download"></i> Download to View
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direct iframe for PDFs and images -->
+        <iframe *ngIf="safeUrl && shouldUseIframe()" 
+                [src]="safeUrl" 
+                class="document-viewer"
+                allowfullscreen
+                (load)="onIframeLoad()"
+                (error)="onIframeError()">
+        </iframe>
+        
+        <div *ngIf="!safeUrl" class="no-preview">
+          <i class="fas fa-file-alt"></i>
+          <h4>Unable to preview this document</h4>
+          <p>This file type cannot be previewed in the browser.</p>
+          
+          <div class="preview-options">
+            <button *ngIf="selectedDocument?.documentCode" 
+                    (click)="downloadDocument(selectedDocument.documentCode)" 
+                    class="option-btn primary"
+                    [disabled]="isDownloading(selectedDocument.documentCode)">
+              <i class="fas fa-download" *ngIf="!isDownloading(selectedDocument.documentCode)"></i>
+              <i class="fas fa-spinner fa-spin" *ngIf="isDownloading(selectedDocument.documentCode)"></i>
+              <span *ngIf="!isDownloading(selectedDocument.documentCode)">Download to View</span>
+              <span *ngIf="isDownloading(selectedDocument.documentCode)">Downloading...</span>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading indicator for iframe -->
+        <div class="iframe-loading" *ngIf="safeUrl && shouldUseIframe() && !iframeLoaded">
+          <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Loading document...</p>
+          </div>
+        </div>
+        
+        <!-- Error state for iframe -->
+        <div class="iframe-error" *ngIf="iframeError && shouldUseIframe()">
+          <div class="error-content">
+            <i class="fas fa-exclamation-triangle"></i>
+            <h4>Failed to load document</h4>
+            <p>The document viewer encountered an error.</p>
+            
+            <div class="error-options">
+              <button (click)="retryIframe()" class="retry-btn">
+                <i class="fas fa-redo"></i> Try Again
+              </button>
+              
+              <button (click)="downloadDocument(selectedDocument?.documentCode)" class="option-btn">
+                <i class="fas fa-download"></i> Download
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

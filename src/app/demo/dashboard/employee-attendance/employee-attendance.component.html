@@ -1,382 +1,271 @@
-<div class="att-det-container container-fluid">
-  <!-- ========== HEADER SECTION ========== -->
-  <div class="att-det-header d-flex justify-content-between align-items-start mb-4">
-    <div>
-      <h2 class="att-det-title">
-        {{ currentUserRole === 'EMPLOYEE' ? 'My Attendance' : 'Employee Attendance' }}
-      </h2>
-      <p class="att-det-subtitle text-muted mb-0">
-        {{ currentUserRole === 'EMPLOYEE' ?
-        'Track your attendance records and work hours.' :
-        'Keep track of employee attendance on a daily basis.' }}
-      </p>
+<div class="card">
+  <div class="card-body">
+    <!-- Debug information (visible only in development) -->
+    <!-- <div *ngIf="!environment.production" class="alert alert-info mb-3">
+      <h5>Debug Information</h5>
+      <div class="row">
+        <div class="col-md-4">
+          <p><strong>Data Status:</strong></p>
+          <p>Raw Data: {{ attendanceData?.length || 0 }} records</p>
+          <p>Filtered: {{ filteredAttendance?.length || 0 }} records</p>
+          <p>Showing: {{ paginatedData?.length || 0 }} records</p>
+        </div>
+        <div class="col-md-4">
+          <p><strong>Pagination:</strong></p>
+          <p>Page {{ currentPage }} of {{ totalPages }}</p>
+          <p>{{ itemsPerPage }} items per page</p>
+        </div>
+        <div class="col-md-4">
+          <button class="btn btn-sm btn-warning me-2" (click)="debugComponentState()">Debug State</button>
+          <button class="btn btn-sm btn-warning" (click)="debugRefreshTable()">Refresh Table</button>
+        </div>
+      </div>
+    </div> -->
 
-      <!-- Show employee name for employees instead of ID -->
-      <small class="text-muted" *ngIf="currentUserRole === 'EMPLOYEE' && currentUserName">
-        Employee: {{ currentUserName }}
-      </small>
+    <!-- 1. UPDATED HEADER SECTION -->
+    <div class="att-det-header d-flex justify-content-between align-items-start mb-4">
+      <div>
+        <h2 class="att-det-title">
+          {{ currentUserRole === 'EMPLOYEE' ? 'My Attendance' : 
+             (isManager && managerDepartmentName) ? managerDepartmentName + ' Department Attendance' : 
+             'Employee Attendance' }}
+        </h2>
+        <p class="att-det-subtitle text-muted mb-0">
+          {{ currentUserRole === 'EMPLOYEE' ?
+          'Track your attendance records and work hours.' : 
+          isManager ? 'Track attendance records for employees in your department.' :
+          'Keep track of employee attendance on a daily basis.' }}
+        </p>
 
-      <!-- Show employee ID as fallback or for debugging -->
-      <!-- <small class="text-muted d-block" *ngIf="currentUserRole === 'EMPLOYEE' && currentUserEmpId"
-        style="font-size: 0.75rem; opacity: 0.7;">
-        ID: {{ currentUserEmpId }}
-      </small> -->
+        <!-- Manager access warning -->
+        <div class="alert alert-warning alert-sm mt-2" *ngIf="isManager && !managerDepartmentId">
+          <i class="bi bi-exclamation-triangle me-1"></i>
+          Access restricted: No department assigned to your manager account.
+        </div>
 
-      <!-- Show date range info for employees -->
-      <small class="text-info d-block mt-1" *ngIf="currentUserRole === 'EMPLOYEE'">
-        <i class="bi bi-info-circle me-1"></i>
-        <span *ngIf="currentFilterDate">
-          Showing attendance for {{ currentFilterDate | date: 'MMMM yyyy' }}
-        </span>
-        <span *ngIf="!currentFilterDate">
-          Showing latest available month: {{ currentDate | date: 'MMMM yyyy' }}
-        </span>
-      </small>
+        <!-- Manager access confirmation -->
+        <div class="alert alert-info alert-sm mt-2" *ngIf="isManager && managerDepartmentId">
+          <i class="bi bi-check-circle me-1"></i>
+          Department access confirmed: {{ managerDepartmentName || 'Loading department...' }}
+        </div>
+      </div>
 
-      <!-- Show latest date info for non-employees -->
-      <small class="text-info d-block mt-1" *ngIf="currentUserRole !== 'EMPLOYEE'">
-        <i class="bi bi-info-circle me-1"></i>
-        <span *ngIf="currentFilterDate">
-          Showing latest attendance per employee for {{ currentFilterDate | date: 'MMMM yyyy' }}
-        </span>
-        <span *ngIf="!currentFilterDate">
-          Showing latest attendance record per employee
-        </span>
-      </small>
+      <!-- Action Buttons -->
+      <div class="att-det-actions d-flex gap-2 align-items-start">
+        <button *ngIf="canExport" class="att-det-export-btn btn btn-warning d-flex align-items-center"
+          (click)="exportToPdf()">
+          <i class="bi bi-download me-2"></i>
+          Export
+        </button>
+      </div>
     </div>
 
-    <!-- Action Buttons -->
-    <div class="att-det-actions d-flex gap-2 align-items-start">
-      <button *ngIf="canExport" class="att-det-export-btn btn btn-warning d-flex align-items-center"
-        (click)="exportToPdf()">
-        <i class="bi bi-download me-2"></i>
-        Export
-      </button>
-    </div>
-  </div>
+    <!-- 2. UPDATED FILTER CONTAINER -->
+    <div class="filter-container d-flex flex-wrap align-items-stretch gap-2 mb-4">
+      <!-- Employee Name Display -->
+      <div class="filter-item" *ngIf="currentUserRole === 'EMPLOYEE' && currentUserName">
+        <div class="employee-name-display form-control form-control-sm h-100 d-flex align-items-center bg-light">
+          <i class="bi bi-person-circle me-2 text-primary"></i>
+          <span class="fw-medium text-dark">{{ currentUserName }}</span>
+        </div>
+      </div>
 
-  <!-- Divider -->
-  <div class="att-det-divider w-100 pb-3 mb-4" style="border-bottom: 1px solid #dee2e6;"></div>
+      <!-- Manager Department Display -->
+      <div class="filter-item" *ngIf="isManager && managerDepartmentId">
+        <div class="manager-dept-display form-control form-control-sm h-100 d-flex align-items-center bg-success bg-opacity-10">
+          <i class="bi bi-building me-2 text-success"></i>
+          <span class="fw-medium text-dark">{{ managerDepartmentName || 'Loading...' }}</span>
+          <small class="text-muted ms-2">(Your Department)</small>
+        </div>
+      </div>
 
-  <!-- Filter Container -->
-  <div class="filter-container d-flex flex-wrap align-items-stretch gap-2 mb-4">
-    <!-- Branch Select - Only show for roles with permission -->
-    <div class="filter-item" *ngIf="canViewAllBranches">
-      <select class="form-select form-select-sm h-100" [(ngModel)]="selectedBranchId" (change)="onBranchChange($event)">
-        <option value="">All Branches</option>
-        <option *ngFor="let branch of branches" [value]="branch.branchId">
-          {{ branch.branchName }}
-        </option>
-      </select>
-    </div>
+      <!-- Branch Select -->
+      <div class="filter-item" *ngIf="canViewAllBranches && !isManager">
+        <select class="form-select form-select-sm h-100" [(ngModel)]="selectedBranchId" (change)="onBranchChange($event)">
+          <option value="">All Branches</option>
+          <option *ngFor="let branch of branches" [value]="branch.branchId">
+            {{ branch.branchName }}
+          </option>
+        </select>
+      </div>
 
-    <!-- Department Select - Only show for roles with permission -->
-    <div class="filter-item" *ngIf="canViewAllDepartments">
-      <select class="form-select form-select-sm h-100" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
-        <option *ngFor="let dept of tabDepartments" [value]="dept">
-          {{ getDepartmentName(dept) }}
-        </option>
-      </select>
-    </div>
+      <!-- Department Select -->
+      <div class="filter-item" *ngIf="canViewAllDepartments && !isManager && tabDepartments.length > 1">
+        <select class="form-select form-select-sm h-100" [(ngModel)]="activeTab" (change)="selectTab(activeTab)">
+          <option *ngFor="let dept of tabDepartments" [value]="dept">
+            {{ getDepartmentName(dept) }}
+          </option>
+        </select>
+      </div>
 
-    <!-- Status Filter - Show for all roles with permission -->
-    <div class="filter-item" *ngIf="canFilterByStatus">
-      <select class="form-select form-select-sm h-100" [(ngModel)]="selectedStatus"
-        (change)="setStatusFilter(selectedStatus)">
-        <option *ngFor="let status of statuses" [value]="status">
-          {{ status }}
-        </option>
-      </select>
-    </div>
+      <!-- Date Filter Button -->
+      <div class="filter-item position-relative" *ngIf="canFilterByDate">
+        <button type="button" class="date-filter-button btn btn-outline-dark btn-sm d-flex align-items-center h-100 w-100"
+          (click)="toggleDateFilter($event)">
+          <i class="bi bi-calendar3 me-2"></i>
+          <span *ngIf="!currentFilterDate">Select Date</span>
+          <span *ngIf="currentFilterDate">{{ currentFilterDate | date: 'dd MMM yyyy' }}</span>
+          <i class="bi bi-x-circle ms-2 text-danger" *ngIf="currentFilterDate"
+            (click)="clearDateFilter(); $event.stopPropagation()"></i>
+        </button>
 
-    <!-- Date Filter Button - Show for all roles with permission -->
-    <div class="filter-item position-relative" *ngIf="canFilterByDate">
-      <button type="button" class="date-filter-button btn btn-outline-dark btn-sm d-flex align-items-center h-100 w-100"
-        (click)="toggleDateFilter($event)">
-        <i class="bi bi-calendar3 me-2"></i>
-        <span *ngIf="!currentFilterDate">Select Date</span>
-        <span *ngIf="currentFilterDate">{{ currentFilterDate | date: 'dd MMM yyyy' }}</span>
-        <i class="bi bi-x-circle ms-2 text-danger" *ngIf="currentFilterDate"
-          (click)="clearDateFilter(); $event.stopPropagation()"></i>
-      </button>
+        <!-- Date picker dropdown -->
+        <div class="date-picker-dropdown card shadow-sm position-absolute top-100 start-0 mt-1" *ngIf="showDateFilter"
+          style="z-index: 1050; width: 320px;" (click)="$event.stopPropagation()">
+          <div class="card-body p-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h6 class="fw-bold mb-0">Select Date</h6>
+              <button type="button" class="btn-close" (click)="showDateFilter = false" aria-label="Close"></button>
+            </div>
 
-      <!-- Date filter dropdown -->
-      <div class="date-picker-dropdown card shadow-sm position-absolute top-100 start-0 mt-1" *ngIf="showDateFilter"
-        style="z-index: 1050; width: 300px;" (click)="$event.stopPropagation()">
-        <div class="card-body p-3">
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 class="fw-bold mb-0">Select Date</h6>
-            <button type="button" class="btn-close" (click)="showDateFilter = false" aria-label="Close"></button>
+            <form [formGroup]="dateFilterForm" (ngSubmit)="$event.preventDefault(); applyDateFilter()">
+              <div class="mb-3">
+                <input type="date" class="form-control form-control-sm"
+                  [min]="minDate ? (minDate | date: 'yyyy-MM-dd') : ''"
+                  [max]="maxDate ? (maxDate | date: 'yyyy-MM-dd') : ''" formControlName="filterDate"
+                  (click)="$event.stopPropagation()">
+              </div>
+
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-sm flex-grow-1"
+                  [disabled]="!dateFilterForm.get('filterDate')?.value || (isManager && !managerDepartmentId)">
+                  Apply
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearDateFilter()"
+                  *ngIf="currentFilterDate">
+                  Clear
+                </button>
+              </div>
+            </form>
           </div>
+        </div>
+      </div>
 
-          <form [formGroup]="dateFilterForm" (ngSubmit)="$event.preventDefault(); applyDateFilter()">
-            <div class="mb-3">
-              <input type="date" class="form-control form-control-sm"
-                [min]="minDate ? (minDate | date: 'yyyy-MM-dd') : ''"
-                [max]="maxDate ? (maxDate | date: 'yyyy-MM-dd') : ''" formControlName="filterDate"
-                (click)="$event.stopPropagation()">
-            </div>
-
-            <!-- Show date range info for employees -->
-            <div class="mb-2" *ngIf="currentUserRole === 'EMPLOYEE'">
-              <small class="text-muted">
-                <i class="bi bi-info-circle me-1"></i>
-                Default: Latest available month data (excluding current month). Select specific date to view that
-                month's data.
-              </small>
-            </div>
-
-            <!-- Show date range info for non-employees -->
-            <div class="mb-2" *ngIf="currentUserRole !== 'EMPLOYEE'">
-              <small class="text-muted">
-                <i class="bi bi-info-circle me-1"></i>
-                Shows latest attendance record per employee for selected month.
-              </small>
-            </div>
-
-            <div class="d-flex gap-2">
-              <button type="submit" class="btn btn-primary btn-sm flex-grow-1"
-                [disabled]="!dateFilterForm.get('filterDate')?.value">
-                Apply
-              </button>
-              <button type="button" class="btn btn-outline-secondary btn-sm" (click)="clearDateFilter()"
-                *ngIf="currentFilterDate">
-                Clear
-              </button>
-            </div>
-          </form>
+      <!-- Search Input -->
+      <div class="search-container ms-md-auto" *ngIf="canSearch">
+        <div class="input-group">
+          <span class="input-group-text"><i class="bi bi-search"></i></span>
+          <input type="text" class="form-control form-control-sm border-start-0" 
+            [placeholder]="getSearchPlaceholder()"
+            [(ngModel)]="searchQuery" 
+            (input)="onSearchInput($event)"
+            [disabled]="isManager && !managerDepartmentId">
+          <button class="btn btn-outline-secondary btn-sm" type="button" *ngIf="searchQuery" (click)="clearSearch()">
+            <i class="bi bi-x"></i>
+          </button>
         </div>
       </div>
     </div>
 
-    <!-- Search Input - Only show for roles with permission -->
-    <div class="search-container ms-md-auto" *ngIf="canSearch">
-      <div class="input-group">
-        <span class="input-group-text"><i class="bi bi-search"></i></span>
-        <input type="text" class="form-control form-control-sm border-start-0" placeholder="Search by name or id..."
-          [(ngModel)]="searchQuery" (input)="onSearchInput($event)">
-        <button class="btn btn-outline-secondary btn-sm" type="button" *ngIf="searchQuery" (click)="clearSearch()">
-          <i class="bi bi-x"></i>
+    <!-- 3. ERROR STATES -->
+    <div *ngIf="isManager && !managerDepartmentId" 
+         class="alert alert-warning mt-3">
+      <div class="d-flex align-items-center">
+        <i class="bi bi-shield-exclamation fs-4 me-3"></i>
+        <div>
+          <h6 class="alert-heading mb-1">Department Assignment Required</h6>
+          <p class="mb-0">Your manager account is not assigned to any department.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. FILTER SUMMARY -->
+    <div class="filter-summary mb-3" *ngIf="hasAppliedFilters()">
+      <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="text-muted small">Applied filters:</span>
+
+        <span class="badge bg-primary" *ngIf="canViewAllBranches && selectedBranchId !== '' && !isManager">
+          <span>Branch: {{ getBranchDisplayName() }}</span>
+          <i class="bi bi-x ms-1 cursor-pointer" (click)="clearBranchFilter()"></i>
+        </span>
+
+        <span class="badge bg-info" *ngIf="canViewAllDepartments && !isManager && activeTab !== 'All Employee'">
+          <span>Department: {{ activeTab }}</span>
+          <i class="bi bi-x ms-1 cursor-pointer" (click)="selectTab('All Employee')"></i>
+        </span>
+
+        <span class="badge bg-secondary" *ngIf="canSearch && searchQuery.trim() !== ''">
+          <span>Search: {{ searchQuery }}</span>
+          <i class="bi bi-x ms-1 cursor-pointer" (click)="clearSearch()"></i>
+        </span>
+
+        <span class="badge bg-warning text-dark" *ngIf="canFilterByDate && currentFilterDate">
+          <span>Date: {{ currentFilterDate | date: 'dd MMM yyyy' }}</span>
+          <i class="bi bi-x ms-1 cursor-pointer" (click)="clearDateFilter()"></i>
+        </span>
+
+        <button class="btn btn-outline-danger btn-sm ms-2" (click)="clearAllFilters()">
+          Clear All Filters
         </button>
       </div>
     </div>
-  </div>
 
-  <!-- Filter Summary -->
-  <div class="filter-summary mb-3" *ngIf="hasAppliedFilters()">
-    <div class="d-flex flex-wrap gap-2 align-items-center">
-      <span class="text-muted small">Applied filters (in sequence):</span>
-
-      <span class="badge bg-primary" *ngIf="canViewAllBranches && selectedBranchId !== ''" style="order: 1;">
-        <span>1. Branch: {{ getBranchDisplayName() }}</span>
-        <i class="bi bi-x ms-1 cursor-pointer" (click)="clearBranchFilter()"></i>
-      </span>
-
-      <span class="badge bg-info" *ngIf="canViewAllDepartments && activeTab !== 'All Employee'" style="order: 2;">
-        <span>2. Department: {{ activeTab }}</span>
-        <i class="bi bi-x ms-1 cursor-pointer" (click)="selectTab('All Employee')"></i>
-      </span>
-
-      <span class="badge bg-warning" *ngIf="canFilterByStatus && selectedStatus !== 'All'" style="order: 3;">
-        <span>{{ currentUserRole === 'EMPLOYEE' ? '1' : '3' }}. Status: {{ selectedStatus }}</span>
-        <i class="bi bi-x ms-1 cursor-pointer" (click)="setStatusFilter('All')"></i>
-      </span>
-
-      <span class="badge bg-secondary" *ngIf="canSearch && searchQuery.trim() !== ''" style="order: 4;">
-        <span>4. Search: {{ searchQuery }}</span>
-        <i class="bi bi-x ms-1 cursor-pointer" (click)="clearSearch()"></i>
-      </span>
-
-      <span class="badge bg-success" *ngIf="canFilterByDate && currentFilterDate" style="order: 5;">
-        <span>{{ currentUserRole === 'EMPLOYEE' ? '2' : '5' }}. Date: {{ currentFilterDate | date: 'dd MMM yyyy'
-          }}</span>
-        <i class="bi bi-x ms-1 cursor-pointer" (click)="clearDateFilter()"></i>
-      </span>
-
-      <button class="btn btn-outline-danger btn-sm ms-2" (click)="clearAllFilters()">
-        Clear All Filters
-      </button>
-    </div>
-
-    <!-- Filter Results Info -->
-    <div class="mt-2" *ngIf="!isLoading">
-      <small class="text-muted">
-        <i class="bi bi-info-circle me-1"></i>
-        <span *ngIf="filteredAttendance.length > 0">
-          Found {{ filteredAttendance.length }}
-          {{ currentUserRole === 'EMPLOYEE' ? 'record(s)' : 'employee(s)' }}
-          matching your filter criteria
-        </span>
-        <span *ngIf="filteredAttendance.length === 0" class="text-warning">
-          No {{ currentUserRole === 'EMPLOYEE' ? 'records' : 'employees' }} found with the current filter combination
-        </span>
-      </small>
-    </div>
-  </div>
-
-  <!-- Loading State -->
-  <div class="d-flex justify-content-center align-items-center py-5" *ngIf="isLoading">
-    <div class="spinner-border text-primary" role="status">
-      <span class="visually-hidden">Loading...</span>
-    </div>
-    <span class="ms-3">Loading attendance data...</span>
-  </div>
-
-  <!-- Attendance Table -->
-  <div class="card border-0 shadow-sm" *ngIf="!isLoading">
+    <!-- 5. MAIN TABLE -->
     <div class="table-responsive">
-      <table class="table table-hover mb-0">
-        <!-- TABLE HEADERS SECTION -->
+      <table class="table table-bordered table-hover">
         <thead class="table-light">
           <tr>
-            <!-- For Employee role: Show Date as first column (no employee columns needed since it's their own data) -->
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Date</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Shift</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Status</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Clock In</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Clock Out</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Late Check-In</th>
-            <th class="py-2" *ngIf="currentUserRole === 'EMPLOYEE'">Over Time</th>
-
-            <!-- For non-employee roles: Show Emp ID and Employee columns -->
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Emp ID</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Employee</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Date</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Shift</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Status</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Clock In</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Clock Out</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Late Check-In</th>
-            <th class="py-2" *ngIf="currentUserRole !== 'EMPLOYEE'">Over Time</th>
+            <th>Emp Code</th>
+            <th>Employee</th>
+            <th>Department</th>
+            <th>Date</th>
+            <!-- <th>Status</th> -->
+            <th>Clock In</th>
+            <th>Clock Out</th>
+            <th>Late Check-In</th>
+            <th>Total Work Hours</th>
+            <th>Over Time</th>
           </tr>
         </thead>
-
-        <!-- TABLE BODY SECTION -->
         <tbody>
-          <ng-container *ngIf="paginatedData.length > 0; else noData">
-            <tr *ngFor="let emp of paginatedData" [ngClass]="getRowClass(emp)">
-
-              <!-- For Employee role: No employee columns needed, start with Date -->
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="text-nowrap">{{ formatDateForDisplay(emp.attendanceDate) || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="badge bg-warning bg-opacity-10 text-warning text-nowrap">
-                  {{ emp.timePeriod || '--' }}
-                </span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="badge d-inline-flex align-items-center" [ngClass]="{
-          'bg-success bg-opacity-10 text-success': emp.status === 'Present',
-          'bg-danger bg-opacity-10 text-danger': emp.status === 'Absent',
-          'bg-warning bg-opacity-10 text-warning': emp.status === 'Late',
-          'bg-info bg-opacity-10 text-info': emp.status === 'Early Departure',
-          'bg-secondary bg-opacity-10 text-secondary': !emp.status
-        }">
-                  {{ emp.status || '--' }}
-                </span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.actualCheckInTime || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.actualCheckOutTime || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span *ngIf="emp.lateCheckInTime && emp.lateCheckInTime !== '00:00' && emp.lateCheckInTime !== '--'"
-                  class="d-inline-flex align-items-center text-danger">
-                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                  <span class="text-nowrap">{{ emp.lateCheckInTime }}</span>
-                </span>
-                <span *ngIf="!emp.lateCheckInTime || emp.lateCheckInTime === '00:00' || emp.lateCheckInTime === '--'"
-                  class="text-muted">--</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole === 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.overTime || '--' }}</span>
-              </td>
-
-              <!-- For non-employee roles: Show Emp ID and Employee info -->
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.empCode || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <div class="d-flex align-items-center">
-                  <div>
-                    <div class="fw-medium text-nowrap">{{ getEmployeeFullName(emp) }}</div>
-                    <small class="text-muted">{{ emp.displayDepartment || emp.department || 'Unassigned' }}</small>
-                  </div>
-                </div>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="text-nowrap">{{ formatDateForDisplay(emp.attendanceDate) || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="badge bg-warning bg-opacity-10 text-warning text-nowrap">
-                  {{ emp.timePeriod || '--' }}
-                </span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="badge d-inline-flex align-items-center" [ngClass]="{
-          'bg-success bg-opacity-10 text-success': emp.status === 'Present',
-          'bg-danger bg-opacity-10 text-danger': emp.status === 'Absent',
-          'bg-warning bg-opacity-10 text-warning': emp.status === 'Late',
-          'bg-info bg-opacity-10 text-info': emp.status === 'Early Departure',
-          'bg-secondary bg-opacity-10 text-secondary': !emp.status
-        }">
-                  {{ emp.status || '--' }}
-                </span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.actualCheckInTime || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.actualCheckOutTime || '--' }}</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span *ngIf="emp.lateCheckInTime && emp.lateCheckInTime !== '00:00' && emp.lateCheckInTime !== '--'"
-                  class="d-inline-flex align-items-center text-danger">
-                  <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                  <span class="text-nowrap">{{ emp.lateCheckInTime }}</span>
-                </span>
-                <span *ngIf="!emp.lateCheckInTime || emp.lateCheckInTime === '00:00' || emp.lateCheckInTime === '--'"
-                  class="text-muted">--</span>
-              </td>
-              <td class="py-2 align-middle" *ngIf="currentUserRole !== 'EMPLOYEE'">
-                <span class="text-nowrap">{{ emp.overTime || '--' }}</span>
-              </td>
-            </tr>
-          </ng-container>
-
-          <ng-template #noData>
-            <tr>
-              <!-- Update colspan based on role -->
-              <td [attr.colspan]="currentUserRole === 'EMPLOYEE' ? 7 : 9" class="att-det-empty text-center py-5">
-                <div>
-                  <i class="bi bi-people display-4 d-block mb-3 text-muted"></i>
-                  <p class="mb-2 text-muted">{{ emptyStateMessage }}</p>
-                  <div *ngIf="hasAppliedFilters()">
-                    <button class="btn btn-outline-primary btn-sm" (click)="clearAllFilters()">
-                      Clear All Filters
-                    </button>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </ng-template>
+          <tr *ngFor="let emp of paginatedData; trackBy: trackByEmployee" [ngClass]="getRowClass(emp)">
+            <td>{{ emp.empCode || '--' }}</td>
+             <td>{{ getEmployeeFullName(emp) }}</td>
+            <td>{{ getDepartmentDisplayName(emp) }}</td>
+            <td>{{ emp.attendanceDate ? formatDateForDisplay(emp.attendanceDate) : '--' }}</td>
+            <!-- <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(emp.status || '')">
+                {{ emp.status || '--' }}
+              </span>
+            </td> -->
+            <td>{{ formatTime(emp.actualCheckInTime) || '--' }}</td>
+            <td>{{ formatTime(emp.actualCheckOutTime) || '--' }}</td>
+            <td>{{ formatTime(emp.lateCheckInTime) || '--' }}</td>
+            <td>{{ formatTime(emp.totalDuration) || '--' }}</td>
+            <td>{{ formatTime(emp.overTime) || '--' }}</td>
+          </tr>
+          
+          <tr *ngIf="!isLoading && attendanceData?.length === 0">
+            <td colspan="9" class="text-center py-5">
+              <div>
+                <i class="bi bi-people display-4 d-block mb-3 text-muted"></i>
+                <p class="mb-2 text-muted">{{ emptyStateMessage }}</p>
+                <button *ngIf="hasAppliedFilters()" class="btn btn-outline-primary btn-sm" (click)="clearAllFilters()">
+                  Clear Filters
+                </button>
+              </div>
+            </td>
+          </tr>
+          
+          <tr *ngIf="isLoading">
+            <td colspan="9" class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
 
-    <!-- Pagination Footer -->
+    <!-- 6. PAGINATION -->
     <div class="card-footer bg-light border-0" *ngIf="paginatedData.length > 0">
       <div class="row align-items-center">
         <div class="col-md-6">
           <div class="dataTables_info text-muted small">
-            <span>
-              Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to
-              {{ Math.min(currentPage * itemsPerPage, filteredAttendance.length) }} of
-              {{ filteredAttendance.length }} entries
-            </span>
+            Showing {{ (currentPage - 1) * itemsPerPage + 1 }} to 
+            {{ Math.min(currentPage * itemsPerPage, filteredAttendance.length) }} of 
+            {{ filteredAttendance.length }} entries
           </div>
         </div>
         <div class="col-md-6">
@@ -422,14 +311,5 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Error State -->
-  <div *ngIf="errorMessage && !isLoading" class="alert alert-danger mt-3">
-    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-    <span>{{ errorMessage }}</span>
-    <button class="btn btn-outline-danger btn-sm ms-3" (click)="loadAttendanceData()">
-      Try Again
-    </button>
   </div>
 </div>
