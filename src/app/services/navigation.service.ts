@@ -45,8 +45,7 @@ export class NavigationService {
         this.getUserPermissions().pipe(
           map(allowedIds => this.filterMenus(menuItems, allowedIds))
         )
-      ),
-      tap(finalItems => console.log('Final navigation items:', finalItems))
+      )
     );
   }
 

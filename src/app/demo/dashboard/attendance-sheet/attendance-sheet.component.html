@@ -3,34 +3,6 @@
   <div class="filter-controls">
     <div class="filters-container">
       <h4 class="page-title">Attendance Sheet</h4>
-
-      <div class="filter-group" *ngIf="canViewAllEmployees()">
-        <label for="yearFilter">Year:</label>
-        <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
-          <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
-        </select>
-      </div>
-
-      <div class="filter-group" *ngIf="canViewAllEmployees()">
-        <label for="monthFilter">Month:</label>
-        <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
-          <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
-        </select>
-      </div>
-
-      <div class="filter-group" *ngIf="canViewAllEmployees()">
-        <label for="deptFilter">Department:</label>
-        <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
-          <option *ngIf="departments.length === 0" value="">Loading...</option>
-          <option *ngFor="let dept of departments" [value]="dept === 'All' ? 'All' : dept">
-            {{ dept }}
-          </option>
-        </select>
-      </div>
-
-      <button class="reset-btn" (click)="resetFilters()" *ngIf="canViewAllEmployees()">
-        <i class="ti ti-refresh"></i>
-      </button>
     </div>
   </div>
 
@@ -105,6 +77,28 @@
 
   <!-- Action Buttons -->
   <div class="action-buttons">
+    <div class="filter-group" *ngIf="canViewAllEmployees()">
+        <label for="yearFilter">Year:</label>
+        <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
+          <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group" *ngIf="canViewAllEmployees()">
+        <label for="monthFilter">Month:</label>
+        <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+          <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group" *ngIf="canViewAllEmployees()">
+        <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
+          <option *ngIf="departments.length === 0" value="">Loading...</option>
+          <option *ngFor="let dept of departments" [value]="dept === 'All' ? 'All' : dept">
+            {{ dept }}
+          </option>
+        </select>
+      </div>
     <!-- Search Controls -->
     <div class="search-controls" *ngIf="canViewAllEmployees()">
       <input 
@@ -113,13 +107,6 @@
         [(ngModel)]="searchName"
         (input)="onSearchChange()"
         class="search-input">
-      <select 
-        [(ngModel)]="searchDepartment" 
-        (change)="onSearchChange()"
-        class="search-select">
-        <option value="">All Departments</option>
-        <option *ngFor="let dept of departments.slice(1)" [value]="dept">{{ dept }}</option>
-      </select>
       <button (click)="clearSearch()" class="btn btn-secondary" title="Clear Search">
         <i class="ti ti-x"></i>
       </button>
@@ -150,9 +137,9 @@
           <i class="ti ti-layout-grid summary-icon"></i>
           <span>{{ isEmployeeRole() ? 'My Attendance Summary' : 'Attendance Summary' }}</span>
         </h2>
-        <button class="view-button" (click)="viewEmployeeDetails()" title="View All Employee Details" *ngIf="canViewAllEmployees()">
+        <!-- <button class="view-button" (click)="viewEmployeeDetails()" title="View All Employee Details" *ngIf="canViewAllEmployees()">
           <i class="ti ti-eye"></i>
-        </button>
+        </button> -->
       </div>
 
       <div class="summary-grid-container">

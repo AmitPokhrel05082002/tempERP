@@ -91,11 +91,6 @@ export class EmpCategoriesComponent implements OnInit {
         Validators.minLength(2),
         Validators.maxLength(100)
       ]],
-      categoryCode: ['', [
-        Validators.required,
-        Validators.pattern('^[A-Za-z0-9-]+$'),
-        Validators.maxLength(20)
-      ]],
       description: ['', Validators.maxLength(500)],
       organizationId: ['', Validators.required],
       status: [false]

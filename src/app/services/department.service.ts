@@ -32,12 +32,12 @@ export interface Department {
   organization: Organization;
   branch: Branch;
   dept_name: string;
-  dept_code: string;
+  dept_code: string | null;
   parent_department: Department | null;
   sub_departments: Department[];
   dept_head_id: string | null;
-  budget_allocation: number;
-  approval_hierarchy: string;
+  budget_allocation: number | null;
+  approval_hierarchy: string | null;
   reporting_structure: string | null;
   created_date: string;
   modified_date: string | null;
@@ -94,4 +94,8 @@ export class DepartmentService {
   updateDepartment(deptId: string, departmentData: any): Observable<DepartmentResponse> {
     return this.http.put<DepartmentResponse>(`${this.apiUrl}/${deptId}`, departmentData);
   }
+  // department.service.ts
+getDepartmentsByHead(deptHeadId: string): Observable<DepartmentListResponse> {
+  return this.http.get<DepartmentListResponse>(`${this.apiUrl}/head/${deptHeadId}`);
+}
 }

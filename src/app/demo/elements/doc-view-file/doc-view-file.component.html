@@ -1,6 +1,151 @@
-<iframe *ngIf="safeUrl"
-        [src]="safeUrl"
-        class="full-frame"
-        allowfullscreen>
-        
-</iframe>
+<div class="document-viewer-container">
+  <!-- Header -->
+  <div class="viewer-header">
+    <div class="header-left">
+      <button class="back-btn" (click)="goBack()">
+        <i class="fas fa-arrow-left"></i> Back
+      </button>
+      <div class="file-info">
+        <i [class]="getFileIconClass()" [style.color]="getFileIconColor()"></i>
+        <div class="file-details">
+          <h3 class="file-name">{{ fileName }}</h3>
+          <span class="file-type">{{ getFileTypeDisplayName() }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button class="action-btn" (click)="retryLoad()" [disabled]="isLoading" title="Refresh">
+        <i class="fas fa-redo" [class.fa-spin]="isLoading"></i>
+      </button>
+      
+      <button class="action-btn" (click)="openInNewTab()" title="Open in New Tab">
+        <i class="fas fa-external-link-alt"></i>
+      </button>
+      
+      <button class="action-btn primary" (click)="downloadDocument()" title="Download">
+        <i class="fas fa-download"></i>
+        Download
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="fas fa-spinner fa-spin"></i>
+      <p>Loading document...</p>
+    </div>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="errorMessage && !isLoading" class="error-container">
+    <div class="error-content">
+      <i class="fas fa-exclamation-triangle"></i>
+      <h4>Unable to load document</h4>
+      <p>{{ errorMessage }}</p>
+      <div class="error-actions">
+        <button class="retry-btn" (click)="retryLoad()">
+          <i class="fas fa-redo"></i> Try Again
+        </button>
+        <button class="download-btn" (click)="downloadDocument()">
+          <i class="fas fa-download"></i> Download Instead
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Viewer Content -->
+  <div class="viewer-content" *ngIf="!isLoading && !errorMessage">
+    
+    <!-- PDF/Office/Generic Iframe Viewer -->
+    <iframe 
+      *ngIf="viewerType === 'iframe' || viewerType === 'pdf'"
+      [src]="safeUrl"
+      class="document-iframe"
+      allowfullscreen
+      (error)="errorMessage = 'Failed to load document in viewer'">
+    </iframe>
+
+    <!-- Image Viewer -->
+    <div *ngIf="viewerType === 'image' && showImageViewer" class="image-viewer">
+      <img [src]="safeUrl" [alt]="fileName" class="document-image" 
+           (error)="errorMessage = 'Failed to load image'">
+    </div>
+
+    <!-- CSV Viewer -->
+    <div *ngIf="viewerType === 'csv' && showCsvViewer" class="csv-viewer">
+      <div class="csv-header">
+        <h4><i class="fas fa-table"></i> CSV Data Preview</h4>
+        <span class="record-count">{{ csvData.length }} records</span>
+      </div>
+      
+      <div class="csv-table-container">
+        <table class="csv-table">
+          <thead>
+            <tr>
+              <th *ngFor="let header of csvHeaders; let i = index" 
+                  [attr.data-column]="i">
+                {{ header }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of csvData; let rowIndex = index" 
+                [class.odd]="rowIndex % 2 === 1">
+              <td *ngFor="let cell of row; let cellIndex = index" 
+                  [attr.data-column]="cellIndex">
+                {{ cell }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="csv-footer" *ngIf="csvData.length > 100">
+        <p><i class="fas fa-info-circle"></i> Showing first 100 rows. Download for complete data.</p>
+      </div>
+    </div>
+
+    <!-- Text Viewer -->
+    <div *ngIf="viewerType === 'text' && showTextViewer" class="text-viewer">
+      <div class="text-header">
+        <h4><i class="fas fa-file-alt"></i> Text Content</h4>
+        <div class="text-controls">
+          <button class="text-control-btn" (click)="copyToClipboard()" title="Copy to Clipboard">
+            <i class="fas fa-copy"></i>
+          </button>
+        </div>
+      </div>
+      
+      <div class="text-content">
+        <pre>{{ textContent }}</pre>
+      </div>
+    </div>
+
+    <!-- Unsupported File Type -->
+    <div *ngIf="viewerType === 'unsupported'" class="unsupported-viewer">
+      <div class="unsupported-content">
+        <i class="fas fa-file"></i>
+        <h4>Preview not available</h4>
+        <p>This file type cannot be previewed in the browser.</p>
+        <button class="download-btn primary" (click)="downloadDocument()">
+          <i class="fas fa-download"></i> Download to View
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Alternative Viewers Notice -->
+  <div class="viewer-notice" *ngIf="!isLoading && !errorMessage && (viewerType === 'iframe' || viewerType === 'pdf')">
+    <div class="notice-content">
+      <i class="fas fa-info-circle"></i>
+      <span>
+        If the document doesn't load properly, try 
+        <button class="link-btn" (click)="openInNewTab()">opening in a new tab</button> 
+        or <button class="link-btn" (click)="downloadDocument()">downloading the file</button>.
+      </span>
+    </div>
+  </div>
+</div>
