@@ -1,13 +1,58 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { catchError, map, switchMap } from 'rxjs/operators';
+
+// User Account Interface
+export interface UserAccount {
+  userId: string;
+  empId: string;
+  username: string;
+  email: string;
+  roleId: string;
+  accountStatus: string;
+  mustChangePassword: boolean;
+  lastLoginDate: string;
+  accountLocked: boolean;
+}
+
+// Employee Profile Interface
+export interface EmployeeProfile {
+  employee: {
+    empId: string;
+    firstName: string;
+    middleName: string | null;
+    lastName: string;
+    // Add other employee fields as needed
+  };
+  contacts: any[];
+  addresses: any[];
+  qualifications: any[];
+  bankDetails: any[];
+  history: any[];
+}
 
 // models/permission.model.ts
 export interface Permission {
   id: string;
   name: string;
   checked: boolean;
+}
+export interface MenuPermission {
+  permissionId: string;
+  userId: string;
+  menuId: string;
+  menuItem: string | null;
+  menuName: string;
+  actionNames: string[];
+  permissionType: string;
+  grantedBy: string | null;
+  grantedByUsername: string | null;
+  grantedDate: string;
+  expiryDate: string | null;
+  reason: string | null;
+  isActive: boolean;
 }
 
 export interface SubModule {
@@ -45,8 +90,16 @@ export interface MenuPermission {
 })
 export class MenuPermissionService {
   private apiUrl = `${environment.apiUrl}/api/v1/user-menu-permissions`;
+  private apiBaseUrl = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
+
+  /**
+   * Get all user accounts
+   */
+  getAllUserAccounts(): Observable<UserAccount[]> {
+    return this.http.get<UserAccount[]>(`${this.apiBaseUrl}/api/auth/user-accounts/all`);
+  }
 
   /**
    * Get all menu permissions
@@ -144,18 +197,116 @@ export class MenuPermissionService {
   }
 
   /**
-   * Get permissions for a specific menu
-   * @param menuId The ID of the menu
-   * @param activeOnly Whether to return only active permissions
+   * Get user account details by user ID
+   * @param userId The ID of the user
    */
-  getMenuPermissionsByMenuId(
+  getUserAccount(userId: string): Observable<UserAccount> {
+    return this.http.get<UserAccount>(`${this.apiBaseUrl}/api/auth/user-accounts/${userId}`);
+  }
+
+  /**
+   * Get employee profile by employee ID
+   * @param empId The ID of the employee
+   */
+  getEmployeeProfile(empId: string): Observable<EmployeeProfile> {
+    return this.http.get<EmployeeProfile>(`${this.apiBaseUrl}/api/v1/employees/${empId}`);
+  }
+
+  /**
+   * Get employee full name by employee ID
+   * @param empId The ID of the employee
+   */
+  getEmployeeName(empId: string): Observable<string> {
+    return this.getEmployeeProfile(empId).pipe(
+      map(profile => {
+        const employee = profile.employee;
+        return employee.middleName 
+          ? `${employee.firstName} ${employee.middleName} ${employee.lastName}`
+          : `${employee.firstName} ${employee.lastName}`;
+      }),
+      catchError(() => of(empId)) // Return empId if there's an error
+    );
+  }
+
+  /**
+   * Update user permissions for a specific menu
+   * @param userId The ID of the user
+   * @param menuId The ID of the menu
+   * @param data The permission data to update
+   */
+  updateUserPermissions(
+    userId: string,
     menuId: string,
-    activeOnly: boolean = true
-  ): Observable<MenuPermission[]> {
-    let params = new HttpParams();
-    if (activeOnly) {
-      params = params.append('isActive', 'true');
+    data: {
+      actionNames: string[];
+      permissionType: string;
+      expiryDate: string | null;
+      reason: string;
+      isActive: boolean;
+      grantedBy: string;
+      grantedByUsername: string;
     }
-    return this.http.get<MenuPermission[]>(`${this.apiUrl}/menu/${menuId}`, { params });
+  ): Observable<MenuPermission> {
+    // First, get the existing permission to update
+    return this.getUserPermissions(userId, false).pipe(
+      switchMap(permissions => {
+        const existingPermission = permissions.find(p => p.menuId === menuId);
+        
+        if (existingPermission) {
+          // Update existing permission
+          return this.http.put<MenuPermission>(
+            `${this.apiUrl}/${existingPermission.permissionId}`,
+            {
+              ...existingPermission,
+              actionNames: data.actionNames,
+              permissionType: data.permissionType,
+              expiryDate: data.expiryDate,
+              reason: data.reason,
+              isActive: data.isActive,
+              grantedBy: data.grantedBy,
+              grantedByUsername: data.grantedByUsername,
+              modifiedDate: new Date().toISOString()
+            }
+          );
+        } else {
+          // Create new permission if it doesn't exist
+          return this.http.post<MenuPermission>(this.apiUrl, {
+            userId,
+            menuId,
+            actionNames: data.actionNames,
+            permissionType: data.permissionType,
+            expiryDate: data.expiryDate,
+            reason: data.reason,
+            isActive: data.isActive,
+            grantedBy: data.grantedBy,
+            grantedByUsername: data.grantedByUsername,
+            grantedDate: new Date().toISOString(),
+            menuItem: null,
+            menuName: '' // This should be set based on your menu structure
+          });
+        }
+      })
+    );
+  }
+
+  /**
+   * Get combined user and employee information
+   * @param userId The ID of the user
+   */
+  getUserWithEmployeeInfo(userId: string): Observable<{user: UserAccount, employee: EmployeeProfile}> {
+    return this.getUserAccount(userId).pipe(
+      switchMap(userAccount => {
+        if (!userAccount.empId) {
+          return throwError(() => new Error('No employee ID associated with this user account'));
+        }
+        return this.getEmployeeProfile(userAccount.empId).pipe(
+          map(employeeProfile => ({
+            user: userAccount,
+            employee: employeeProfile
+          }))
+        );
+      })
+    );
   }
 }
+

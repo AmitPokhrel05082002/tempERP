@@ -17,6 +17,9 @@ export interface Permission {
 
 export interface User {
   userId: string;
+  deptId?: string;  // For backward compatibility
+  deptID?: string;  // Matches the API response
+  isDeptHead: boolean;
   empId: string;
   ctoId?: string;
   username: string;
@@ -24,12 +27,15 @@ export interface User {
   accountStatus: string;
   roleId: string;
   roleName: string;
-  roleCode: string; // Add this
+  roleCode: string;
   mustChangePassword: boolean;
   accessToken: string;
   refreshToken: string;
   permissions?: Permission[];
   getRoleBasedId: () => string;
+  
+  // Helper method to get department ID regardless of case
+  getDepartmentId?(): string | undefined;
 }
 
 @Injectable({
@@ -57,6 +63,11 @@ export class AuthService {
   // Synchronous access to userId
   public get userId(): string | null {
     return this.currentUserValue?.userId ?? null;
+  }
+
+  isManager(): boolean {
+    const user = this.currentUserValue;
+    return user?.roleName === 'Manager';
   }
 
   /**
@@ -141,6 +152,9 @@ updateCurrentUser(user: User): void {
       // Create the base user object with role-based ID handling
       const baseUser: User = {
         userId: userData.userId,
+        deptId: userData.deptID || userData.deptId, // Map from deptID (API) to deptId (interface)
+        deptID: userData.deptID, // Keep the original deptID as well
+        isDeptHead: userData.isDeptHead || false,
         empId: roleName === 'Employee' ? userData.empId : undefined,
         ctoId: roleName === 'CTO' ? (userData.ctoId || userData.userId) : undefined,
         username: userData.username,
@@ -156,6 +170,9 @@ updateCurrentUser(user: User): void {
           return this.roleName === 'CTO' 
             ? (this.ctoId || this.userId) 
             : (this.empId || this.userId);
+        },
+        getDepartmentId: function() {
+          return this.deptID || this.deptId;
         }
       };
 
@@ -299,8 +316,9 @@ updateCurrentUser(user: User): void {
 
   isCTO(): boolean {
     const user = this.currentUserValue;
-    return user?.roleName === this.CTO_ROLE;
+    return user?.roleCode === 'CTO';
   }
+
 
   isEmployee(): boolean {
     const user = this.currentUserValue;
