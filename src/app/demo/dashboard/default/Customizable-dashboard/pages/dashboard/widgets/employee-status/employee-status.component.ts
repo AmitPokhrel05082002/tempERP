@@ -1,6 +1,7 @@
 // employee-status.component.ts
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 interface EmployeeStatus {
   category: string;
@@ -42,7 +43,7 @@ export class EmployeeStatusComponent implements OnInit {
     avatar: 'assets/avatar.jpg' // Placeholder path - replace with actual avatar path
   };
 
-  constructor() { }
+  constructor(private router: Router) { }
 
   ngOnInit(): void {
     // Calculate correct percentages based on counts
@@ -59,5 +60,11 @@ export class EmployeeStatusComponent implements OnInit {
   updateTimePeriod(period: string): void {
     console.log(`Switched to ${period}`);
     // This would fetch data for the selected time period in a real app
+  }
+
+  viewAllEmployees(): void {
+    this.router.navigate(['/emp-det']);
+    // Emit event or handle navigation to employee list page
+    console.log('View all employees clicked');
   }
 }
