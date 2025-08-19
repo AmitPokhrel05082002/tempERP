@@ -108,10 +108,6 @@ export class EmpTrainingComponent implements OnInit {
       orgId: ['', Validators.required],
       categoryId: ['', Validators.required],
       programName: ['', Validators.required],
-      programCode: ['', [
-        Validators.required, 
-        Validators.pattern('^[A-Za-z0-9-]+$')
-      ]],
       programType: ['', Validators.required],
       deliveryMethod: ['', Validators.required],
       startDate: ['', Validators.required],

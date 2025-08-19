@@ -9,6 +9,8 @@ import { Subscription } from 'rxjs';
 import Swal from 'sweetalert2';
 import { EmployeeTransferService, EmployeeTransfer, TransferType, EmployeeProfile } from '../../../services/employee-transfer.service';
 import { DepartmentService, Department } from '../../../services/department.service';
+import { AuthService } from '../../../core/services/auth.service';
+
 
 // Using the EmployeeTransfer interface from the service
 
@@ -354,7 +356,8 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
     private modalService: NgbModal,
     private transferService: EmployeeTransferService,
     private departmentService: DepartmentService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private authService: AuthService // Add this
   ) {
     this.form = this.initForm();
   }
@@ -588,39 +591,106 @@ export class EmpTransferComponent implements OnInit, OnDestroy {
     if (!deptId) return 'N/A';
     return this.departmentMap[deptId] || deptId; // Return ID if name not found
   }
-
+  isEmployee(): boolean {
+    const currentUser = this.authService.currentUserValue;
+    return currentUser && !this.authService.isAdmin() && !this.authService.isCTO();
+  }
+  
   loadTransfers(): void {
     this.isLoading = true;
+    this.errorMessage = '';
+    
     this.transferService.getAllTransfers()
       .pipe(finalize(() => this.isLoading = false))
       .subscribe({
-        next: async (transfers: EmployeeTransfer[]) => {
-          this.transfers = transfers || [];
-          
-          // Get all unique employee IDs (both requester and approver)
-          const allEmployeeIds = new Set<string>();
-          this.transfers.forEach(transfer => {
-            allEmployeeIds.add(transfer.empId);
-            if (transfer.approvedBy) {
-              allEmployeeIds.add(transfer.approvedBy);
+        next: async (response: any) => {
+          try {
+            // Handle different response formats
+            const transfers = response?.data || response || [];
+            
+            if (!Array.isArray(transfers)) {
+              console.error('Unexpected response format from getAllTransfers:', response);
+              throw new Error('Invalid data format received from server');
             }
-          });
-          
-          // Load transfer types and employee names in parallel
-          const uniqueTypeIds = [...new Set(this.transfers.map(t => t.transferTypeId))];
-          const uniqueEmpIds = Array.from(allEmployeeIds);
-          
-          await Promise.all([
-            this.loadTransferTypes(uniqueTypeIds),
-            this.loadEmployeeNames(uniqueEmpIds)
-          ]);
-          
-          this.filteredTransfers = [...this.transfers];
-          this.updatePagination();
+            
+            // Get the current user's employee ID and department
+            const currentUser = this.authService.currentUserValue;
+            const currentEmpId = currentUser?.empId;
+            const managerDeptId = currentUser?.deptId;
+            
+            console.log('Current User:', currentUser);
+            console.log('Manager Department ID:', managerDeptId);
+            console.log('All transfers from API:', transfers);
+            
+            // Filter transfers based on user role
+            this.transfers = transfers.filter(transfer => {
+              // If user is admin/CTO, show all transfers
+              if (this.authService.isAdmin() || this.authService.isCTO()) {
+                console.log('Admin/CTO access - showing all transfers');
+                return true;
+              }
+              
+              // For managers - show transfers from or to their department
+              if (this.authService.isManager()) {
+                const isFromMyDept = transfer.departmentId === managerDeptId;
+                const isToMyDept = transfer.toDeptId === managerDeptId;
+                const isMyTransfer = transfer.empId === currentEmpId;
+                
+                // Show transfer if it's from manager's department, to manager's department, or manager's own transfer
+                console.log(`Checking transfer ${transfer.transferId || 'N/A'} - From Dept: ${transfer.departmentId}, To Dept: ${transfer.toDeptId}, Manager's Dept: ${managerDeptId}`);
+                console.log(`isFromMyDept: ${isFromMyDept}, isToMyDept: ${isToMyDept}, isMyTransfer: ${isMyTransfer}`);
+                
+                return isFromMyDept || isToMyDept || isMyTransfer;
+              }
+              
+              // For employees, only show their own transfers
+              const isMyTransfer = transfer.empId === currentEmpId;
+              if (!isMyTransfer) {
+                console.log(`Filtering out transfer ${transfer.transferId} - not owned by employee`);
+              }
+              return isMyTransfer;
+            });
+            
+            console.log('Filtered transfers:', this.transfers);
+            
+            if (this.transfers.length === 0) {
+              console.log('No transfer records found for the current user/role');
+            }
+            
+            // Get all unique employee IDs (both requester and approver)
+            const allEmployeeIds = new Set<string>();
+            this.transfers.forEach(transfer => {
+              if (transfer.empId) allEmployeeIds.add(transfer.empId);
+              if (transfer.approvedBy) allEmployeeIds.add(transfer.approvedBy);
+            });
+            
+            // Get unique transfer type IDs
+            const uniqueTypeIds = [...new Set(this.transfers
+              .map(t => t.transferTypeId)
+              .filter(Boolean))];
+              
+            const uniqueEmpIds = Array.from(allEmployeeIds);
+            
+            // Load additional data in parallel
+            await Promise.all([
+              uniqueTypeIds.length > 0 ? this.loadTransferTypes(uniqueTypeIds) : Promise.resolve(),
+              uniqueEmpIds.length > 0 ? this.loadEmployeeNames(uniqueEmpIds) : Promise.resolve()
+            ]);
+            
+            // Update filtered transfers and pagination
+            this.filteredTransfers = [...this.transfers];
+            this.updatePagination();
+            
+          } catch (error) {
+            console.error('Error processing transfer data:', error);
+            this.errorMessage = 'Error processing transfer data. Please try again.';
+            this.showError(this.errorMessage);
+          }
         },
         error: (error) => {
+          console.error('Error loading transfers:', error);
           this.errorMessage = 'Failed to load transfers. Please try again later.';
-          this.showError('Failed to load transfers. Please try again later.');
+          this.showError(this.errorMessage);
         }
       });
   }

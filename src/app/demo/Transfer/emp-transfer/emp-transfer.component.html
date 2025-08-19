@@ -6,10 +6,12 @@
       <p>Manage and track employee transfers within the organization.</p>
     </div>
     <div class="controls">
-      <button class="add-btn" (click)="openAddModal()">
+      <!-- Only show "New Transfer" button if user is not an employee -->
+      <button *ngIf="!isEmployee()" class="add-btn" (click)="openAddModal()">
         <i class="ti ti-plus"></i>
         <span>New Transfer</span>
       </button>
+      
       <button class="add-btn" (click)="exportTransfers()">
         <i class="bi bi-download me-2"></i>
         <span>Export</span>

@@ -190,9 +190,9 @@
             </div>
             <form [formGroup]="branchForm" (ngSubmit)="saveBranch()">
               <div class="emp-att-modal-body modal-body p-4">
-                <!-- Organization Dropdown -->
+                <!-- Organization and Branch Name -->
                 <div class="row mb-3">
-                  <div class="col-md-12 mb-3">
+                  <div class="col-md-6 mb-3">
                     <label for="orgId" class="form-label">Organization <span class="text-danger">*</span></label>
                     <select class="form-select" id="orgId" formControlName="orgId"
                             [class.is-invalid]="branchForm.get('orgId')?.invalid && branchForm.get('orgId')?.touched">
@@ -205,10 +205,6 @@
                       <small>Organization is required</small>
                     </div>
                   </div>
-                </div>
-
-                <!-- Branch Name & Code -->
-                <div class="row mb-3">
                   <div class="col-md-6 mb-3">
                     <label for="branchName" class="form-label">Branch Name <span class="text-danger">*</span></label>
                     <input type="text"
@@ -220,20 +216,6 @@
                     <div *ngIf="branchForm.get('branchName')?.invalid && branchForm.get('branchName')?.touched" class="invalid-feedback">
                       <small *ngIf="branchForm.get('branchName')?.errors?.['required']">Branch name is required</small>
                       <small *ngIf="branchForm.get('branchName')?.errors?.['minlength']">Minimum 3 characters required</small>
-                    </div>
-                  </div>
-  
-                  <div class="col-md-6 mb-3">
-                    <label for="branchCode" class="form-label">Branch Code <span class="text-danger">*</span></label>
-                    <input type="text"
-                           class="form-control"
-                           id="branchCode"
-                           formControlName="branchCode"
-                           placeholder="e.g., TPH"
-                           [class.is-invalid]="branchForm.get('branchCode')?.invalid && branchForm.get('branchCode')?.touched">
-                    <div *ngIf="branchForm.get('branchCode')?.invalid && branchForm.get('branchCode')?.touched" class="invalid-feedback">
-                      <small *ngIf="branchForm.get('branchCode')?.errors?.['required']">Branch code is required</small>
-                      <small *ngIf="branchForm.get('branchCode')?.errors?.['pattern']">Only alphanumeric characters and hyphens allowed</small>
                     </div>
                   </div>
                 </div>

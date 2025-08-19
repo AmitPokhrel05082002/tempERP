@@ -1,0 +1,56 @@
+<div class="chatbot-container">
+  <div class="chatbot-icon" *ngIf="!chatOpen" (click)="toggleChat()" (mouseenter)="showInitialMessageOnHover()"
+    (mouseleave)="hideInitialMessageOnLeave()" aria-label="Open chatbot">
+    <img src="../../assets/chatbot/chatbot1.PNG" alt="Chatbot Icon" />
+  </div>
+
+  <div class="initial-message" *ngIf="showInitialMessage && !chatOpen">
+    <p>How can we assist you today?</p>
+
+  </div>
+  <div class="chatbox" *ngIf="chatOpen" (click)="$event.stopPropagation()">
+    <div class="header">
+      <div class="title">
+        <img src="../../assets/chatbot/chatbot2.PNG" style="border-radius: 50px;" alt="">
+        <h4>NGN Technologies Pvt. Ltd.</h4>
+      </div>
+      <div class="header-buttons">
+        <button class="refresh-btn" (click)="refreshChat()" title="Refresh"><img
+            src="../../assets/chatbot/refresh-icon.png" alt="Refresh"></button>
+        <button class="close-btn" (click)="toggleChat()" title="Minimize"><img src="../../assets/chatbot/close-icon.png"
+            alt="Close"></button>
+      </div>
+    </div>
+    <div class="content">
+      <div class="messages" #messagesContainer>
+        <div *ngFor="let message of chatHistory"
+          [ngClass]="{'user-message': message.sender === 'user', 'bot-message': message.sender === 'bot'}">
+          <span [innerHTML]="message.text"></span>
+        </div>
+        <div *ngIf="isBotTyping" class="bot-typing">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+        <div *ngIf="typingMessage" class="bot-message">
+          <span [innerHTML]="typingMessage"></span>
+        </div>
+      </div>
+      <div class="default-prompts" *ngIf="showDefaultPrompts">
+        <button *ngFor="let prompt of defaultPrompts" (click)="sendPromptMessage(prompt)">{{ prompt }}</button>
+      </div>
+    </div>
+    <div class="input-area">
+      <input #userInputField type="text" [(ngModel)]="message" (keyup.enter)="sendMessage(message)"
+        placeholder="Type your message..." [disabled]="isBotTyping">
+
+      <button (click)="isBotTyping ? stopGeneration() : sendMessage(message)"
+        [disabled]="message.trim() === '' && !isBotTyping">
+        <img *ngIf="!isBotTyping" src="../../assets/chatbot/send-icon.png" alt="Send" title="Send">
+        <!-- <img *ngIf="isBotTyping" src="../../assets/chatbot/pause-icon.png" alt="Stop" title="Stop"> -->
+      </button>
+    </div>
+  </div>
+</div>

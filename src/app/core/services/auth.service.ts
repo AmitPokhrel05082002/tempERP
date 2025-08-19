@@ -96,6 +96,9 @@ export class AuthService {
   public get isAdminOrCTO(): boolean {
     const user = this.currentUserValue;
     return user ? [this.ADMIN_ROLE, this.CTO_ROLE].includes(user.roleName) : false;
+  isManager(): boolean {
+    const user = this.currentUserValue;
+    return user?.roleName === 'Manager';
   }
 
   /**
@@ -366,6 +369,7 @@ export class AuthService {
           } else {
             console.log('Manager login: Department ID found - granting department access');
           }
+
         }
 
         // Create the base user object with enhanced role-based ID handling
@@ -612,6 +616,11 @@ export class AuthService {
    * Check if user has any of the specified permissions
    */
   hasAnyPermission(permissionCodes: string[]): boolean {
+    return user?.roleCode === 'CTO';
+  }
+
+
+  isEmployee(): boolean {
     const user = this.currentUserValue;
     if (!user || !user.permissions) return false;
     return permissionCodes.some(code => 
