@@ -100,7 +100,12 @@ export const routes: Routes = [
       },
       {
   path: 'pay-roll-detail/:id',
-  component: PayRollDetailComponent
+          loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
+
+},
+{
+  path: 'pay-roll-detail/view',
+        loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
 },
       {
         path: 'pay-slip/:empId',
@@ -113,8 +118,12 @@ export const routes: Routes = [
        {
     path: 'salary-view-details/:empId',
     component: SalaryViewDetailsComponent,
-    runGuardsAndResolvers: 'always' // This ensures the component reloads
+    runGuardsAndResolvers: 'always' 
   },
+ {
+        path: 'organizations/salarystructure',
+        loadComponent: () => import('./demo/Add-salary-structure/AddSalaryStructure.component').then((m) => m.SalaryStructureComponent)
+      },
       {
         path: 'document-archival',
         loadComponent: () => import('./demo/elements/document-archival/document-archival.component').then((m) => m.DocumentArchivalComponent)
@@ -160,7 +169,7 @@ export const routes: Routes = [
       },
 
       {
-        path: 'branches',
+        path: 'organization/branches',
         loadComponent: () => import('./demo/branches/branches.component').then((c) => c.BranchesComponent)
       },
 
@@ -231,10 +240,14 @@ export const routes: Routes = [
         path: 'emp-det',
         loadComponent: () => import('./demo/emp-detail/emp-details/emp-det.component').then((c) => c.EmployeeDetailComponent)
       },
-         {
-        path: 'emp-det/view',
-        loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
-      },
+      {
+  path: 'emp-det/view/:empId',
+  loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
+},
+{
+  path: 'emp-det/view',
+  loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
+},
       {
         path: 'menu-permissions',
         loadComponent: () => import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent),

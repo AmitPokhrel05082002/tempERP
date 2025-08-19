@@ -6,9 +6,9 @@ import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { catchError, throwError, tap, of } from 'rxjs';
+import { catchError, throwError, tap, of, map } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from 'src/app/core/services/auth.service';
+import { AuthService, Permission } from 'src/app/core/services/auth.service';
 
 
 
@@ -118,10 +118,12 @@ interface Employee {
   employmentStatus: string;
   employmentType: 'Regular' | 'Contract' | 'Temporary' | 'Probation' | 'Intern' | 'Consultant';
   email: string;
+  deptId?: string;
   department: string;
   location: string;
   positionId?: string;
   positionName?: string;
+  shiftId?: string;
   gradeId?: string;
   basicSalary?: number;
   maxSalary?: number;
@@ -143,6 +145,7 @@ interface ApiEmployeeResponse {
     deptId: string;
     gradeId: string;
     positionId: string;
+    shiftId: string;
     empCode: string;
     firstName: string;
     middleName: string | null;
@@ -168,7 +171,20 @@ interface ApiEmployeeResponse {
   bankDetails: any[];
   history: any[];
 }
-
+interface Shift {
+  shiftId: string;
+  orgId: string;
+  shiftName: string;
+  shiftCode: string;
+  startTime: string;
+  endTime: string;
+  breakDurationMinutes: number;
+  totalWorkHours: number;
+  isNightShift: boolean;
+  isActive: boolean;
+  createdDate: string;
+  modifiedDate: string;
+}
 // =============================================
 // COMPONENT DEFINITION
 // =============================================
@@ -215,8 +231,8 @@ export class EmployeeDetailComponent implements OnInit {
   filteredPositions: Position[] = [];
   branches: Branch[] = [];
   locations: string[] = [];
-organizations: any[] = [];
-selectedOrgId: string = '';
+  organizations: any[] = [];
+  selectedOrgId: string = '';
 
   // Pagination
   currentPage = 1;
@@ -224,8 +240,8 @@ selectedOrgId: string = '';
   totalItems = 0;
   pageSizeOptions = [5, 10, 25, 50];
   Math = Math;
-  selectedFiles: File[] = [];
-employeeDocuments: any[] = [];
+  shifts: Shift[] = [];
+  selectedShiftId: string = '';
 
   // API Configuration
   private readonly apiUrl = `${environment.apiUrl}/api/v1/employees`;
@@ -234,7 +250,8 @@ employeeDocuments: any[] = [];
   private readonly branchApiUrl = `${environment.apiUrl}/api/v1/branches`;
   private readonly gradeApiUrl = `${environment.apiUrl}/api/v1/job-grades`;
   private readonly orgApiUrl = `${environment.apiUrl}/api/v1/organizations`;
-   private readonly documentUploadUrl = `${environment.apiUrl}/api/archive/upload`;
+  private readonly documentUploadUrl = `${environment.apiUrl}/api/archive/upload`;
+  private readonly shiftApiUrl = `${environment.apiUrl}/api/v1/shifts`;
   private readonly httpOptions = {
     headers: new HttpHeaders({
       'Content-Type': 'application/json',
@@ -256,7 +273,7 @@ employeeDocuments: any[] = [];
     private http: HttpClient,
     private router: Router,
     private route: ActivatedRoute,
-    private authService: AuthService 
+    private authService: AuthService
   ) {
     this.initializeForm();
   }
@@ -275,7 +292,7 @@ employeeDocuments: any[] = [];
       dateOfBirth: ['', Validators.required],
       gender: ['', Validators.required],
       maritalStatus: ['', Validators.required],
-      nationality: ['Bhutanese', Validators.required], 
+      nationality: ['Bhutanese', Validators.required],
       cidNumber: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
       organization: ['', Validators.required],
 
@@ -291,7 +308,7 @@ employeeDocuments: any[] = [];
       maxSalary: ['', Validators.required],
 
       // Contact Information
-      email: ['', [Validators.required, Validators.pattern(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)]],
+      email: ['', [Validators.required, Validators.email]],
       phonePrimary: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
 
       // Bank Details
@@ -301,83 +318,86 @@ employeeDocuments: any[] = [];
       accountType: [''],
 
       // Education
-     institutionName: [''],
-    degreeName: [''],
-    specialization: [''],
-    yearOfCompletion: [0],
-educations: this.fb.array([]),
+      institutionName: [''],
+      degreeName: [''],
+      specialization: [''],
+      yearOfCompletion: [0],
+      educations: this.fb.array([]),
       // Address
       addressType: ['Permanent'],
       addressLine1: [''],
       addressLine2: [''],
       thromde: [''],
       dzongkhag: [''],
-      country: ['Bhutan']
+      country: ['Bhutan'],
+
+      //shift
+      shift: ['', Validators.required],
     });
-      this.onNationalityChange();
+    this.onNationalityChange();
 
   }
-get educations(): FormArray {
-  return this.employeeForm.get('educations') as FormArray;
-}
-addEducation(): void {
-  // First, save the main education if it has values
-  if (this.hasMainEducationValues()) {
-    this.saveMainEducationToArray();
+  get educations(): FormArray {
+    return this.employeeForm.get('educations') as FormArray;
   }
-  
-  // Add a new empty education form group
-  this.educations.push(this.createEducationFormGroup());
-  
-  // Clear the main form
-  this.clearMainEducationForm();
-}
+  addEducation(): void {
+    // First, save the main education if it has values
+    if (this.hasMainEducationValues()) {
+      this.saveMainEducationToArray();
+    }
 
-// Check if main education form has values
-private hasMainEducationValues(): boolean {
-  return !!this.employeeForm.get('institutionName')?.value ||
-         !!this.employeeForm.get('degreeName')?.value ||
-         !!this.employeeForm.get('specialization')?.value ||
-         !!this.employeeForm.get('yearOfCompletion')?.value;
-}
+    // Add a new empty education form group
+    this.educations.push(this.createEducationFormGroup());
 
-// Save main education to the educations array
-private saveMainEducationToArray(): void {
-  const mainEducation: Qualification = {
-    institutionName: this.employeeForm.get('institutionName')?.value,
-    degreeName: this.employeeForm.get('degreeName')?.value,
-    specialization: this.employeeForm.get('specialization')?.value,
-    yearOfCompletion: this.employeeForm.get('yearOfCompletion')?.value
-  };
-  
-  this.educations.insert(0, this.createEducationFormGroup(mainEducation));
-}
+    // Clear the main form
+    this.clearMainEducationForm();
+  }
 
-// Clear main education form
-private clearMainEducationForm(): void {
-  this.employeeForm.patchValue({
-    institutionName: '',
-    degreeName: '',
-    specialization: '',
-    yearOfCompletion: 0
-  });
-}
+  // Check if main education form has values
+  private hasMainEducationValues(): boolean {
+    return !!this.employeeForm.get('institutionName')?.value ||
+      !!this.employeeForm.get('degreeName')?.value ||
+      !!this.employeeForm.get('specialization')?.value ||
+      !!this.employeeForm.get('yearOfCompletion')?.value;
+  }
 
-// Create education form group
-private createEducationFormGroup(education?: Qualification): FormGroup {
-  return this.fb.group({
-    qualificationId: [education?.qualificationId || ''],
-    institutionName: [education?.institutionName || ''],
-    degreeName: [education?.degreeName || ''],
-    specialization: [education?.specialization || ''],
-    yearOfCompletion: [education?.yearOfCompletion || null]
-  });
-}
+  // Save main education to the educations array
+  private saveMainEducationToArray(): void {
+    const mainEducation: Qualification = {
+      institutionName: this.employeeForm.get('institutionName')?.value,
+      degreeName: this.employeeForm.get('degreeName')?.value,
+      specialization: this.employeeForm.get('specialization')?.value,
+      yearOfCompletion: this.employeeForm.get('yearOfCompletion')?.value
+    };
 
-// Remove education entry
-removeEducation(index: number): void {
-  this.educations.removeAt(index);
-}
+    this.educations.insert(0, this.createEducationFormGroup(mainEducation));
+  }
+
+  // Clear main education form
+  private clearMainEducationForm(): void {
+    this.employeeForm.patchValue({
+      institutionName: '',
+      degreeName: '',
+      specialization: '',
+      yearOfCompletion: 0
+    });
+  }
+
+  // Create education form group
+  private createEducationFormGroup(education?: Qualification): FormGroup {
+    return this.fb.group({
+      qualificationId: [education?.qualificationId || ''],
+      institutionName: [education?.institutionName || ''],
+      degreeName: [education?.degreeName || ''],
+      specialization: [education?.specialization || ''],
+      yearOfCompletion: [education?.yearOfCompletion || null]
+    });
+  }
+
+  // Remove education entry
+  removeEducation(index: number): void {
+    this.educations.removeAt(index);
+  }
   // =============================================
   // DATA LOADING METHODS
   // =============================================
@@ -387,11 +407,12 @@ removeEducation(index: number): void {
    */
   private loadInitialData(): void {
     this.isLoading = true;
-    
+
     Promise.all([
       this.loadOrganizations(),
       this.loadBranches(),
-      this.loadGrades()
+      this.loadGrades(),
+      this.loadShifts()
     ])
       .then(() => {
         if (this.branches.length > 0) {
@@ -407,31 +428,53 @@ removeEducation(index: number): void {
         this.isLoading = false;
       });
   }
-private loadOrganizations(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    this.http.get<any[]>(this.orgApiUrl, this.httpOptions)
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error loading organizations:', error);
-          reject(error);
-          return throwError(() => error);
-        })
-      )
-      .subscribe({
-        next: (orgs) => {
-          this.organizations = orgs;
-          if (orgs.length > 0) {
-            this.selectedOrgId = orgs[0].orgId; // Default to first organization
+  private loadOrganizations(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http.get<any[]>(this.orgApiUrl, this.httpOptions)
+        .pipe(
+          catchError((error: HttpErrorResponse) => {
+            console.error('Error loading organizations:', error);
+            reject(error);
+            return throwError(() => error);
+          })
+        )
+        .subscribe({
+          next: (orgs) => {
+            this.organizations = orgs;
+            if (orgs.length > 0) {
+              this.selectedOrgId = orgs[0].orgId; // Default to first organization
+            }
+            resolve();
+          },
+          error: (error) => {
+            console.error('Error loading organizations:', error);
+            reject(error);
           }
-          resolve();
-        },
-        error: (error) => {
-          console.error('Error loading organizations:', error);
-          reject(error);
-        }
-      });
-  });
-}
+        });
+    });
+  }
+  private loadShifts(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http.get<Shift[]>(this.shiftApiUrl, this.httpOptions)
+        .pipe(
+          catchError((error: HttpErrorResponse) => {
+            console.error('Error loading shifts:', error);
+            this.errorMessage = 'Failed to load shifts. Please try again later.';
+            reject(error);
+            return throwError(() => error);
+          })
+        )
+        .subscribe({
+          next: (shifts) => {
+            this.shifts = shifts;
+            resolve();
+          },
+          error: (error) => {
+            reject(error);
+          }
+        });
+    });
+  }
   /**
    * Load branches data
    */
@@ -448,7 +491,7 @@ private loadOrganizations(): Promise<void> {
   //       organizationName: ''
   //     }];
   //     this.selectedBranchId = '';
-      
+
   //     this.http.get<Branch[]>(this.branchApiUrl, this.httpOptions)
   //       .pipe(
   //         catchError(() => {
@@ -460,13 +503,13 @@ private loadOrganizations(): Promise<void> {
   //         next: (branches) => {
   //           // Add loaded branches after the initial "All Branches"
   //           this.branches = [...this.branches, ...branches];
-            
+
   //           // Build location map
   //           this.locationMap = {};
   //           branches.forEach(branch => {
   //             this.locationMap[branch.branchId] = branch.branchName;
   //           });
-            
+
   //           resolve();
   //         },
   //         error: (error) => {
@@ -476,108 +519,108 @@ private loadOrganizations(): Promise<void> {
   //   });
   // }
 
-private loadBranches(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    // Immediately set "All Branches" as default
-    this.branches = [{
-      branchId: '',
-      branchName: 'All Branches',
-      branchCode: '',
-      dzongkhag: '',
-      thromde: '',
-      operationalStatus: true,
-      organizationName: ''
-    }];
-    this.selectedBranchId = '';
-    
-    this.http.get<Branch[]>(this.branchApiUrl, this.httpOptions)
-      .pipe(
-        catchError((error: HttpErrorResponse) => {
-          console.error('Error loading branches:', error);
-          resolve(); // Still resolve to continue flow
-          return of([]);
-        })
-      )
-      .subscribe({
-        next: (branches) => {
-          // Add loaded branches after the initial "All Branches"
-          this.branches = [...this.branches, ...branches];
-          
-          // Build location map and locations array
-          this.locationMap = {};
-          this.locations = []; // Clear existing locations
-          
-          branches.forEach(branch => {
-            this.locationMap[branch.branchId] = branch.branchName;
-            this.locations.push(branch.branchName); // Add branch name to locations array
-          });
-          
-          resolve();
-        },
-        error: (error) => {
-          console.error('Error loading branches:', error);
-          reject(error);
-        }
-      });
-  });
-}
-// Branch change handler for form add/edit model
-onBranchChangeInForm(): void {
-  const selectedBranchName = this.employeeForm.get('location')?.value;
-  const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
-  
-  if (selectedBranch) {
-    this.loadDepartments(selectedBranch.branchId).then(() => {
-      // Reset department selection when branch changes
-      this.employeeForm.get('department')?.setValue('');
+  private loadBranches(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      // Immediately set "All Branches" as default
+      this.branches = [{
+        branchId: '',
+        branchName: 'All Branches',
+        branchCode: '',
+        dzongkhag: '',
+        thromde: '',
+        operationalStatus: true,
+        organizationName: ''
+      }];
+      this.selectedBranchId = '';
+
+      this.http.get<Branch[]>(this.branchApiUrl, this.httpOptions)
+        .pipe(
+          catchError((error: HttpErrorResponse) => {
+            console.error('Error loading branches:', error);
+            resolve(); // Still resolve to continue flow
+            return of([]);
+          })
+        )
+        .subscribe({
+          next: (branches) => {
+            // Add loaded branches after the initial "All Branches"
+            this.branches = [...this.branches, ...branches];
+
+            // Build location map and locations array
+            this.locationMap = {};
+            this.locations = []; // Clear existing locations
+
+            branches.forEach(branch => {
+              this.locationMap[branch.branchId] = branch.branchName;
+              this.locations.push(branch.branchName); // Add branch name to locations array
+            });
+
+            resolve();
+          },
+          error: (error) => {
+            console.error('Error loading branches:', error);
+            reject(error);
+          }
+        });
     });
   }
-}
+  // Branch change handler for form add/edit model
+  onBranchChangeInForm(): void {
+    const selectedBranchName = this.employeeForm.get('location')?.value;
+    const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
 
-// nationality change handler for the form add
-onNationalityChange(): void {
-  const isBhutanese = this.employeeForm.get('nationality')?.value === 'Bhutanese';
-  
-  // Get form controls
-  const addressLine1 = this.employeeForm.get('addressLine1');
-  const addressLine2 = this.employeeForm.get('addressLine2');
-  const thromde = this.employeeForm.get('thromde');
-  const dzongkhag = this.employeeForm.get('dzongkhag');
-
-  // Clear and reset fields based on nationality
-  if (isBhutanese) {
-    // Clear Non-Bhutanese fields only if they exist
-    if (addressLine2?.value) {
-      this.employeeForm.patchValue({ addressLine2: '' });
-    }
-    
-    // Set validators for Bhutanese fields
-    addressLine1?.clearValidators();
-    addressLine2?.clearValidators();
-    thromde?.clearValidators();
-    dzongkhag?.clearValidators();
-  } else {
-    // Clear Bhutanese fields only if they exist
-    if (thromde?.value || dzongkhag?.value) {
-      this.employeeForm.patchValue({
-        thromde: '',
-        dzongkhag: ''
+    if (selectedBranch) {
+      this.loadDepartments(selectedBranch.branchId).then(() => {
+        // Reset department selection when branch changes
+        this.employeeForm.get('department')?.setValue('');
       });
     }
-    
-    // Set validators for Non-Bhutanese fields
-    addressLine1?.clearValidators();
-    addressLine2?.clearValidators();
-    thromde?.clearValidators();
-    dzongkhag?.clearValidators();
   }
 
-  // Update validity for all affected controls
-  addressLine1?.updateValueAndValidity();
-  addressLine2?.updateValueAndValidity();
-  thromde?.updateValueAndValidity();
-  dzongkhag?.updateValueAndValidity();
-}
+  // nationality change handler for the form add
+  onNationalityChange(): void {
+    const isBhutanese = this.employeeForm.get('nationality')?.value === 'Bhutanese';
+
+    // Get form controls
+    const addressLine1 = this.employeeForm.get('addressLine1');
+    const addressLine2 = this.employeeForm.get('addressLine2');
+    const thromde = this.employeeForm.get('thromde');
+    const dzongkhag = this.employeeForm.get('dzongkhag');
+
+    // Clear and reset fields based on nationality
+    if (isBhutanese) {
+      // Clear Non-Bhutanese fields only if they exist
+      if (addressLine2?.value) {
+        this.employeeForm.patchValue({ addressLine2: '' });
+      }
+
+      // Set validators for Bhutanese fields
+      addressLine1?.clearValidators();
+      addressLine2?.clearValidators();
+      thromde?.clearValidators();
+      dzongkhag?.clearValidators();
+    } else {
+      // Clear Bhutanese fields only if they exist
+      if (thromde?.value || dzongkhag?.value) {
+        this.employeeForm.patchValue({
+          thromde: '',
+          dzongkhag: ''
+        });
+      }
+
+      // Set validators for Non-Bhutanese fields
+      addressLine1?.clearValidators();
+      addressLine2?.clearValidators();
+      thromde?.clearValidators();
+      dzongkhag?.clearValidators();
+    }
+
+    // Update validity for all affected controls
+    addressLine1?.updateValueAndValidity();
+    addressLine2?.updateValueAndValidity();
+    thromde?.updateValueAndValidity();
+    dzongkhag?.updateValueAndValidity();
+  }
   /**
    * Load departments for a specific branch
    */
@@ -622,29 +665,29 @@ onNationalityChange(): void {
         });
     });
   }
-// Add these to your EmployeeDetailComponent class
+  // Add these to your EmployeeDetailComponent class
 
-hasActiveFilters(): boolean {
-  return !!this.selectedBranchId || 
-         this.activeTab !== 'All Employee' || 
-         !!this.searchQuery;
-}
-/**
-   * clear all filters
-   */
-clearAllFilters(): void {
-  // Reset branch filter
-  this.selectedBranchId = '';
-  
-  // Reset department filter
-  this.activeTab = 'All Employee';
-  
-  // Reset search
-  this.searchQuery = '';
-  
-  // Apply the cleared filters
-  this.applyFilters();
-}
+  hasActiveFilters(): boolean {
+    return !!this.selectedBranchId ||
+      this.activeTab !== 'All Employee' ||
+      !!this.searchQuery;
+  }
+  /**
+     * clear all filters
+     */
+  clearAllFilters(): void {
+    // Reset branch filter
+    this.selectedBranchId = '';
+
+    // Reset department filter
+    this.activeTab = 'All Employee';
+
+    // Reset search
+    this.searchQuery = '';
+
+    // Apply the cleared filters
+    this.applyFilters();
+  }
   /**
    * Load job positions
    */
@@ -706,85 +749,97 @@ clearAllFilters(): void {
    * Load employee data
    */
   private loadEmployees(): void {
-  this.isLoading = true;
-  this.errorMessage = '';
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  const currentUser = this.authService.currentUserValue;
-  const isAdmin = currentUser?.roleCode === 'ROLE_ADMIN';
-  const isEmployee = currentUser?.roleCode === 'ROLE_EMPLOYEE';
-  const isCTO = currentUser?.roleCode === 'ROLE_CTO';
+    const currentUser = this.authService.currentUserValue;
+    const isAdmin = currentUser?.roleCode === 'ROLE_ADMIN';
+    const isEmployee = currentUser?.roleCode === 'ROLE_EMPLOYEE';
+    const isManager = currentUser?.roleCode === 'ROLE_MANAGER';
+    const isDeptHead = currentUser?.roleCode === 'ROLE_MANAGER' && currentUser?.isDeptHead;
+    const userDeptId = currentUser?.deptID;
 
-  let apiUrl = this.apiUrl;
-  
-  // If user is employee, only fetch their own data
-  if (isEmployee && currentUser?.empId) {
-    apiUrl = `${this.apiUrl}/${currentUser.empId}`;
+    let apiUrl = this.apiUrl;
+
+    if (isEmployee && currentUser?.empId) {
+      apiUrl = `${this.apiUrl}/${currentUser.empId}`;
+    }
+    else if (isDeptHead && userDeptId) {
+      // For department heads, we'll load all employees and filter client-side
+      apiUrl = this.apiUrl;
+    }
+
+    this.http.get<ApiEmployeeResponse[] | ApiEmployeeResponse>(apiUrl, this.httpOptions)
+      .pipe(
+        catchError((error: HttpErrorResponse) => {
+          this.isLoading = false;
+          this.handleError(error);
+          return throwError(() => error);
+        }),
+        map(response => {
+          // If department head, filter employees by their department
+          if (isDeptHead && userDeptId) {
+            if (Array.isArray(response)) {
+              return response.filter(emp => emp.employee.deptId === userDeptId);
+            }
+            // Handle single response case if needed
+            return response.employee.deptId === userDeptId ? [response] : [];
+          }
+          return response;
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          if (isEmployee || (isDeptHead && !Array.isArray(response))) {
+            // Handle single employee response
+            const singleResponse = response as ApiEmployeeResponse;
+            this.employees = [this.mapApiEmployee(singleResponse)];
+          } else {
+            // Handle array response
+            const arrayResponse = response as ApiEmployeeResponse[];
+            this.employees = arrayResponse.map(emp => this.mapApiEmployee(emp));
+          }
+
+          this.applyFilters();
+          this.isLoading = false;
+        },
+        error: () => this.isLoading = false
+      });
   }
-  // If user is CTO, maybe fetch employees in their department
-  else if (isCTO && currentUser?.ctoId) {
-    apiUrl = `${this.apiUrl}/cto/${currentUser.ctoId}`;
+  private handleError(error: HttpErrorResponse): void {
+    if (error.status === 404) {
+      this.errorMessage = 'API endpoint not found. Check if the server is running.';
+    } else if (error.status === 0) {
+      this.errorMessage = 'Failed to connect to server. Check your network.';
+    } else if (error.status === 403) {
+      this.errorMessage = 'You do not have permission to access this resource.';
+    } else {
+      this.errorMessage = 'An unexpected error occurred.';
+    }
+  }
+  // user permission
+  canAddEmployee(): boolean {
+    return this.authService.hasPermission('EMP_CREATE') ||
+      this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
   }
 
-  this.http.get<ApiEmployeeResponse[] | ApiEmployeeResponse>(apiUrl, this.httpOptions)
-    .pipe(
-      catchError((error: HttpErrorResponse) => {
-        this.isLoading = false;
-        this.handleError(error);
-        return throwError(() => error);
-      })
-    )
-    .subscribe({
-      next: (response) => {
-        if (isEmployee || isCTO) {
-          // Handle single employee/limited response
-          const singleResponse = response as ApiEmployeeResponse;
-          this.employees = [this.mapApiEmployee(singleResponse)];
-        } else {
-          // Handle array response for admin
-          const arrayResponse = response as ApiEmployeeResponse[];
-          this.employees = arrayResponse.map(emp => this.mapApiEmployee(emp));
-        }
-        
-        this.applyFilters();
-        this.isLoading = false;
-      },
-      error: () => this.isLoading = false
-    });
-}
-private handleError(error: HttpErrorResponse): void {
-  if (error.status === 404) {
-    this.errorMessage = 'API endpoint not found. Check if the server is running.';
-  } else if (error.status === 0) {
-    this.errorMessage = 'Failed to connect to server. Check your network.';
-  } else if (error.status === 403) {
-    this.errorMessage = 'You do not have permission to access this resource.';
-  } else {
-    this.errorMessage = 'An unexpected error occurred.';
+  canEditEmployee(): boolean {
+    return this.authService.hasPermission('EMP_EDIT') ||
+      this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
   }
-}
-// user permission
-canAddEmployee(): boolean {
-  return this.authService.hasPermission('EMP_CREATE') || 
-         this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
-}
 
-canEditEmployee(): boolean {
-  return this.authService.hasPermission('EMP_EDIT') || 
-         this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
-}
+  canDeleteEmployee(): boolean {
+    return this.authService.hasPermission('EMP_DELETE') ||
+      this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
+  }
 
-canDeleteEmployee(): boolean {
-  return this.authService.hasPermission('EMP_DELETE') || 
-         this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
-}
-
-canExport(): boolean {
-  return this.authService.hasPermission('EMP_EXPORT') || 
-         this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
-}
-    /**
-   * Map API response to local employee structure
-   */
+  canExport(): boolean {
+    return this.authService.hasPermission('EMP_EXPORT') ||
+      this.authService.currentUserValue?.roleCode === 'ROLE_ADMIN';
+  }
+  /**
+ * Map API response to local employee structure
+ */
   private mapApiEmployee(apiEmployee: ApiEmployeeResponse): Employee {
     const primaryContact = apiEmployee.contacts?.slice(-1)[0] || {
       email: '', phonePrimary: '', isEmergencyContact: false
@@ -815,12 +870,14 @@ canExport(): boolean {
       employmentStatus: apiEmployee.employee.employmentStatus,
       employmentType: apiEmployee.employee.employmentType,
       email: primaryContact.email,
+      deptId: apiEmployee.employee.deptId,
       department: this.getDepartmentName(apiEmployee.employee.deptId),
       positionId: apiEmployee.employee.positionId,
       positionName: this.getPositionName(apiEmployee.employee.positionId),
       location: this.getLocationName(apiEmployee.employee.branchId),
       orgId: apiEmployee.employee.orgId,
       branchId: apiEmployee.employee.branchId,
+      shiftId: apiEmployee.employee.shiftId,
       gradeId: apiEmployee.employee.gradeId,
       basicSalary: apiEmployee.employee.basicSalary,
       maxSalary: apiEmployee.employee.maxSalary,
@@ -881,7 +938,7 @@ canExport(): boolean {
         organization: this.selectedOrgId,
         nationality: 'Bhutanese'
       });
- this.onNationalityChange();
+      this.onNationalityChange();
       if (this.employeeForm.get('department')?.value) {
         this.employeeForm.get('position')?.enable();
       }
@@ -917,20 +974,20 @@ canExport(): boolean {
   /**
    * Handle branch selection change
    */
-onBranchChange(): void {
-  this.currentPage = 1;
-  this.loadDepartments(this.selectedBranchId).then(() => {
-    this.applyFilters();
-  });
-}
-onOrganizationChange(): void {
-  const orgId = this.employeeForm.get('organization')?.value;
-  if (orgId) {
-    this.selectedOrgId = orgId;
-    // You might want to reload branches when organization changes
-    this.loadBranches();
+  onBranchChange(): void {
+    this.currentPage = 1;
+    this.loadDepartments(this.selectedBranchId).then(() => {
+      this.applyFilters();
+    });
   }
-}
+  onOrganizationChange(): void {
+    const orgId = this.employeeForm.get('organization')?.value;
+    if (orgId) {
+      this.selectedOrgId = orgId;
+      // You might want to reload branches when organization changes
+      this.loadBranches();
+    }
+  }
   /**
    * Handle department selection change
    */
@@ -1021,14 +1078,14 @@ onOrganizationChange(): void {
       yearOfCompletion: 0
     };
 
-   const currentAddress: Address = emp.addresses?.find(a => a.isCurrent) || emp.addresses?.[0] || {
-        addressType: 'Permanent',
-        addressLine1: '',
-        addressLine2: '',
-        thromde: '',
-        dzongkhag: '',
-        country: 'Bhutan',
-        isCurrent: false
+    const currentAddress: Address = emp.addresses?.find(a => a.isCurrent) || emp.addresses?.[0] || {
+      addressType: 'Permanent',
+      addressLine1: '',
+      addressLine2: '',
+      thromde: '',
+      dzongkhag: '',
+      country: 'Bhutan',
+      isCurrent: false
     };
 
     this.employeeForm.patchValue({
@@ -1050,6 +1107,7 @@ onOrganizationChange(): void {
       position: emp.positionId || null,
       location: emp.location,
       phonePrimary: primaryContact.phonePrimary,
+      shift: emp.shiftId || '',
       grade: emp.gradeId || '',
       basicSalary: emp.basicSalary || '',
       maxSalary: emp.maxSalary || '',
@@ -1062,34 +1120,35 @@ onOrganizationChange(): void {
       specialization: highestQualification.specialization,
       yearOfCompletion: highestQualification.yearOfCompletion || 0,
       addressType: currentAddress.addressType,
-        addressLine1: currentAddress.addressLine1,
-        addressLine2: currentAddress.addressLine2,
-        thromde: currentAddress.thromde,
-        dzongkhag: currentAddress.dzongkhag
+      addressLine1: currentAddress.addressLine1,
+      addressLine2: currentAddress.addressLine2,
+      thromde: currentAddress.thromde,
+      dzongkhag: currentAddress.dzongkhag
+
     });
-this.onNationalityChange();
+    this.onNationalityChange();
     if (emp.gradeId) {
       this.fetchSalaryStructure(emp.gradeId);
     }
     while (this.educations.length) {
-    this.educations.removeAt(0);
-  }
+      this.educations.removeAt(0);
+    }
     if (emp.qualifications && emp.qualifications.length > 0) {
-    // Set first qualification in main form
-    const [firstQualification, ...additionalQualifications] = emp.qualifications;
-    
-    this.employeeForm.patchValue({
-      institutionName: firstQualification.institutionName,
-      degreeName: firstQualification.degreeName,
-      specialization: firstQualification.specialization,
-      yearOfCompletion: firstQualification.yearOfCompletion
-    });
-    
-    // Add remaining qualifications to educations array
-    additionalQualifications.forEach(qual => {
-      this.educations.push(this.createEducationFormGroup(qual));
-    });
-  }
+      // Set first qualification in main form
+      const [firstQualification, ...additionalQualifications] = emp.qualifications;
+
+      this.employeeForm.patchValue({
+        institutionName: firstQualification.institutionName,
+        degreeName: firstQualification.degreeName,
+        specialization: firstQualification.specialization,
+        yearOfCompletion: firstQualification.yearOfCompletion
+      });
+
+      // Add remaining qualifications to educations array
+      additionalQualifications.forEach(qual => {
+        this.educations.push(this.createEducationFormGroup(qual));
+      });
+    }
   }
 
   // =============================================
@@ -1099,179 +1158,171 @@ this.onNationalityChange();
   /**
    * Save employee (create or update)
    */
-saveEmployee(): void {
-  
-  if (this.employeeForm.invalid) {
-    this.errorMessage = 'Please fill all required fields correctly.';
-    this.employeeForm.markAllAsTouched();
-    
-    // Log validation errors for debugging
-    Object.keys(this.employeeForm.controls).forEach(key => {
-      const control = this.employeeForm.get(key);
-      if (control?.invalid) {
-        console.error(`Validation error for ${key}:`, control.errors);
+  saveEmployee(): void {
+
+    if (this.employeeForm.invalid) {
+      this.errorMessage = 'Please fill all required fields correctly.';
+      this.employeeForm.markAllAsTouched();
+
+      // Log validation errors for debugging
+      Object.keys(this.employeeForm.controls).forEach(key => {
+        const control = this.employeeForm.get(key);
+        if (control?.invalid) {
+          console.error(`Validation error for ${key}:`, control.errors);
+        }
+      });
+
+      return;
+    }
+
+    // Save main education to array if it has values
+    if (this.hasMainEducationValues()) {
+      this.saveMainEducationToArray();
+    }
+
+    this.isSaving = true;
+    this.errorMessage = '';
+
+    const formValue = this.employeeForm.getRawValue();
+    const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
+    const isBhutanese = formValue.nationality === 'Bhutanese';
+
+    try {
+      const branchId = this.getBranchId(formValue.location);
+      if (!branchId) {
+        throw new Error('Invalid location selected');
       }
-    });
-    
-    return;
-  }
 
-  // Save main education to array if it has values
-  if (this.hasMainEducationValues()) {
-    this.saveMainEducationToArray();
-  }
+      // Get the most recent existing IDs
+      const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
+      const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
+      const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
+      const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
 
-  this.isSaving = true;
-  this.errorMessage = '';
+      // Prepare address payload based on nationality
+      const addressPayload: any = {
+        addressId: existingAddress?.addressId || undefined,
+        addressType: formValue.addressType || 'Permanent',
+        addressLine1: formValue.addressLine1,
+        isCurrent: true
+      };
 
-  const formValue = this.employeeForm.getRawValue();
-  const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
-  const isBhutanese = formValue.nationality === 'Bhutanese';
-
-  try {
-    const branchId = this.getBranchId(formValue.location);
-    if (!branchId) {
-      throw new Error('Invalid location selected');
-    }
-
-    // Get the most recent existing IDs
-    const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
-    const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
-    const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
-    const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
-
-    // Prepare address payload based on nationality
-    const addressPayload: any = {
-      addressId: existingAddress?.addressId || undefined,
-      addressType: formValue.addressType || 'Permanent',
-      addressLine1: formValue.addressLine1,
-      isCurrent: true
-    };
-
-    if (isBhutanese) {
-      addressPayload.addressLine2 = ''; // Clear for Bhutanese
-      addressPayload.thromde = formValue.thromde;
-      addressPayload.dzongkhag = formValue.dzongkhag;
-      addressPayload.country = 'Bhutan';
-    } else {
-      addressPayload.addressLine2 = formValue.addressLine2;
-      addressPayload.thromde = ''; // Clear for non-Bhutanese
-      addressPayload.dzongkhag = ''; // Clear for non-Bhutanese
-      addressPayload.country = 'Non-Bhutanese';
-    }
-
-    const payload = {
-      employee: {
-        empId: empId,
-        empCode: formValue.empCode,
-        firstName: formValue.firstName,
-        middleName: formValue.middleName || null,
-        lastName: formValue.lastName,
-        positionId: formValue.position,
-        deptId: formValue.department,
-        dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
-        gender: formValue.gender,
-        maritalStatus: formValue.maritalStatus,
-        nationality: formValue.nationality,
-        cidNumber: formValue.cidNumber,
-        hireDate: this.formatDateForAPI(formValue.hireDate),
-        employmentStatus: formValue.employmentStatus,
-        employmentType: formValue.employmentType,
-        branchId: branchId,
-        orgId: formValue.organization,
-        gradeId: formValue.grade,
-        basicSalary: formValue.basicSalary,
-        maxSalary: formValue.maxSalary
-      },
-      contacts: [{
-        contactId: existingContact?.contactId || undefined,
-        email: formValue.email,
-        phonePrimary: formValue.phonePrimary,
-        isEmergencyContact: false,
-        relationship: 'Self',
-        priorityLevel: 1
-      }],
-      addresses: [addressPayload],
-      qualifications: this.educations.controls.map(control => ({
-        qualificationId: control.value.qualificationId || undefined,
-        institutionName: control.value.institutionName,
-        degreeName: control.value.degreeName,
-        specialization: control.value.specialization,
-        yearOfCompletion: control.value.yearOfCompletion
-      })),
-      bankDetails: [{
-        bankDetailId: existingBankDetail?.bankDetailId || undefined,
-        bankName: formValue.bankName,
-        branchName: formValue.branchName,
-        accountNumber: formValue.accountNumber,
-        accountType: formValue.accountType
-      }],
-      updateOperation: this.isEditMode
-    };
-
-    console.log('Sending payload:', payload);
-
-    const request$ = this.isEditMode && empId
-      ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
-      : this.http.post(this.apiUrl, payload, this.httpOptions);
-
-    request$.pipe(
-      catchError(err => {
-        console.error('Error saving employee:', {
-          status: err.status,
-          message: err.message,
-          error: err.error
-        });
-        this.errorMessage = this.extractErrorMessage(err);
+      if (isBhutanese) {
+        addressPayload.addressLine2 = ''; // Clear for Bhutanese
+        addressPayload.thromde = formValue.thromde;
+        addressPayload.dzongkhag = formValue.dzongkhag;
+        addressPayload.country = 'Bhutan';
+      } else {
+        addressPayload.addressLine2 = formValue.addressLine2;
+        addressPayload.thromde = ''; // Clear for non-Bhutanese
+        addressPayload.dzongkhag = ''; // Clear for non-Bhutanese
+        addressPayload.country = 'Non-Bhutanese'; // Or get from a country field if you add one
+      }
+      const shiftId = formValue.shift;
+      if (!this.shifts.some(s => s.shiftId === shiftId)) {
+        this.errorMessage = 'Invalid shift selected';
         this.isSaving = false;
-        return throwError(() => err);
-      })
-    ).subscribe({
-      next: (response: ApiEmployeeResponse | any) => {
-        const generatedEmpId = (response as ApiEmployeeResponse)?.employee?.empId || 
-                             response?.empId || 
-                             empId;
-        
-        if (generatedEmpId && this.selectedFiles.length > 0) {
-          // Upload documents if files were selected
-          this.uploadDocuments(generatedEmpId).then(() => {
-            this.isSaving = false;
-            this.closeModal();
-            this.handleUpdateResponse(response, empId);
-            this.selectedFiles = []; // Clear selected files after upload
-          }).catch((uploadError) => {
-            console.error('Document upload failed:', uploadError);
-            this.isSaving = false;
-            this.closeModal();
-            this.handleUpdateResponse(response, empId);
-            // Optionally show a warning that employee was saved but documents failed
-            this.errorMessage = 'Employee saved but document upload failed. You can upload documents later.';
+        return;
+      }
+      const payload = {
+        employee: {
+          empId: empId,
+          empCode: formValue.empCode,
+          firstName: formValue.firstName,
+          middleName: formValue.middleName || null,
+          lastName: formValue.lastName,
+          positionId: formValue.position,
+          deptId: formValue.department,
+          dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
+          gender: formValue.gender,
+          maritalStatus: formValue.maritalStatus,
+          nationality: formValue.nationality,
+          cidNumber: formValue.cidNumber,
+          hireDate: this.formatDateForAPI(formValue.hireDate),
+          employmentStatus: formValue.employmentStatus,
+          employmentType: formValue.employmentType,
+          branchId: branchId,
+          orgId: formValue.organization,
+          shiftId: formValue.shift,
+          gradeId: formValue.grade,
+          basicSalary: formValue.basicSalary,
+          maxSalary: formValue.maxSalary
+        },
+        contacts: [{
+          contactId: existingContact?.contactId || undefined,
+          email: formValue.email,
+          phonePrimary: formValue.phonePrimary,
+          isEmergencyContact: false,
+          relationship: 'Self',
+          priorityLevel: 1
+        }],
+        addresses: [addressPayload],
+        qualifications: this.educations.controls.map(control => ({
+          qualificationId: control.value.qualificationId || undefined,
+          institutionName: control.value.institutionName,
+          degreeName: control.value.degreeName,
+          specialization: control.value.specialization,
+          yearOfCompletion: control.value.yearOfCompletion
+        })),
+        bankDetails: [{
+          bankDetailId: existingBankDetail?.bankDetailId || undefined,
+          bankName: formValue.bankName,
+          branchName: formValue.branchName,
+          accountNumber: formValue.accountNumber,
+          accountType: formValue.accountType
+        }],
+        updateOperation: this.isEditMode
+      };
+
+      console.log('Sending payload:', payload);
+
+      const request$ = this.isEditMode && empId
+        ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
+        : this.http.post(this.apiUrl, payload, this.httpOptions);
+
+      request$.pipe(
+        catchError(err => {
+          console.error('Error saving employee:', {
+            status: err.status,
+            message: err.message,
+            error: err.error
           });
-        } else {
-          // No documents to upload
+          this.errorMessage = this.extractErrorMessage(err);
+          this.isSaving = false;
+          return throwError(() => err);
+        })
+      ).subscribe({
+        next: (response: ApiEmployeeResponse | any) => {
           this.isSaving = false;
           this.closeModal();
+
+          const generatedCode = (response as ApiEmployeeResponse)?.employee?.empCode ||
+            response?.empCode ||
+            'N/A';
+          console.log('Employee saved successfully with code:', generatedCode);
           this.handleUpdateResponse(response, empId);
+        },
+        error: (err) => {
+          console.error('Save failed:', err);
+          this.isSaving = false;
         }
-        
-        const generatedCode = (response as ApiEmployeeResponse)?.employee?.empCode || 
-                            response?.empCode || 
-                            'N/A';
-        console.log('Employee saved successfully with code:', generatedCode);
-      },
-      error: (err) => {
-        console.error('Save failed:', err);
-        this.isSaving = false;
+      });
+    } catch (error) {
+      this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      this.isSaving = false;
+      console.error('Exception in saveEmployee:', error);
+    }
+  }
+  private getFormValidationErrors(): any {
+    const errors = {};
+    Object.keys(this.employeeForm.controls).forEach(key => {
+      const control = this.employeeForm.get(key);
+      if (control?.errors) {
+        errors[key] = control.errors;
       }
     });
-  } catch (error) {
-    this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    this.isSaving = false;
-    console.error('Exception in saveEmployee:', error);
+    return errors;
   }
-}
-
-
   /**
    * Handle response from save operation
    */
@@ -1360,8 +1411,8 @@ saveEmployee(): void {
   /**
    * View employee details
    */
-  viewEmployee(empCode: string) {
-    this.router.navigate(['view', empCode], { relativeTo: this.route });
+  viewEmployee(empId: string) {
+    this.router.navigate(['view', empId], { relativeTo: this.route });
   }
 
   // =============================================
@@ -1372,42 +1423,44 @@ saveEmployee(): void {
    * Apply filters to employee list
    */
   applyFilters(): void {
-  const search = this.searchQuery.toLowerCase().trim();
-  
-  // Cache filter values to avoid repeated property access
-  const activeTab = this.activeTab;
-  const selectedBranchId = this.selectedBranchId;
+    const search = this.searchQuery.toLowerCase().trim();
+    const currentUser = this.authService.currentUserValue;
 
-  const filtered = this.employees.filter(emp => {
-    // Department filter
-    const matchesDept = activeTab === 'All Employee' || 
-                       emp.department === activeTab;
+    // If user is department head, force filter by their department
+    const isDeptHead = currentUser?.roleCode === 'ROLE_MANAGER' && currentUser?.isDeptHead;
+    const forceDeptFilter = isDeptHead ? currentUser?.deptID : null;
 
-    // Branch filter - empty string means "All Branches"
-    const matchesBranch = selectedBranchId === '' ||
-                         emp.branchId === selectedBranchId;
+    const filtered = this.employees.filter(emp => {
+      // Department filter - enforce for department heads
+      const matchesDept = forceDeptFilter
+        ? emp.deptId === forceDeptFilter
+        : this.activeTab === 'All Employee' || emp.department === this.activeTab;
 
-    // Early exit if either filter fails
-    if (!matchesDept || !matchesBranch) return false;
+      // Branch filter
+      const matchesBranch = this.selectedBranchId === '' ||
+        emp.branchId === this.selectedBranchId;
 
-    // Only perform search if needed
-    if (!search) return true;
+      // Early exit if either filter fails
+      if (!matchesDept || !matchesBranch) return false;
 
-    return (
-      (emp.empCode?.toLowerCase().includes(search)) ||
-      (emp.firstName?.toLowerCase().includes(search)) ||
-      (emp.lastName?.toLowerCase().includes(search)) ||
-      (emp.email?.toLowerCase().includes(search)) ||
-      (emp.positionName?.toLowerCase().includes(search))
-    );
-  });
+      // Only perform search if needed
+      if (!search) return true;
 
-  this.totalItems = filtered.length;
-  this.currentPage = Math.min(this.currentPage, this.totalPages());
-  
-  const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-  this.filteredEmployees = filtered.slice(startIndex, startIndex + this.itemsPerPage);
-}
+      return (
+        (emp.empCode?.toLowerCase().includes(search)) ||
+        (emp.firstName?.toLowerCase().includes(search)) ||
+        (emp.lastName?.toLowerCase().includes(search)) ||
+        (emp.email?.toLowerCase().includes(search)) ||
+        (emp.positionName?.toLowerCase().includes(search))
+      );
+    });
+
+    this.totalItems = filtered.length;
+    this.currentPage = Math.min(this.currentPage, this.totalPages());
+
+    const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+    this.filteredEmployees = filtered.slice(startIndex, startIndex + this.itemsPerPage);
+  }
 
   /**
    * Select department tab
@@ -1531,31 +1584,31 @@ saveEmployee(): void {
   /**
    * Format date for display in input fields
    */
- private formatDateForInput(dateString: string): string {
-  if (!dateString) return '';
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0];
-  } catch (e) {
-    console.error('Date formatting error:', e);
-    return '';
+  private formatDateForInput(dateString: string): string {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return '';
+      return date.toISOString().split('T')[0];
+    } catch (e) {
+      console.error('Date formatting error:', e);
+      return '';
+    }
   }
-}
 
   /**
    * Format date for API requests
    */
- private formatDateForAPI(date: Date | string): string {
-  try {
-    const d = date ? new Date(date) : new Date();
-    if (isNaN(d.getTime())) throw new Error('Invalid date');
-    return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-  } catch (e) {
-    console.error('Date formatting error:', e);
-    return ''; // or handle differently
+  private formatDateForAPI(date: Date | string): string {
+    try {
+      const d = date ? new Date(date) : new Date();
+      if (isNaN(d.getTime())) throw new Error('Invalid date');
+      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    } catch (e) {
+      console.error('Date formatting error:', e);
+      return ''; // or handle differently
+    }
   }
-}
 
   /**
    * Extract error message from HTTP response
@@ -1704,148 +1757,5 @@ saveEmployee(): void {
     };
     return classes[department] || 'emp-dept-default';
   }
-  ///Document upload
-  // File handling methods
-triggerFileInput(): void {
-  const fileInput = document.querySelector('.file-upload-area input[type="file"]') as HTMLElement;
-  fileInput.click();
-}
 
-onFileSelected(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    for (let i = 0; i < input.files.length; i++) {
-      const file = input.files[i];
-      if (this.validateFile(file)) {
-        this.selectedFiles.push(file);
-      }
-    }
-  }
-}
-
-validateFile(file: File): boolean {
-  const validTypes = ['application/pdf', 'application/msword', 
-                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                     'application/vnd.ms-excel', 
-                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                     'image/jpeg', 'image/png'];
-  const maxSize = 5 * 1024 * 1024; // 5MB
-
-  if (!validTypes.includes(file.type)) {
-    this.errorMessage = `Invalid file type: ${file.name}. Only PDF, Word, Excel, JPG, PNG are allowed.`;
-    return false;
-  }
-
-  if (file.size > maxSize) {
-    this.errorMessage = `File too large: ${file.name}. Max size is 5MB.`;
-    return false;
-  }
-
-  return true;
-}
-
-removeFile(index: number): void {
-  this.selectedFiles.splice(index, 1);
-}
-
-getFileIconClass(fileName: string): string {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  const iconMap: { [key: string]: string } = {
-    'pdf': 'bi bi-file-earmark-pdf text-danger',
-    'doc': 'bi bi-file-earmark-word text-primary',
-    'docx': 'bi bi-file-earmark-word text-primary',
-    'xls': 'bi bi-file-earmark-excel text-success',
-    'xlsx': 'bi bi-file-earmark-excel text-success',
-    'jpg': 'bi bi-file-earmark-image text-info',
-    'jpeg': 'bi bi-file-earmark-image text-info',
-    'png': 'bi bi-file-earmark-image text-info'
-  };
-  return iconMap[extension || ''] || 'bi bi-file-earmark-text';
-}
-
-formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const sizeValue = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
-  return `${sizeValue} ${sizes[i]}`;
-}
-
-// Document API methods
-uploadDocuments(empId: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (this.selectedFiles.length === 0) {
-      resolve();
-      return;
-    }
-
-    const authToken = this.authService.getToken(); // Get your auth token
-    if (!authToken) {
-      this.errorMessage = 'Authentication required for document upload';
-      reject('No auth token');
-      return;
-    }
-
-    const uploadPromises = this.selectedFiles.map(file => {
-      const formData = new FormData();
-      formData.append('file', file, file.name);
-      formData.append('fileName', file.name); // Using original filename
-      formData.append('visibleOnlyToMe', 'false'); // Default visibility
-
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${authToken}`
-      });
-
-      return this.http.post(this.documentUploadUrl, formData, { headers }).toPromise();
-    });
-
-    Promise.all(uploadPromises)
-      .then(() => {
-        this.selectedFiles = [];
-        resolve();
-      })
-      .catch(error => {
-        console.error('Document upload failed:', error);
-        this.errorMessage = 'Document upload failed. You can try again later.';
-        // Still resolve to allow employee save to continue
-        resolve();
-      });
-  });
-}
-
-loadEmployeeDocuments(empId: string): void {
-  if (!empId) return;
-  
-  this.http.get<any[]>(`${environment.apiUrl}/api/archive/upload/${empId}`, this.httpOptions)
-    .pipe(
-      catchError((error: HttpErrorResponse) => {
-        console.error('Error loading documents:', error);
-        return of([]);
-      })
-    )
-    .subscribe({
-      next: (documents) => {
-        this.employeeDocuments = documents;
-      }
-    });
-}
-
-deleteDocument(docId: string): void {
-  if (confirm('Are you sure you want to delete this document?')) {
-    this.http.delete(`${environment.apiUrl}/api/archive/${docId}`, this.httpOptions)
-      .subscribe({
-        next: () => {
-          this.employeeDocuments = this.employeeDocuments.filter(doc => doc.id !== docId);
-        },
-        error: (error) => {
-          console.error('Error deleting document:', error);
-        }
-      });
-  }
-}
-
-getDocumentUrl(docId: string): string {
-  return `${environment.apiUrl}/api/archive/download/${docId}`;
-}
 }

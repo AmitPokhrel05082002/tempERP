@@ -24,10 +24,12 @@ export interface User {
   accountStatus: string;
   roleId: string;
   roleName: string;
-  roleCode: string; // Add this
+  roleCode: string;
   mustChangePassword: boolean;
   accessToken: string;
   refreshToken: string;
+  isDeptHead: boolean;
+  deptID: string | null;  // Changed to explicitly show it can be null
   permissions?: Permission[];
   getRoleBasedId: () => string;
 }
@@ -80,7 +82,7 @@ export class AuthService {
 
   // Define role constants
   readonly ADMIN_ROLE = 'Admin';
-  readonly CTO_ROLE = 'CTO';
+  readonly CTO_ROLE = 'Manager';
   readonly EMPLOYEE_ROLE = 'Employee';
 
   constructor(private router: Router, private http: HttpClient) {
@@ -106,7 +108,7 @@ export class AuthService {
 
   public get isAdminOrCTO(): boolean {
     const user = this.currentUserValue;
-    return user ? ['Admin', 'CTO'].includes(user.roleName) : false;
+    return user ? ['Admin', 'Manager'].includes(user.roleName) : false;
   }
   getEmployeeByEmpId(empId: string): Observable<any> {
   return this.http.get(`${environment.apiUrl}/api/v1/employees/${empId}`).pipe(
@@ -132,17 +134,19 @@ updateCurrentUser(user: User): void {
       if (!loginResponse.success) {
         throw new Error('Login failed');
       }
-
       const userData = loginResponse.data.user;
-      const roleId = userData.role.roleId; // Get roleId from nested role object
-      const roleName = userData.role.roleName; // Already available in response
-      const roleCode = userData.role.roleCode; // Already available in response
+      
+      // New logic: user is department head if they have a deptID
+      const isDeptHead = !!userData.deptID;
 
-      // Create the base user object with role-based ID handling
+      const roleId = userData.role.roleId;
+      const roleName = userData.role.roleName;
+      const roleCode = userData.role.roleCode;
+
       const baseUser: User = {
         userId: userData.userId,
         empId: roleName === 'Employee' ? userData.empId : undefined,
-        ctoId: roleName === 'CTO' ? (userData.ctoId || userData.userId) : undefined,
+        ctoId: roleName === 'Manager' ? (userData.ctoId || userData.userId) : undefined,
         username: userData.username,
         email: userData.email,
         accountStatus: userData.accountStatus,
@@ -152,8 +156,10 @@ updateCurrentUser(user: User): void {
         mustChangePassword: userData.mustChangePassword,
         accessToken: loginResponse.data.accessToken,
         refreshToken: loginResponse.data.refreshToken,
+        isDeptHead: isDeptHead,
+        deptID: userData.deptID || null, // Ensure deptID is either string or null
         getRoleBasedId: function() {
-          return this.roleName === 'CTO' 
+          return this.roleName === 'Manager' 
             ? (this.ctoId || this.userId) 
             : (this.empId || this.userId);
         }
@@ -182,7 +188,30 @@ updateCurrentUser(user: User): void {
     })
   );
 }
-  refreshToken(): Observable<any> {
+refreshUserData(): Observable<User> {
+  return this.http.get<any>(`${environment.apiUrl}/api/auth/current-user`).pipe(
+    map(response => {
+      const userData = response.data;
+      // New logic: department head status based on deptID
+      const isDeptHead = !!userData.deptID;
+      
+      const updatedUser = {
+        ...this.currentUserValue,
+        isDeptHead: isDeptHead,
+        deptID: userData.deptID || null
+      };
+      
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+      this.currentUserSubject.next(updatedUser);
+      return updatedUser;
+    }),
+    catchError(error => {
+      console.error('Error refreshing user data:', error);
+      return throwError(() => error);
+    })
+  );
+}
+refreshToken(): Observable<any> {
     const user = this.currentUserValue;
     if (!user?.refreshToken) {
       this.logout();
@@ -312,8 +341,8 @@ updateCurrentUser(user: User): void {
   }
 
   hasReadOnlyAccess(): boolean {
-    return this.isEmployee();
-  }
+  return this.isEmployee() || this.isCTO();
+}
 
   // Module-specific permission checks
   canViewModule(moduleName: string): boolean {

@@ -10,7 +10,7 @@ import { DomSanitizer } from '@angular/platform-browser';
 import { NgbNavModule } from '@ng-bootstrap/ng-bootstrap';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AuthService } from 'src/app/core/services/auth.service';
+import { AuthService, User } from 'src/app/core/services/auth.service';
 
 interface Employee {
   empId: string;
@@ -35,6 +35,10 @@ interface Employee {
   positionId?: string;
   deptId?: string;
   branchId?: string;
+  shiftId?: string;
+  shiftName?: string;
+  shiftStartTime?: string;
+  shiftEndTime?: string;
   gradeId?: string;
   gradeName?: string;
   gradeCode?: string;
@@ -121,15 +125,17 @@ export class EmployeeViewComponent implements OnInit {
   positions: Position[] = [];
   branches: Branch[] = [];
   grades: Grade[] = [];
-  selectedFiles: File[] = [];
-employeeDocuments: any[] = [];
-modalActiveTab = 'basic';
-
+  modalActiveTab = 'basic';
+  currentUser: User | null = null;
+  canEditEmployee = false;
+  canViewSensitiveInfo = false;
+  currentUserEmpCode = '';
 
   // Add these properties to your component class
-formDepartments: Department[] = [];
-filteredPositions: Position[] = [];
-isSaving = false;
+  formDepartments: Department[] = [];
+  filteredPositions: Position[] = [];
+  isSaving = false;
+  shifts: any[] = [];
 
   private apiUrl = `${environment.apiUrl}/api/v1/employees`;
   private deptApiUrl = `${environment.apiUrl}/api/v1/departments`;
@@ -137,18 +143,16 @@ isSaving = false;
   private branchApiUrl = `${environment.apiUrl}/api/v1/branches`;
   private gradeApiUrl = `${environment.apiUrl}/api/v1/job-grades`;
   private readonly orgApiUrl = `${environment.apiUrl}/api/v1/organizations`;
-   private readonly documentUploadUrl = `${environment.apiUrl}/api/archive/upload`;
-
-
+  private readonly shiftApiUrl = `${environment.apiUrl}/api/v1/shifts`;
 
   constructor(
     private route: ActivatedRoute,
-  private router: Router,
-  private http: HttpClient,
-  private datePipe: DatePipe,
-  private sanitizer: DomSanitizer,
-  private fb: FormBuilder,
-  private authService:AuthService
+    private router: Router,
+    private http: HttpClient,
+    private datePipe: DatePipe,
+    private sanitizer: DomSanitizer,
+    private fb: FormBuilder,
+    private authService: AuthService
   ) {
     this.employeeForm = this.fb.group({
       firstName: ['', [Validators.required]],
@@ -166,6 +170,7 @@ isSaving = false;
       position: ['', Validators.required],
       employmentType: ['Regular', Validators.required],
       employmentStatus: ['Active', Validators.required],
+      shift: ['', Validators.required],
       grade: ['', Validators.required],
       basicSalary: ['', Validators.required],
       maxSalary: ['', Validators.required],
@@ -176,182 +181,263 @@ isSaving = false;
       dzongkhag: ['']
     });
   }
- ngOnInit(): void {
-  // Get empCode from route or current user
-  const empCodeFromRoute = this.route.snapshot.paramMap.get('empCode');
-  const userData: any = localStorage.getItem('currentUser');
-  const formattedData: any = JSON.parse(userData);
-  const empCode = empCodeFromRoute || formattedData.empId;
 
-  if (!empCode) {
-    this.handleMissingCodeError();
-    return;
+  ngOnInit(): void {
+    this.checkPermissions();
+    this.loadPositions();
+
+    // Get empId from route or current user
+    const empIdFromRoute = this.route.snapshot.paramMap.get('empId');
+    const userData: any = localStorage.getItem('currentUser');
+    const formattedData: any = JSON.parse(userData);
+
+    // Use route parameter if available, otherwise fall back to current user's empId
+    const empId = empIdFromRoute || formattedData?.empId;
+
+    if (!empId) {
+      this.handleMissingIdError();
+      return;
+    }
+
+    this.initializeForm();
+
+    this.loadReferenceData()
+      .then(() => {
+        if (this.authService.isAdmin()) {
+          this.loadEmployeeDataForAdmin(empId);
+        } else {
+          this.loadEmployeeById(empId);
+        }
+      })
+      .catch(error => {
+        console.error('Error loading reference data:', error);
+        this.isLoading = false;
+        this.errorMessage = 'Failed to load required data';
+        this.employee = null;
+      });
   }
 
-  this.initializeForm();
+  private handleMissingIdError(): void {
+    this.isLoading = false;
+    this.errorMessage = 'Employee ID is missing from URL';
+    setTimeout(() => this.router.navigate(['/employees']), 3000);
+  }
 
-  this.loadReferenceData()
-    .then(() => this.loadEmployeeByCode(empCode))
-    .catch(error => {
-      console.error('Error loading reference data:', error);
-      this.isLoading = false;
-      this.errorMessage = 'Failed to load required data';
-      this.employee = null;
+checkPermissions(): void {
+  this.currentUser = this.authService.getCurrentUser();
+  this.currentUserEmpCode = this.currentUser?.empId || '';
+
+  const isViewingOwnProfile = this.isViewingOwnProfile();
+  const isAdmin = this.authService.isAdmin();
+  const isManager = this.authService.isCTO(); // Since you're using CTO for managers
+
+  // Permission flags
+  this.canEditEmployee = isAdmin || isManager ||
+    (this.authService.isEmployee() && isViewingOwnProfile &&
+     this.authService.hasPermission('EMP_EDIT_OWN'));
+
+  // Managers can view sensitive info for their team
+  this.canViewSensitiveInfo = this.authService.hasPermission('EMP_VIEW_SENSITIVE') ||
+    isAdmin ||
+    (isManager && this.isTeamMember());
+}
+
+private isTeamMember(): boolean {
+  if (!this.employee || !this.currentUser) return false;
+  
+  // Implement your team checking logic here
+  // Example: check if same department
+  return this.employee.department === this.currentUser.deptID;
+}
+
+  private loadShifts(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http.get<any[]>(`${environment.apiUrl}/api/v1/shifts`)
+        .pipe(
+          catchError(error => {
+            console.error('Error loading shifts:', error);
+            reject(error);
+            return of([]);
+          })
+        )
+        .subscribe({
+          next: (shifts) => {
+            this.shifts = shifts || [];
+            resolve();
+          },
+          error: (error) => {
+            reject(error);
+          }
+        });
     });
-}
+  }
 
-private initializeForm(): void {
-  this.employeeForm = this.fb.group({
-    // Personal Information
-    empCode: ['', [Validators.required, Validators.pattern(/^[A-Za-z0-9]+$/)]],
-    firstName: ['', [Validators.required, Validators.maxLength(50)]],
-    middleName: [''],
-    lastName: ['', [Validators.required, Validators.maxLength(50)]],
-    dateOfBirth: ['', Validators.required],
-    gender: ['', Validators.required],
-    maritalStatus: ['', Validators.required],
-    nationality: ['', Validators.required],
-    cidNumber: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
-    organization: ['', Validators.required],
+  isViewingOwnProfile(): boolean {
+    if (!this.employee) return false;
+    return this.currentUserEmpCode === this.employee.empCode;
+  }
 
-    // Employment Information
-    hireDate: ['', Validators.required],
-    employmentStatus: ['', Validators.required],
-    employmentType: ['', Validators.required],
-    department: ['', Validators.required],
-    position: [null, Validators.required],
-    location: ['', Validators.required],
-    grade: ['', Validators.required],
-    basicSalary: ['', Validators.required],
-    maxSalary: ['', Validators.required],
+  private initializeForm(): void {
+    this.employeeForm = this.fb.group({
+      // Personal Information
+      firstName: ['', [Validators.required, Validators.maxLength(50)]],
+      middleName: [''],
+      lastName: ['', [Validators.required, Validators.maxLength(50)]],
+      dateOfBirth: ['', Validators.required],
+      gender: ['', Validators.required],
+      maritalStatus: ['', Validators.required],
+      nationality: ['Bhutanese', Validators.required],
+      cidNumber: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
+      organization: ['', Validators.required],
 
-    // Contact Information
-    email: ['', [Validators.required, Validators.email]],
-    phonePrimary: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
+      // Employment Information
+      hireDate: ['', Validators.required],
+      employmentStatus: ['', Validators.required],
+      employmentType: ['', Validators.required],
+      department: ['', Validators.required],
+      position: [null, Validators.required],
+      location: ['', Validators.required],
+      grade: ['', Validators.required],
+      basicSalary: ['', Validators.required],
+      maxSalary: ['', Validators.required],
 
-    // Bank Details
-    bankName: [''],
-    branchName: [''],
-    accountNumber: [''],
-    accountType: [''],
+      // Contact Information
+      email: ['', [Validators.required, Validators.email]],
+      phonePrimary: ['', [Validators.required, Validators.pattern(/^[0-9]+$/)]],
 
-    // Education
-    institutionName: [''],
-    degreeName: [''],
-    specialization: [''],
-    yearOfCompletion: [null],
-    educations: this.fb.array([]),
+      // Bank Details
+      bankName: [''],
+      branchName: [''],
+      accountNumber: [''],
+      accountType: [''],
 
-    // Address
-    addressType: ['Permanent', Validators.required],
-    addressLine1: ['', Validators.required],
-    addressLine2: [''],
-    thromde: [''],
-    dzongkhag: ['']
-  });
-}
+      // Education
+      institutionName: [''],
+      degreeName: [''],
+      specialization: [''],
+      yearOfCompletion: [0],
+      educations: this.fb.array([]),
+      // Address
+      addressType: ['Permanent'],
+      addressLine1: [''],
+      addressLine2: [''],
+      thromde: [''],
+      dzongkhag: [''],
+      country: ['Bhutan'],
+
+      //shift
+      shift: ['', Validators.required],
+    });
+    this.onNationalityChange();
+
+  }
+
 
   changeTab(tabId: string): void {
     this.activeTab = tabId;
   }
-private async loadPositions(): Promise<void> {
-  try {
-    const response = await this.http.get<Position[]>(this.positionApiUrl).toPromise();
-    this.positions = response || [];
-    this.filteredPositions = [...this.positions];
-  } catch (error) {
-    console.error('Error loading positions:', error);
-    this.positions = [];
-    this.filteredPositions = [];
+
+  private async loadPositions(): Promise<void> {
+    try {
+      const response = await this.http.get<Position[]>(this.positionApiUrl).toPromise();
+      this.positions = response || [];
+      this.filteredPositions = [...this.positions];
+    } catch (error) {
+      console.error('Error loading positions:', error);
+      this.positions = [];
+      this.filteredPositions = [];
+    }
   }
-}
 
   private async loadReferenceData(): Promise<void> {
-  try {
-    // Load all reference data in parallel for better performance
-    const [
-      deptsResponse,
-      positionsResponse,
-      branchesResponse,
-      orgsResponse,
-      gradesResponse
-    ] = await Promise.all([
-      this.http.get<{ data: Department[] }>(this.deptApiUrl).toPromise(),
-      this.http.get<Position[]>(this.positionApiUrl).toPromise(),
-      this.http.get<Branch[]>(this.branchApiUrl).toPromise(),
-      this.http.get<Organization[]>(this.orgApiUrl).toPromise(),
-      this.http.get<Grade[]>(this.gradeApiUrl).toPromise()
-    ]);
+    try {
+      // Load all reference data in parallel for better performance
+      const [
+        deptsResponse,
+        positionsResponse,
+        branchesResponse,
+        orgsResponse,
+        gradesResponse,
+        shiftsResponse
+      ] = await Promise.all([
+        this.http.get<{ data: Department[] }>(this.deptApiUrl).toPromise(),
+        this.http.get<Position[]>(this.positionApiUrl).toPromise(),
+        this.http.get<Branch[]>(this.branchApiUrl).toPromise(),
+        this.http.get<Organization[]>(this.orgApiUrl).toPromise(),
+        this.http.get<Grade[]>(this.gradeApiUrl).toPromise(),
+        this.http.get<any[]>(this.shiftApiUrl).toPromise()
+      ]);
 
-    // Assign the responses to component properties
-    this.departments = deptsResponse?.data || [];
-    this.positions = positionsResponse || [];
-    this.filteredPositions = [...this.positions]; // Initialize filtered positions
-    this.branches = branchesResponse || [];
-    this.organizations = orgsResponse || [];
-    this.grades = gradesResponse || [];
+      // Assign the responses to component properties
+      this.departments = deptsResponse?.data || [];
+      this.positions = positionsResponse || [];
+      this.filteredPositions = [...this.positions];
+      this.branches = branchesResponse || [];
+      this.organizations = orgsResponse || [];
+      this.grades = gradesResponse || [];
+      this.shifts = shiftsResponse || [];
 
-    // Set default organization if available
-    if (this.organizations.length > 0) {
-      this.selectedOrgId = this.organizations[0].orgId;
-    }
-
-    // Log successful loading (for debugging)
-    console.log('Reference data loaded successfully:', {
-      departments: this.departments.length,
-      positions: this.positions.length,
-      branches: this.branches.length,
-      organizations: this.organizations.length,
-      grades: this.grades.length
-    });
-  } catch (error) {
-    console.error('Error loading reference data:', error);
-
-    // Initialize empty arrays to prevent runtime errors
-    this.departments = [];
-    this.positions = [];
-    this.filteredPositions = [];
-    this.branches = [];
-    this.organizations = [];
-    this.grades = [];
-
-    throw error;
-  }
-}
-
-  private handleMissingCodeError(): void {
-    this.isLoading = false;
-    this.errorMessage = 'Employee code is missing from URL';
-    setTimeout(() => this.router.navigate(['/employees']), 3000);
-  }
-
-loadEmployeeByCode(empCode: string): void {
-  this.isLoading = true;
-  this.errorMessage = '';
-
-  this.http.get<any>(`${this.apiUrl}/${empCode}`).subscribe({
-    next: (response) => {
-      this.isLoading = false;
-      if (!response) {
-        this.errorMessage = 'Employee not found';
-        return;
+      // Set default organization if available
+      if (this.organizations.length > 0) {
+        this.selectedOrgId = this.organizations[0].orgId;
       }
-      // Call transformResponse here
-      this.employee = this.transformResponse(response);
-    },
-    error: (error) => {
-      this.isLoading = false;
-      console.error('Error loading employee:', error);
-      this.errorMessage = error.message || 'Failed to fetch employee details';
-      this.employee = null;
+
+      // Log successful loading (for debugging)
+      console.log('Reference data loaded successfully:', {
+        departments: this.departments.length,
+        positions: this.positions.length,
+        branches: this.branches.length,
+        organizations: this.organizations.length,
+        grades: this.grades.length
+      });
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+
+      // Initialize empty arrays to prevent runtime errors
+      this.departments = [];
+      this.positions = [];
+      this.filteredPositions = [];
+      this.branches = [];
+      this.organizations = [];
+      this.grades = [];
+
+      throw error;
     }
-  });
-}
+  }
+
+  // private handleMissingCodeError(): void {
+  //   this.isLoading = false;
+  //   this.errorMessage = 'Employee code is missing from URL';
+  //   setTimeout(() => this.router.navigate(['/employees']), 3000);
+  // }
+
+  loadEmployeeById(empId: string): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.http.get<any>(`${this.apiUrl}/${empId}`).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        if (!response) {
+          this.errorMessage = 'Employee not found';
+          return;
+        }
+        this.employee = this.transformResponse(response);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Error loading employee:', error);
+        this.errorMessage = error.message || 'Failed to fetch employee details';
+        this.employee = null;
+      }
+    });
+  }
 
   private transformResponse(response: any): Employee {
     if (!response) {
-    return null;
-  }
+      return null;
+    }
+
     const emp = response.employee;
     const primaryContact = Array.isArray(response.contacts)
       ? response.contacts.find((c: any) => c.isPrimary) || response.contacts[0] || {}
@@ -363,12 +449,13 @@ loadEmployeeByCode(empCode: string): void {
       ? response.bankDetails[0] || {}
       : {};
 
-  const primaryQualification = response.qualifications?.length > 0
-    ? response.qualifications[0]
-    : { institutionName: '', degreeName: '', specialization: '', yearOfCompletion: 0 };
+    const primaryQualification = response.qualifications?.length > 0
+      ? response.qualifications[0]
+      : { institutionName: '', degreeName: '', specialization: '', yearOfCompletion: 0 };
+
     const additionalEducations = response.qualifications?.length > 1
-    ? response.qualifications.slice(1)
-    : [];
+      ? response.qualifications.slice(1)
+      : [];
 
     let departmentName = '';
     if (emp.deptId && Array.isArray(this.departments)) {
@@ -400,6 +487,23 @@ loadEmployeeByCode(empCode: string): void {
       orgName = org?.orgName || '';
     }
 
+    // Get shift information
+    let shiftName = '';
+    let shiftStartTime = '';
+    let shiftEndTime = '';
+    if (response.shift) {
+      shiftName = response.shift.shiftName || '';
+      shiftStartTime = response.shift.startTime || '';
+      shiftEndTime = response.shift.endTime || '';
+    } else if (emp.shiftId && Array.isArray(this.shifts)) {
+      const shift = this.shifts.find(s => s.shiftId === emp.shiftId);
+      if (shift) {
+        shiftName = shift.shiftName || '';
+        shiftStartTime = shift.startTime || '';
+        shiftEndTime = shift.endTime || '';
+      }
+    }
+
     const employee: Employee = {
       empId: emp.empId || '',
       empCode: emp.empCode || '',
@@ -423,14 +527,18 @@ loadEmployeeByCode(empCode: string): void {
       positionId: emp.positionId,
       deptId: emp.deptId,
       branchId: emp.branchId,
+      shiftId: emp.shiftId,
+      shiftName: shiftName,
+      shiftStartTime: shiftStartTime,
+      shiftEndTime: shiftEndTime,
       gradeId: emp.gradeId,
       basicSalary: emp.basicSalary,
       maxSalary: emp.maxSalary,
       address: primaryAddress,
       bankDetail: primaryBank,
-qualification: primaryQualification,
-    additionalEducations: additionalEducations,
-          contact: primaryContact,
+      qualification: primaryQualification,
+      additionalEducations: additionalEducations,
+      contact: primaryContact,
       profileImage: emp.profileImage
     };
 
@@ -448,590 +556,533 @@ qualification: primaryQualification,
     return employee;
   }
 
+  private loadEmployeeDataForAdmin(empId: string): void {
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  get educations(): FormArray {
-  return this.employeeForm.get('educations') as FormArray;
-}
-addEducation(education?: any): void {
-  this.educations.push(this.createEducationFormGroup(education));
-}
-
-removeEducation(index: number): void {
-  this.educations.removeAt(index);
-}
-
-createEducationFormGroup(education?: any): FormGroup {
-  return this.fb.group({
-    qualificationId: [education?.qualificationId || ''],
-    institutionName: [education?.institutionName || ''],
-    degreeName: [education?.degreeName || ''],
-    specialization: [education?.specialization || ''],
-    yearOfCompletion: [education?.yearOfCompletion || null]
-  });
-}
-
-addNewEducation(): void {
-  this.showEditModal = true;
-  this.selectModalTab('education');
-  this.addEducation();
-}
-
-editEducation(education: any): void {
-  this.showEditModal = true;
-  this.selectModalTab('education');
-
-  // Find if this is the main qualification or additional education
-  if (education === this.employee?.qualification) {
-    // Update main form fields
-    this.employeeForm.patchValue({
-      institutionName: education.institutionName,
-      degreeName: education.degreeName,
-      specialization: education.specialization,
-      yearOfCompletion: education.yearOfCompletion
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.authService.getToken()}`
     });
-  } else {
-    // Find in additional educations and edit
-    const index = this.educations.controls.findIndex(ctrl =>
-      ctrl.value.institutionName === education.institutionName &&
-      ctrl.value.degreeName === education.degreeName
-    );
 
-    if (index >= 0) {
-      // If found in form array, update it
-      this.educations.at(index).patchValue(education);
-    } else {
-      // Otherwise add as new
-      this.addEducation(education);
-    }
+    this.http.get<any>(`${this.apiUrl}/${empId}`, { headers }).subscribe({
+      next: (response) => {
+        this.isLoading = false;
+        if (!response) {
+          this.errorMessage = 'Employee not found';
+          return;
+        }
+        this.employee = this.transformResponse(response);
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('Full error:', error);
+        if (error instanceof HttpErrorResponse) {
+          console.error('Error status:', error.status);
+          console.error('Error body:', error.error);
+        }
+        this.errorMessage = error.error?.message || error.message || 'Failed to fetch employee details';
+        this.employee = null;
+      }
+    });
   }
-}
 
-deleteEducation(education: any): void {
-  if (!this.employee) return;
-
-  if (confirm('Are you sure you want to delete this education record?')) {
-    if (education === this.employee.qualification) {
-      // Clear main qualification
-      this.employee.qualification = {
-        institutionName: '',
-        degreeName: '',
-        specialization: '',
-        yearOfCompletion: 0
-      };
-    } else {
-      // Remove from additional educations
-      this.employee.additionalEducations = this.employee.additionalEducations?.filter(
-        edu => edu !== education
-      );
-    }
-  }
-}
   private async loadGradeDetails(gradeId: string): Promise<Grade | null> {
     if (!gradeId) return null;
     return this.grades.find(g => g.gradeId === gradeId) || null;
   }
 
-selectModalTab(tab: string): void {
-  this.modalActiveTab = tab;
-}
-
-isModalTabActive(tab: string): boolean {
-  return this.modalActiveTab === tab;
-}
-
-openEditModal(): void {
-  if (!this.employee) return;
-
-  // Initialize the form
-  this.initializeForm();
-
-  // Load necessary reference data
-  Promise.all([
-    this.loadGrades(),
-    this.loadBranches(),
-    this.loadDepartments(this.employee.branchId || '')
-  ]).then(() => {
-    // Set the form values
-    this.setFormValues(this.employee);
-    this.showEditModal = true;
-    this.modalActiveTab = 'basic';
-    
-    // Load employee documents
-    if (this.employee.empId) {
-      this.loadEmployeeDocuments(this.employee.empId);
-    }
-  }).catch(error => {
-    console.error('Error loading reference data:', error);
-    this.setFormValues(this.employee);
-    this.showEditModal = true;
-    this.modalActiveTab = 'basic';
-  });
-}
-
-closeEditModal(): void {
-  this.showEditModal = false;
-  this.errorMessage = '';
-}
-
-private async loadGrades(): Promise<void> {
-  try {
-    const response = await this.http.get<Grade[]>(this.gradeApiUrl).toPromise();
-    this.grades = response || [];
-  } catch (error) {
-    console.error('Error loading grades:', error);
-    this.grades = [];
-  }
-}
-
-private loadBranches(): Promise<void> {
-  return new Promise((resolve, reject) => {
-    this.http.get<Branch[]>(this.branchApiUrl)
-      .pipe(
-        catchError(error => {
-          console.error('Error loading branches:', error);
-          reject(error);
-          return of([]);
-        })
-      )
-      .subscribe({
-        next: (branches) => {
-          this.branches = branches || [];
-          resolve();
-        },
-        error: (error) => {
-          reject(error);
-        }
-      });
-  });
-}
-
-private loadDepartments(branchId: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    let url = this.deptApiUrl;
-    if (branchId) {
-      url = `${this.deptApiUrl}/branch/${branchId}`;
-    }
-
-    this.http.get<{ data: Department[] }>(url)
-      .pipe(
-        catchError(error => {
-          console.error('Error loading departments:', error);
-          reject(error);
-          return of({ data: [] });
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          this.formDepartments = response?.data || [];
-          resolve();
-        },
-        error: (error) => {
-          reject(error);
-        }
-      });
-  });
-}
-
-onBranchChangeInForm(): void {
-  const selectedBranchName = this.employeeForm.get('location')?.value;
-  const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
-
-  if (selectedBranch) {
-    this.loadDepartments(selectedBranch.branchId).then(() => {
-      this.employeeForm.get('department')?.setValue('');
-    });
-  }
-}
-
-onDepartmentChange(): void {
-  const departmentControl = this.employeeForm.get('department');
-  const positionControl = this.employeeForm.get('position');
-
-  if (!departmentControl || !positionControl) {
-    return;
+  selectModalTab(tab: string): void {
+    this.modalActiveTab = tab;
   }
 
-  const selectedDepartmentId = departmentControl.value;
-
-  if (!selectedDepartmentId) {
-    // If no department selected, show all positions
-    this.filteredPositions = [...this.positions];
-    positionControl.setValue('');
-    positionControl.disable();
-    return;
+  isModalTabActive(tab: string): boolean {
+    return this.modalActiveTab === tab;
   }
 
-  // Filter positions based on selected department
-  // Note: Adjust this logic if your positions have a different relationship structure
-  this.filteredPositions = this.positions.filter(position =>
-    position.deptId === selectedDepartmentId || // if positions have departmentId
-    !position.deptId // include positions without department assignment
-  );
-
-  // Enable position selection and reset value
-  positionControl.enable();
-  positionControl.setValue('');
-
-  // If there's only one position, select it automatically
-  if (this.filteredPositions.length === 1) {
-    positionControl.setValue(this.filteredPositions[0].positionId);
-  }
-}
-// Nationality change handler
-onNationalityChange(): void {
-  const isBhutanese = this.employeeForm.get('nationality')?.value === 'Bhutanese';
-  
-  const addressLine1 = this.employeeForm.get('addressLine1');
-  const addressLine2 = this.employeeForm.get('addressLine2');
-  const thromde = this.employeeForm.get('thromde');
-  const dzongkhag = this.employeeForm.get('dzongkhag');
-
-  if (isBhutanese) {
-    if (addressLine2?.value) {
-      this.employeeForm.patchValue({ addressLine2: '' });
-    }
-    
-    addressLine1?.clearValidators();
-    addressLine2?.clearValidators();
-    thromde?.clearValidators();
-    dzongkhag?.clearValidators();
-  } else {
-    if (thromde?.value || dzongkhag?.value) {
-      this.employeeForm.patchValue({
-        thromde: '',
-        dzongkhag: ''
-      });
-    }
-    
-    addressLine1?.clearValidators();
-    addressLine2?.clearValidators();
-    thromde?.clearValidators();
-    dzongkhag?.clearValidators();
-  }
-
-  addressLine1?.updateValueAndValidity();
-  addressLine2?.updateValueAndValidity();
-  thromde?.updateValueAndValidity();
-  dzongkhag?.updateValueAndValidity();
-}
-onGradeChange(event: Event): void {
-  const gradeId = (event.target as HTMLSelectElement).value;
-  const selectedGrade = this.grades.find(g => g.gradeId === gradeId);
-
-  if (selectedGrade) {
-    this.employeeForm.patchValue({
-      basicSalary: selectedGrade.minSalary,
-      maxSalary: selectedGrade.maxSalary
-    });
-  }
-}
-
-private setFormValues(employee: Employee | null): void {
-  if (!employee) return;
-
-  const primaryContact = employee.contact || {
-    email: '',
-    phonePrimary: '',
-    isEmergencyContact: false
-  };
-
-  const primaryBank = employee.bankDetail || {
-    bankName: '',
-    branchName: '',
-    accountNumber: '',
-    accountType: ''
-  };
-
-  const primaryQualification = employee.qualification || {
-    institutionName: '',
-    degreeName: '',
-    specialization: '',
-    yearOfCompletion: 0
-  };
-
-  const currentAddress = employee.address || {
-    addressType: 'Permanent',
-    addressLine1: '',
-    addressLine2: '',
-    thromde: '',
-    dzongkhag: '',
-    country: 'Bhutan',
-    isCurrent: false
-  };
-
-  // Find the branch name from branchId
-  const branchName = employee.branchId
-    ? this.branches.find(b => b.branchId === employee.branchId)?.branchName
-    : '';
-
-  // Find the department from deptId
-  const departmentId = employee.deptId || '';
-
-  // Find the position from positionId
-  const positionId = employee.positionId || '';
-
-  // Find the grade from gradeId
-  const gradeId = employee.gradeId || '';
-
-  // Clear existing educations
-  while (this.educations.length) {
-    this.educations.removeAt(0);
-  }
-
-  // Patch main form values
-  this.employeeForm.patchValue({
-    firstName: employee.firstName,
-    middleName: employee.middleName || '',
-    lastName: employee.lastName,
-    dateOfBirth: this.formatDateForInput(employee.dateOfBirth),
-    gender: employee.gender,
-    maritalStatus: employee.maritalStatus || 'Single',
-    nationality: employee.nationality || 'Bhutanese',
-    cidNumber: employee.cidNumber,
-    organization: employee.orgId || this.selectedOrgId,
-    hireDate: this.formatDateForInput(employee.hireDate),
-    employmentStatus: employee.employmentStatus,
-    employmentType: employee.employmentType || '',
-    email: primaryContact.email,
-    department: departmentId,
-    position: positionId,
-    location: branchName,
-    phonePrimary: primaryContact.phonePrimary,
-    grade: gradeId,
-    basicSalary: employee.basicSalary || '',
-    maxSalary: employee.maxSalary || '',
-    bankName: primaryBank.bankName,
-    branchName: primaryBank.branchName,
-    accountNumber: primaryBank.accountNumber,
-    accountType: primaryBank.accountType,
-    institutionName: primaryQualification.institutionName,
-    degreeName: primaryQualification.degreeName,
-    specialization: primaryQualification.specialization,
-    yearOfCompletion: primaryQualification.yearOfCompletion || 0,
-    addressType: currentAddress.addressType,
-    addressLine1: currentAddress.addressLine1,
-    addressLine2: currentAddress.addressLine2,
-    thromde: currentAddress.thromde,
-    dzongkhag: currentAddress.dzongkhag
-  });
-
-  // Add additional educations
-  if (employee.additionalEducations?.length) {
-    employee.additionalEducations.forEach(edu => {
-      this.addEducation(edu);
-    });
-  }
-
-  // Enable/disable fields based on selections
-  if (branchName) {
-    this.employeeForm.get('department')?.enable();
-  }
-  if (departmentId) {
-    this.employeeForm.get('position')?.enable();
-  }
-
-  // Handle nationality specific fields
-  this.onNationalityChange();
-}
-
-private formatDateForInput(dateString: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toISOString().split('T')[0];
-}
-
-saveEmployee(): void {
-  if (this.employeeForm.invalid || !this.employee) {
-    this.errorMessage = 'Please fill all required fields correctly.';
-    this.employeeForm.markAllAsTouched();
-    return;
-  }
-
-  this.isSaving = true;
-  this.errorMessage = '';
-
-  const formValue = this.employeeForm.getRawValue();
-  const empId = this.employee.empId;
-
-  try {
-    const branchId = this.getBranchId(formValue.location);
-    if (!branchId) {
-      throw new Error('Invalid location selected');
-    }
-
-    // Get existing IDs for updates
-    const existingContactId = this.employee.contact?.contactId;
-    const existingAddressId = this.employee.address?.addressId;
-    const existingBankDetailId = this.employee.bankDetail?.bankDetailId;
-
-    // Prepare qualifications array
-    const qualifications = [];
-    
-    // Add main education if it has values
-    if (formValue.institutionName || formValue.degreeName) {
-      qualifications.push({
-        qualificationId: this.employee.qualification?.qualificationId || undefined,
-        institutionName: formValue.institutionName,
-        degreeName: formValue.degreeName,
-        specialization: formValue.specialization,
-        yearOfCompletion: formValue.yearOfCompletion
-      });
-    }
-
-    // Add additional educations
-    formValue.educations.forEach((edu: any) => {
-      if (edu.institutionName || edu.degreeName) {
-        qualifications.push({
-          qualificationId: edu.qualificationId || undefined,
-          institutionName: edu.institutionName,
-          degreeName: edu.degreeName,
-          specialization: edu.specialization,
-          yearOfCompletion: edu.yearOfCompletion
-        });
-      }
-    });
-
-    const payload = {
-      employee: {
-        empId: empId,
-        firstName: formValue.firstName,
-        middleName: formValue.middleName || null,
-        lastName: formValue.lastName,
-        positionId: formValue.position,
-        deptId: formValue.department,
-        dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
-        gender: formValue.gender,
-        maritalStatus: formValue.maritalStatus,
-        nationality: formValue.nationality,
-        cidNumber: formValue.cidNumber,
-        hireDate: this.formatDateForAPI(formValue.hireDate),
-        employmentStatus: formValue.employmentStatus,
-        employmentType: formValue.employmentType,
-        branchId: branchId,
-        orgId: formValue.organization,
-        gradeId: formValue.grade,
-        basicSalary: formValue.basicSalary,
-        maxSalary: formValue.maxSalary
-      },
-      contacts: [{
-        contactId: existingContactId || undefined,
-        email: formValue.email,
-        phonePrimary: formValue.phonePrimary,
-        isEmergencyContact: false,
-        relationship: 'Self',
-        priorityLevel: 1
-      }],
-      addresses: [{
-        addressId: existingAddressId || undefined,
-        addressType: formValue.addressType || 'Permanent',
-        addressLine1: formValue.addressLine1,
-        addressLine2: formValue.addressLine2,
-        thromde: formValue.thromde,
-        dzongkhag: formValue.dzongkhag,
-        country: formValue.nationality === 'Bhutanese' ? 'Bhutan' : 'Non-Bhutanese',
-        isCurrent: true
-      }],
-      qualifications: qualifications,
-      bankDetails: [{
-        bankDetailId: existingBankDetailId || undefined,
-        bankName: formValue.bankName,
-        branchName: formValue.branchName,
-        accountNumber: formValue.accountNumber,
-        accountType: formValue.accountType
-      }],
-      updateOperation: true
-    };
-
-    this.http.put(`${this.apiUrl}/${empId}`, payload)
-      .pipe(
-        catchError(error => {
-          this.errorMessage = this.extractErrorMessage(error);
-          this.isSaving = false;
-          return throwError(() => error);
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          // Upload documents if any
-          if (this.selectedFiles.length > 0) {
-            this.uploadDocuments(empId).then(() => {
-              this.isSaving = false;
-              this.closeEditModal();
-              this.loadEmployeeByCode(this.employee?.empCode || '');
-            }).catch(() => {
-              this.isSaving = false;
-              this.closeEditModal();
-              this.loadEmployeeByCode(this.employee?.empCode || '');
-            });
-          } else {
-            this.isSaving = false;
-            this.closeEditModal();
-            this.loadEmployeeByCode(this.employee?.empCode || '');
-          }
-        },
-        error: (error) => {
-          console.error('Update failed:', error);
-          this.isSaving = false;
-        }
-      });
-  } catch (error) {
-    this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-    this.isSaving = false;
-  }
-}
-
-private formatDateForAPI(date: Date | string): string {
-  const d = new Date(date);
-  return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
-}
-
-
-private getBranchId(locationName: string): string {
-  if (!locationName) {
-    console.error('Location name is empty');
-    return '';
-  }
-
-  const branch = this.branches.find(b =>
-    b.branchName.trim().toLowerCase() === locationName.trim().toLowerCase()
-  );
-
-  if (!branch) {
-    console.error('Branch not found for location:', locationName);
-    throw new Error(`Branch not found for location: ${locationName}`);
-  }
-
-  return branch.branchId;
-}
-
-private extractErrorMessage(error: any): string {
-  if (!error) return 'An unknown error occurred';
-
-  if (error instanceof HttpErrorResponse) {
-    if (error.status === 0) {
-      return 'Network error: Could not connect to server';
-    }
-    if (error.status === 404) {
-      return 'The requested resource was not found';
-    }
+  async openEditModal(): Promise<void> {
+    if (!this.employee) return;
 
     try {
-      const serverError = error.error;
-      if (serverError?.message) {
-        return serverError.message;
-      }
-      if (typeof serverError === 'string') {
-        return serverError;
-      }
-    } catch (e) {
-      console.error('Error parsing error response:', e);
-    }
+      // Initialize the form first
+      this.initializeForm();
 
-    return `Server error: ${error.status} ${error.statusText}`;
+      // Load all necessary data in parallel
+      await Promise.all([
+        this.loadGrades(),
+        this.loadBranches(),
+        this.loadDepartments(this.employee.branchId || ''),
+        this.loadShifts() // Make sure shifts are loaded
+      ]);
+
+      // Now that all data is loaded, set form values
+      this.setFormValues(this.employee);
+
+      // Show the modal
+      this.showEditModal = true;
+      this.modalActiveTab = 'basic';
+
+    } catch (error) {
+      console.error('Error opening edit modal:', error);
+      this.errorMessage = 'Failed to initialize edit form';
+    }
   }
 
-  return error.message || 'An unknown error occurred';
-}
+  closeEditModal(): void {
+    this.showEditModal = false;
+    this.errorMessage = '';
+  }
+
+  private async loadGrades(): Promise<void> {
+    try {
+      const response = await this.http.get<Grade[]>(this.gradeApiUrl).toPromise();
+      this.grades = response || [];
+    } catch (error) {
+      console.error('Error loading grades:', error);
+      this.grades = [];
+    }
+  }
+
+  private loadBranches(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      this.http.get<Branch[]>(this.branchApiUrl)
+        .pipe(
+          catchError(error => {
+            console.error('Error loading branches:', error);
+            reject(error);
+            return of([]);
+          })
+        )
+        .subscribe({
+          next: (branches) => {
+            this.branches = branches || [];
+            resolve();
+          },
+          error: (error) => {
+            reject(error);
+          }
+        });
+    });
+  }
+
+  private loadDepartments(branchId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let url = this.deptApiUrl;
+      if (branchId) {
+        url = `${this.deptApiUrl}/branch/${branchId}`;
+      }
+
+      this.http.get<{ data: Department[] }>(url)
+        .pipe(
+          catchError(error => {
+            console.error('Error loading departments:', error);
+            reject(error);
+            return of({ data: [] });
+          })
+        )
+        .subscribe({
+          next: (response) => {
+            this.formDepartments = response?.data || [];
+            resolve();
+          },
+          error: (error) => {
+            reject(error);
+          }
+        });
+    });
+  }
+
+  onBranchChangeInForm(): void {
+    const selectedBranchName = this.employeeForm.get('location')?.value;
+    const selectedBranch = this.branches.find(b => b.branchName === selectedBranchName);
+
+    if (selectedBranch) {
+      this.loadDepartments(selectedBranch.branchId).then(() => {
+        this.employeeForm.get('department')?.setValue('');
+      });
+    }
+  }
+
+  onDepartmentChange(): void {
+    const departmentControl = this.employeeForm.get('department');
+    const positionControl = this.employeeForm.get('position');
+
+    if (!departmentControl || !positionControl) {
+      return;
+    }
+
+    const selectedDepartmentId = departmentControl.value;
+
+    if (!selectedDepartmentId) {
+      // If no department selected, show all positions
+      this.filteredPositions = [...this.positions];
+      positionControl.setValue('');
+      positionControl.disable();
+      return;
+    }
+
+    // Filter positions based on selected department
+    // Note: Adjust this logic if your positions have a different relationship structure
+    this.filteredPositions = this.positions.filter(position =>
+      position.deptId === selectedDepartmentId || // if positions have departmentId
+      !position.deptId // include positions without department assignment
+    );
+
+    // Enable position selection and reset value
+    positionControl.enable();
+    positionControl.setValue('');
+
+    // If there's only one position, select it automatically
+    if (this.filteredPositions.length === 1) {
+      positionControl.setValue(this.filteredPositions[0].positionId);
+    }
+  }
+
+  // Nationality change handler
+  onNationalityChange(): void {
+    const isBhutanese = this.employeeForm.get('nationality')?.value === 'Bhutanese';
+
+    const addressLine1 = this.employeeForm.get('addressLine1');
+    const addressLine2 = this.employeeForm.get('addressLine2');
+    const thromde = this.employeeForm.get('thromde');
+    const dzongkhag = this.employeeForm.get('dzongkhag');
+
+    if (isBhutanese) {
+      if (addressLine2?.value) {
+        this.employeeForm.patchValue({ addressLine2: '' });
+      }
+
+      addressLine1?.clearValidators();
+      addressLine2?.clearValidators();
+      thromde?.clearValidators();
+      dzongkhag?.clearValidators();
+    } else {
+      if (thromde?.value || dzongkhag?.value) {
+        this.employeeForm.patchValue({
+          thromde: '',
+          dzongkhag: ''
+        });
+      }
+
+      addressLine1?.clearValidators();
+      addressLine2?.clearValidators();
+      thromde?.clearValidators();
+      dzongkhag?.clearValidators();
+    }
+
+    addressLine1?.updateValueAndValidity();
+    addressLine2?.updateValueAndValidity();
+    thromde?.updateValueAndValidity();
+    dzongkhag?.updateValueAndValidity();
+  }
+
+  onGradeChange(event: Event): void {
+    const gradeId = (event.target as HTMLSelectElement).value;
+    const selectedGrade = this.grades.find(g => g.gradeId === gradeId);
+
+    if (selectedGrade) {
+      this.employeeForm.patchValue({
+        basicSalary: selectedGrade.minSalary,
+        maxSalary: selectedGrade.maxSalary
+      });
+    }
+  }
+
+  private setFormValues(employee: Employee | null): void {
+    if (!employee) return;
+
+    const primaryContact = employee.contact || {
+      email: '',
+      phonePrimary: '',
+      isEmergencyContact: false
+    };
+
+    const primaryBank = employee.bankDetail || {
+      bankName: '',
+      branchName: '',
+      accountNumber: '',
+      accountType: ''
+    };
+
+    const primaryQualification = employee.qualification || {
+      institutionName: '',
+      degreeName: '',
+      specialization: '',
+      yearOfCompletion: 0
+    };
+
+    const currentAddress = employee.address || {
+      addressType: 'Permanent',
+      addressLine1: '',
+      addressLine2: '',
+      thromde: '',
+      dzongkhag: '',
+      country: 'Bhutan',
+      isCurrent: false
+    };
+
+    // Find the branch name from branchId
+    const branchName = employee.branchId
+      ? this.branches.find(b => b.branchId === employee.branchId)?.branchName
+      : '';
+
+    // Find the department from deptId
+    const departmentId = employee.deptId || '';
+
+    // Find the position from positionId
+    const positionId = employee.positionId || '';
+
+    // Find the grade from gradeId
+    const gradeId = employee.gradeId || '';
+
+    // Patch main form values
+    this.employeeForm.patchValue({
+      firstName: employee.firstName,
+      middleName: employee.middleName || '',
+      lastName: employee.lastName,
+      dateOfBirth: this.formatDateForInput(employee.dateOfBirth),
+      gender: employee.gender,
+      maritalStatus: employee.maritalStatus || 'Single',
+      nationality: employee.nationality || 'Bhutanese',
+      cidNumber: employee.cidNumber,
+      organization: employee.orgId || this.selectedOrgId,
+      hireDate: this.formatDateForInput(employee.hireDate),
+      employmentStatus: employee.employmentStatus,
+      employmentType: employee.employmentType || '',
+      email: primaryContact.email,
+      department: departmentId,
+      position: positionId,
+      location: branchName,
+      phonePrimary: primaryContact.phonePrimary,
+      shift: employee.shiftId || '',
+      grade: gradeId,
+      basicSalary: employee.basicSalary || '',
+      maxSalary: employee.maxSalary || '',
+      bankName: primaryBank.bankName,
+      branchName: primaryBank.branchName,
+      accountNumber: primaryBank.accountNumber,
+      accountType: primaryBank.accountType,
+      institutionName: primaryQualification.institutionName,
+      degreeName: primaryQualification.degreeName,
+      specialization: primaryQualification.specialization,
+      yearOfCompletion: primaryQualification.yearOfCompletion || 0,
+      addressType: currentAddress.addressType,
+      addressLine1: currentAddress.addressLine1,
+      addressLine2: currentAddress.addressLine2,
+      thromde: currentAddress.thromde,
+      dzongkhag: currentAddress.dzongkhag
+    });
+
+    // Enable/disable fields based on selections
+    if (branchName) {
+      this.employeeForm.get('department')?.enable();
+    }
+    if (departmentId) {
+      this.employeeForm.get('position')?.enable();
+    }
+
+    // Handle nationality specific fields
+    this.onNationalityChange();
+  }
+
+  private formatDateForInput(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toISOString().split('T')[0];
+  }
+
+  saveEmployee(): void {
+    if (!this.canEditEmployee) {
+      this.errorMessage = 'You do not have permission to edit this employee';
+      return;
+    }
+
+    if (this.employeeForm.invalid || !this.employee) {
+      this.errorMessage = 'Please fill all required fields correctly.';
+      this.employeeForm.markAllAsTouched();
+      return;
+    }
+
+    this.isSaving = true;
+    this.errorMessage = '';
+
+    const formValue = this.employeeForm.getRawValue();
+    const empId = this.employee.empId;
+
+    try {
+      // Validate branch/location
+      const branchId = this.getBranchId(formValue.location);
+      if (!branchId) {
+        throw new Error('Invalid location selected');
+      }
+
+      // Validate shift
+      const shiftId = formValue.shift;
+      const selectedShift = this.shifts.find(s => s.shiftId === shiftId);
+      if (!selectedShift) {
+        this.errorMessage = 'Invalid shift selected';
+        this.isSaving = false;
+        return;
+      }
+
+      // Get existing IDs
+      const existingContactId = this.employee.contact?.contactId;
+      const existingAddressId = this.employee.address?.addressId;
+      const existingBankDetailId = this.employee.bankDetail?.bankDetailId;
+
+      // Prepare payload
+      const payload = {
+        employee: {
+          empId: empId,
+          empCode: this.employee.empCode, // Add empCode
+          firstName: formValue.firstName,
+          middleName: formValue.middleName || null,
+          lastName: formValue.lastName,
+          positionId: formValue.position,
+          deptId: formValue.department,
+          dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
+          gender: formValue.gender,
+          maritalStatus: formValue.maritalStatus,
+          nationality: formValue.nationality,
+          cidNumber: formValue.cidNumber,
+          hireDate: this.formatDateForAPI(formValue.hireDate),
+          employmentStatus: formValue.employmentStatus,
+          employmentType: formValue.employmentType,
+          branchId: branchId,
+          orgId: formValue.organization,
+          shiftId: formValue.shift,
+          gradeId: formValue.grade,
+          basicSalary: formValue.basicSalary,
+          maxSalary: formValue.maxSalary
+        },
+        contacts: [{
+          contactId: existingContactId || undefined,
+          contactType: 'Primary', // Add required field
+          contactName: `${formValue.firstName} ${formValue.lastName}`, // Add required field
+          email: formValue.email,
+          phonePrimary: formValue.phonePrimary,
+          isEmergencyContact: false,
+          relationship: 'Self',
+          priorityLevel: 1
+        }],
+        addresses: [{
+          addressId: existingAddressId || undefined,
+          addressType: formValue.addressType || 'Permanent',
+          addressLine1: formValue.addressLine1,
+          addressLine2: formValue.addressLine2,
+          thromde: formValue.thromde,
+          dzongkhag: formValue.dzongkhag,
+          country: formValue.nationality === 'Bhutanese' ? 'Bhutan' : 'Non-Bhutanese',
+          isCurrent: true
+        }],
+        bankDetails: [{
+          bankDetailId: existingBankDetailId || undefined,
+          bankName: formValue.bankName,
+          branchName: formValue.branchName,
+          accountNumber: formValue.accountNumber,
+          accountType: formValue.accountType
+        }],
+        updateOperation: true
+      };
+
+      // Add headers with auth token
+      const headers = new HttpHeaders({
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.authService.getToken()}`
+      });
+
+      this.http.put(`${this.apiUrl}/${empId}`, payload, { headers }).subscribe({
+        next: (response) => {
+          this.isSaving = false;
+          this.closeEditModal();
+          this.loadEmployeeById(empId);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.isSaving = false;
+          console.error('Update error:', {
+            status: error.status,
+            error: error.error,
+            url: error.url
+          });
+
+          if (error.error) {
+            if (typeof error.error === 'string') {
+              this.errorMessage = error.error;
+            } else if (error.error.message) {
+              this.errorMessage = error.error.message;
+            } else if (error.error.errors) {
+              this.errorMessage = Object.values(error.error.errors).join('\n');
+            }
+          } else {
+            this.errorMessage = `Update failed: ${error.status} ${error.statusText}`;
+          }
+        }
+      });
+    } catch (error) {
+      this.isSaving = false;
+      this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      console.error('Error in saveEmployee:', error);
+    }
+  }
+
+  // In your formatDateForAPI method
+  private formatDateForAPI(date: Date | string): string {
+    try {
+      const d = date ? new Date(date) : new Date();
+      if (isNaN(d.getTime())) throw new Error('Invalid date');
+      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    } catch (e) {
+      console.error('Date formatting error:', e);
+      return ''; // or handle differently
+    }
+  }
+
+  private getBranchId(locationName: string): string {
+    if (!locationName) {
+      console.error('Location name is empty');
+      return '';
+    }
+
+    const branch = this.branches.find(b =>
+      b.branchName.trim().toLowerCase() === locationName.trim().toLowerCase()
+    );
+
+    if (!branch) {
+      console.error('Branch not found for location:', locationName);
+      throw new Error(`Branch not found for location: ${locationName}`);
+    }
+
+    return branch.branchId;
+  }
+
+  private extractErrorMessage(error: any): string {
+    if (!error) return 'An unknown error occurred';
+
+    if (error instanceof HttpErrorResponse) {
+      if (error.status === 0) {
+        return 'Network error: Could not connect to server';
+      }
+      if (error.status === 404) {
+        return 'The requested resource was not found';
+      }
+
+      try {
+        const serverError = error.error;
+        if (serverError?.message) {
+          return serverError.message;
+        }
+        if (typeof serverError === 'string') {
+          return serverError;
+        }
+      } catch (e) {
+        console.error('Error parsing error response:', e);
+      }
+
+      return `Server error: ${error.status} ${error.statusText}`;
+    }
+
+    return error.message || 'An unknown error occurred';
+  }
 
   onFileSelected(event: any): void {
     const file = event.target.files[0];
@@ -1087,6 +1138,7 @@ private extractErrorMessage(error: any): string {
       default: return 'bg-secondary';
     }
   }
+
 
   exportToPDF(): void {
     if (!this.employee) return;
@@ -1227,147 +1279,6 @@ private extractErrorMessage(error: any): string {
     // Save the PDF
     doc.save(`Employee_${this.employee.empCode}_Details.pdf`);
   }
-  // File handling methods
-triggerFileInput(): void {
-  const fileInput = document.querySelector('.file-upload-area input[type="file"]') as HTMLElement;
-  fileInput.click();
-}
 
-onFilesSelected(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  if (input.files && input.files.length > 0) {
-    for (let i = 0; i < input.files.length; i++) {
-      const file = input.files[i];
-      if (this.validateFile(file)) {
-        this.selectedFiles.push(file);
-      }
-    }
-  }
-}
-
-validateFile(file: File): boolean {
-  const validTypes = ['application/pdf', 'application/msword', 
-                     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                     'application/vnd.ms-excel', 
-                     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                     'image/jpeg', 'image/png'];
-  const maxSize = 5 * 1024 * 1024; // 5MB
-
-  if (!validTypes.includes(file.type)) {
-    this.errorMessage = `Invalid file type: ${file.name}. Only PDF, Word, Excel, JPG, PNG are allowed.`;
-    return false;
-  }
-
-  if (file.size > maxSize) {
-    this.errorMessage = `File too large: ${file.name}. Max size is 5MB.`;
-    return false;
-  }
-
-  return true;
-}
-
-removeFile(index: number): void {
-  this.selectedFiles.splice(index, 1);
-}
-
-getFileIconClass(fileName: string): string {
-  const extension = fileName.split('.').pop()?.toLowerCase();
-  const iconMap: { [key: string]: string } = {
-    'pdf': 'bi bi-file-earmark-pdf text-danger',
-    'doc': 'bi bi-file-earmark-word text-primary',
-    'docx': 'bi bi-file-earmark-word text-primary',
-    'xls': 'bi bi-file-earmark-excel text-success',
-    'xlsx': 'bi bi-file-earmark-excel text-success',
-    'jpg': 'bi bi-file-earmark-image text-info',
-    'jpeg': 'bi bi-file-earmark-image text-info',
-    'png': 'bi bi-file-earmark-image text-info'
-  };
-  return iconMap[extension || ''] || 'bi bi-file-earmark-text';
-}
-
-formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const sizeValue = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
-  return `${sizeValue} ${sizes[i]}`;
-}
-
-// Document API methods
-uploadDocuments(empId: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (this.selectedFiles.length === 0) {
-      resolve();
-      return;
-    }
-
-    const authToken = this.authService.getToken();
-    if (!authToken) {
-      this.errorMessage = 'Authentication required for document upload';
-      reject('No auth token');
-      return;
-    }
-
-    const uploadPromises = this.selectedFiles.map(file => {
-      const formData = new FormData();
-      formData.append('file', file, file.name);
-      formData.append('fileName', file.name);
-      formData.append('visibleOnlyToMe', 'false');
-
-      const headers = new HttpHeaders({
-        'Authorization': `Bearer ${authToken}`
-      });
-
-      return this.http.post(this.documentUploadUrl, formData, { headers }).toPromise();
-    });
-
-    Promise.all(uploadPromises)
-      .then(() => {
-        this.selectedFiles = [];
-        resolve();
-      })
-      .catch(error => {
-        console.error('Document upload failed:', error);
-        this.errorMessage = 'Document upload failed. You can try again later.';
-        resolve();
-      });
-  });
-}
-
-loadEmployeeDocuments(empId: string): void {
-  if (!empId) return;
-  
-  this.http.get<any[]>(`${environment.apiUrl}/api/archive/upload/${empId}`)
-    .pipe(
-      catchError((error: HttpErrorResponse) => {
-        console.error('Error loading documents:', error);
-        return of([]);
-      })
-    )
-    .subscribe({
-      next: (documents) => {
-        this.employeeDocuments = documents;
-      }
-    });
-}
-
-deleteDocument(docId: string): void {
-  if (confirm('Are you sure you want to delete this document?')) {
-    this.http.delete(`${environment.apiUrl}/api/archive/${docId}`)
-      .subscribe({
-        next: () => {
-          this.employeeDocuments = this.employeeDocuments.filter(doc => doc.id !== docId);
-        },
-        error: (error) => {
-          console.error('Error deleting document:', error);
-        }
-      });
-  }
-}
-
-getDocumentUrl(docId: string): string {
-  return `${environment.apiUrl}/api/archive/download/${docId}`;
-}
 }
 
