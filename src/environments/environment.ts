@@ -9,11 +9,12 @@ export const environment = {
   appVersion: packageInfo.version,
   production: false,
 
-  apiUrl: 'http://localhost:8088',
+  apiUrl: 'http://localhost:8080',
   leaveApiUrl: 'http://localhost:8085/api/leave',
   payrollApiUrl: 'http://localhost:8082',
   transferApiUrl: 'http://localhost:8080',
-  documentUploadUrl:'http://localhost:8090'
+  documentUploadUrl:'http://localhost:8090',
+  geminiApiKey: 'AIzaSyCnoIDiqK0N2pHx4W4psCpp3mYXRA-SW94',
 };
 
 /*
