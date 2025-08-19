@@ -491,6 +491,56 @@ table {
 }
 
 /* Pagination */
+.pagination-container {
+  margin-top: 2rem;
+  
+  .pagination {
+    .page-item {
+      margin: 0 0.25rem;
+      
+      &.disabled {
+        .page-link {
+          color: #6c757d;
+          pointer-events: none;
+          background-color: #f8f9fa;
+          border-color: #dee2e6;
+        }
+      }
+      
+      .page-link {
+        color: #23a9d2;
+        border: 1px solid #dee2e6;
+        padding: 0.5rem 0.9rem;
+        border-radius: 4px;
+        transition: all 0.2s ease-in-out;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        
+        &:hover {
+          background-color: #e9ecef;
+          border-color: #dee2e6;
+          color: #1a7a9a;
+        }
+        
+        &:focus {
+          box-shadow: 0 0 0 0.2rem rgba(35, 169, 210, 0.25);
+          outline: none;
+        }
+      }
+      
+      &.disabled .page-link {
+        color: #6c757d;
+        pointer-events: none;
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+      }
+    }
+  }
+}
+
+/* Old simple-pagination - keeping for reference but it's no longer used */
 .simple-pagination {
   display: flex;
   justify-content: center;

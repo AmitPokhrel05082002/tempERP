@@ -196,6 +196,32 @@ export class DepartmentComponent implements OnInit {
     }
   }
 
+  viewDepartment(department: DepartmentTableItem): void {
+    Swal.fire({
+      title: department.dept_name,
+      html: `
+        <div class="text-start">
+          <p><strong>Department Code:</strong> ${department.dept_code || 'N/A'}</p>
+          <p><strong>Organization:</strong> ${department.org_name || 'N/A'}</p>
+          <p><strong>Branch:</strong> ${department.branch_name || 'N/A'}</p>
+          <p><strong>Budget:</strong> ${department.budget_allocation ? 'BTN ' + department.budget_allocation.toLocaleString() : 'N/A'}</p>
+          <p><strong>Sub-departments:</strong> ${department.sub_departments_count || 0}</p>
+          <p><strong>Status:</strong> 
+            <span class="badge ${department.status ? 'bg-success' : 'bg-secondary'}">
+              ${department.status ? 'Active' : 'Inactive'}
+            </span>
+          </p>
+        </div>
+      `,
+      confirmButtonText: 'Close',
+      confirmButtonColor: '#3f80ea',
+      width: '500px',
+      customClass: {
+        popup: 'department-details-modal'
+      }
+    });
+  }
+
   toggleFilters(event: Event): void {
     event.stopPropagation();
     this.showFilters = !this.showFilters;

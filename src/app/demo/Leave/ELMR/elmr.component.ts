@@ -112,8 +112,7 @@ export class ELMRComponent implements OnInit {
             }
           },
           error: (error) => {
-            console.error('Error fetching department:', error);
-            this.managerDepartment = 'Department';
+                    this.managerDepartment = 'Department';
             this.loadLeaveRequests();
           }
         });
@@ -167,7 +166,6 @@ export class ELMRComponent implements OnInit {
         }
       },
       error: (error) => {
-        console.error('Error loading departments:', error);
         this.departments = ['All Departments'];
       }
     });
@@ -220,22 +218,9 @@ export class ELMRComponent implements OnInit {
                   // Filter by department if manager
                   if (this.authService.isManager() && this.managerDepartment) {
                     const managerDeptLower = this.managerDepartment.toLowerCase().trim();
-                    console.log('Manager Department:', this.managerDepartment);
-                    console.log('Manager Department (lower):', managerDeptLower);
-                    
-                    console.log('All current leaves before filtering:', currentLeaves);
-                    console.log('All leaves before filtering:', allLeaves);
-                    
+                  
+        
                     // First, check if any leaves have the department/division set
-                    console.log('Sample of department/division values in currentLeaves:', 
-                      currentLeaves.slice(0, 3).map(l => ({
-                        id: l.id,
-                        name: l.name,
-                        department: l.department,
-                        division: l.division
-                      }))
-                    );
-                    
                     currentLeaves = currentLeaves.filter(leave => {
                       const leaveDept = String(leave.department || '').toLowerCase().trim();
                       const leaveDivision = String(leave.division || '').toLowerCase().trim();
@@ -246,14 +231,7 @@ export class ELMRComponent implements OnInit {
                                      managerDeptLower.includes(leaveDept) ||
                                      leaveDivision.includes(managerDeptLower) ||
                                      managerDeptLower.includes(leaveDivision));
-                      
-                      console.log('Checking leave:', {
-                        id: leave.id,
-                        name: leave.name,
-                        department: leave.department,
-                        division: leave.division,
-                        matches: matches
-                      });
+                    
                       
                       return matches;
                     });
@@ -269,15 +247,9 @@ export class ELMRComponent implements OnInit {
                               leaveDivision.includes(managerDeptLower) ||
                               managerDeptLower.includes(leaveDivision));
                     });
-                    
-                    console.log('Number of filtered currentLeaves:', currentLeaves.length);
-                    console.log('Number of filtered allLeaves:', allLeaves.length);
+            
                     
                     if (currentLeaves.length === 0) {
-                      console.warn('No leaves matched the department filter. Manager department:', this.managerDepartment);
-                      console.warn('Available departments in data:', 
-                        [...new Set([...currentLeaves, ...allLeaves].map(l => l.department || l.division).filter(Boolean))]
-                      );
                     }
                   }
                   
@@ -448,8 +420,7 @@ export class ELMRComponent implements OnInit {
         day: 'numeric'
       });
     } catch (e) {
-      console.error('Error formatting date:', e);
-      return dateString || '';
+        return dateString || '';
     }
   }
 
@@ -499,30 +470,19 @@ export class ELMRComponent implements OnInit {
           leaveHistory: item.leaveHistory || []
         };
       } catch (error) {
-        console.error('Error mapping leave request:', error, item);
         return null;
       }
     }).filter((item): item is NonNullable<typeof item> => item !== null) as LeaveRequestUI[];
   }
 
   get filteredLeaves(): LeaveRequestUI[] {
-    console.group('filteredLeaves - Debug Info');
-    
     if (!this.allLeaveRequests || this.allLeaveRequests.length === 0) {
-      console.log('No leave requests available to filter');
-      console.groupEnd();
       return [];
     }
     
     const leavesToFilter = this.isCurrentUserEmployee() ? this.leaveRequests : this.allLeaveRequests;
-    console.log('Total leaves to filter:', leavesToFilter.length);
-    console.log('Current filters:', {
-      searchTerm: this.searchTerm,
-      selectedDepartment: this.selectedDepartment,
-      selectedDate: this.selectedDate
-    });
     
-    const filtered = leavesToFilter.filter(leave => {
+    return leavesToFilter.filter(leave => {
       const searchTermLower = this.searchTerm ? this.searchTerm.toLowerCase() : '';
       const nameLower = leave.name ? leave.name.toLowerCase() : '';
       const empCodeLower = leave.empCode ? leave.empCode.toLowerCase() : '';
@@ -531,7 +491,6 @@ export class ELMRComponent implements OnInit {
         nameLower.includes(searchTermLower) ||
         empCodeLower.includes(searchTermLower);
   
-      // Normalize department names for comparison
       const normalizeString = (str: string | null | undefined): string => 
         (str || '').toString().trim().toLowerCase().replace(/[^a-z0-9]/g, '');
       
@@ -542,42 +501,12 @@ export class ELMRComponent implements OnInit {
       const matchesDepartment = this.selectedDepartment === 'All Departments' || 
         (leave.department && leaveDeptNormalized === selectedDeptNormalized) ||
         (leave.division && leaveDivisionNormalized === selectedDeptNormalized);
-        
-      console.log('Department Matching:', {
-        selectedDepartment: this.selectedDepartment,
-        leaveDepartment: leave.department,
-        leaveDivision: leave.division,
-        normalized: {
-          selected: selectedDeptNormalized,
-          dept: leaveDeptNormalized,
-          division: leaveDivisionNormalized
-        },
-        matches: matchesDepartment
-      });
   
       const matchesDate = !this.selectedDate || 
         (leave.rawDate && leave.rawDate.toString() === this.selectedDate.toString());
-      
-      console.log('Leave:', {
-        id: leave.id,
-        name: leave.name,
-        department: leave.department,
-        division: leave.division,
-        rawDate: leave.rawDate,
-        matches: { matchesSearch, matchesDepartment, matchesDate },
-        filterValues: {
-          searchTerm: this.searchTerm,
-          selectedDepartment: this.selectedDepartment,
-          selectedDate: this.selectedDate
-        }
-      });
   
       return matchesSearch && matchesDepartment && matchesDate;
     });
-    
-    console.log('Filtered count:', filtered.length);
-    console.groupEnd();
-    return filtered;
   }
   get filteredTodaysLeaves(): LeaveRequestUI[] {
     if (!this.leaveRequests || this.leaveRequests.length === 0) return [];
@@ -681,7 +610,6 @@ export class ELMRComponent implements OnInit {
             });
           },
           error: (error) => {
-            console.error('Error updating leave status:', error);
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -719,7 +647,6 @@ export class ELMRComponent implements OnInit {
       Swal.close();
       this.showSuccessToast('The PDF has been generated.');
     }).catch(error => {
-      console.error('Error generating PDF:', error);
       Swal.fire({
         icon: 'error',
         title: 'Error!',
@@ -801,7 +728,6 @@ export class ELMRComponent implements OnInit {
     });
   }
   private handleLoadError(error: any): void {
-    console.error('Error loading leave requests:', error);
     this.errorMessage = 'Failed to load leave requests. Please try again later.';
     Swal.fire({
       title: 'Error!',

@@ -127,7 +127,6 @@ export class EmpTypeComponent implements OnInit {
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading organizations:', error);
         this.errorMessage = 'Failed to load organizations. Please try again later.';
         this.isLoading = false;
       }
@@ -269,8 +268,6 @@ export class EmpTypeComponent implements OnInit {
     
     this.employeeTransferService.getTransferTypes().subscribe({
       next: (response: any) => {
-        console.log('Transfer types loaded:', response); // Debug log
-        
         // Handle different response formats
         let transferTypes: TransferType[] = [];
         
@@ -285,21 +282,17 @@ export class EmpTypeComponent implements OnInit {
           transferTypes = Object.values(response.data);
         }
         
-        console.log('Processed transfer types:', transferTypes); // Debug log
-        
         this.transferTypes = transferTypes;
         this.filteredTransferTypes = [...this.transferTypes];
         this.updatePagination();
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading transfer types:', error);
         this.errorMessage = 'Failed to load transfer types. Please try again later.';
         this.isLoading = false;
         
         // For debugging - log the error details
         if (error.error) {
-          console.error('Error details:', error.error);
         }
       }
     });
@@ -337,15 +330,12 @@ export class EmpTypeComponent implements OnInit {
       }
     });
     
-    console.log('Sending transfer type data:', JSON.stringify(transferTypeData, null, 2));
-    
     const request$ = this.isEditMode
       ? this.employeeTransferService.updateTransferType(transferTypeData as TransferType)
       : this.employeeTransferService.createTransferType(transferTypeData as Omit<TransferType, 'transferTypeId' | 'createdDate'>);
     
     request$.subscribe({
       next: (response: TransferType) => {
-        console.log('Transfer type saved successfully:', response);
         this.isLoading = false;
         Swal.fire({
           icon: 'success',
@@ -365,7 +355,6 @@ export class EmpTypeComponent implements OnInit {
         this.isEditMode = false;
       },
       error: (error) => {
-        console.error(`Error ${this.isEditMode ? 'updating' : 'creating'} transfer type:`, error);
         this.isLoading = false;
         
         let errorMessage = `Failed to ${this.isEditMode ? 'update' : 'create'} transfer type. `;
