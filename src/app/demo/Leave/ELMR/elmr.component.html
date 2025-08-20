@@ -195,7 +195,8 @@
           <div class="leave-card header-row">
             <div class="employee-code">Employee ID</div>
             <div class="employee-details">Name</div>
-            <div class="leave-dates">Date Requested</div>
+            <div class="leave-dates">Start Date</div>
+            <div class="leave-dates">End Date</div>
             <div class="leave-duration">Days</div>
             <div class="status-actions">Status</div>
             <div class="leave-reason">Reason</div>
@@ -208,8 +209,9 @@
               <strong>{{ leave.name }}</strong>
               <span>{{ leave.department }}</span>
             </div>
-            <div class="leave-dates">{{ leave.date }}</div>
-            <div class="leave-duration">{{ leave.duration }}</div>
+            <div class="leave-dates">{{ formatDisplayDate(leave.fromDate) }}</div>
+            <div class="leave-dates">{{ formatDisplayDate(leave.toDate) }}</div>
+            <div class="leave-duration" title="Total Days: {{ leave.totalDays }}">{{ leave.totalDays }} days</div>
 
             <!-- Role-based Status Display -->
             <div class="status-actions">
@@ -266,7 +268,8 @@
           <div class="leave-card header-row">
             <div class="employee-code">Employee ID</div>
             <div class="employee-details">Name</div>
-            <div class="leave-dates">Date Requested</div>
+            <div class="leave-dates">Start Date</div>
+            <div class="leave-dates">End Date</div>
             <div class="leave-duration">Days</div>
             <div class="status-actions">Status</div>
             <div class="leave-reason">Reason</div>
@@ -279,8 +282,9 @@
                 <strong>{{ leave.name }}</strong>
                 <span>{{ leave.department }}</span>
               </div>
-              <div class="leave-dates">{{ leave.date }}</div>
-              <div class="leave-duration">{{ leave.duration }}</div>
+              <div class="leave-dates">{{ formatDisplayDate(leave.fromDate) }}</div>
+              <div class="leave-dates">{{ formatDisplayDate(leave.toDate) }}</div>
+              <div class="leave-duration" title="Total Days: {{ leave.totalDays }}">{{ leave.totalDays }} days</div>
           
               <!-- Role-based Status Display -->
               <div class="status-actions">

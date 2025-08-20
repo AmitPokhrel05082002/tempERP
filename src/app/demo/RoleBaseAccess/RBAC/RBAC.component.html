@@ -1,7 +1,9 @@
+
 <div class="rbac-dashboard">
   <header class="dashboard-header">
     <div class="header-actions">
       <h1 class="dashboard-title">Permission Management</h1>
+
       <div *ngIf="userId" class="action-buttons">
         <button class="edit-button" (click)="toggleEditMode()" *ngIf="!isEditMode">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -25,9 +27,14 @@
         </div>
       </div>
     </div>
-    <p class="dashboard-subtitle" *ngIf="userId">Configure access controls for User ID: {{userId}}</p>
   </header>
 
+  <div *ngIf="isNewUser && !isEditMode" class="new-user-indicator">
+    <span class="indicator-icon">👤</span>
+    <span>This user has no permissions set up yet.</span>
+    <button class="setup-button" (click)="toggleEditMode()">Set Up Permissions</button>
+  </div>
+  
   <!-- Permission Controls -->
   <div *ngIf="isEditMode" class="permission-controls">
     <div class="control-row">
@@ -40,9 +47,17 @@
       </div>
 
       <div class="control-group">
-        <label>Selected Menu</label>
-        <div class="selected-menu-display">
-          {{selectedMenuId ? getMenuName(selectedMenuId) : 'No menu selected'}}
+        <label>Selected Menu(s)</label>
+        <div class="selected-menu-display" [class.multi-module]="isMultiModuleSelection && selectedMenuIds.length > 1">
+          {{ getSelectedMenusDisplay() }}
+          <span *ngIf="isMultiModuleSelection && selectedMenuIds.length > 3" 
+                class="tooltip-trigger" 
+                [title]="getMenuNames(selectedMenuIds)">
+            
+          </span>
+        </div>
+        <div *ngIf="isMultiModuleSelection && selectedMenuIds.length > 0" class="selected-count">
+          Total modules selected: {{ selectedMenuIds.length }}
         </div>
       </div>
 
@@ -101,9 +116,9 @@
           </div>
         </div>
 
-        <div class="group-permissions" *ngIf="group.subGroups?.length">
+        <div class="group-permissions">
           <div class="group-permissions-header">
-            <h3>Apply to all submodules:</h3>
+            <h3>{{ group.subGroups?.length ? 'Apply to all submodules:' : 'Module Permissions:' }}</h3>
           </div>
           <div class="group-permission-options">
             <label class="permission-option">

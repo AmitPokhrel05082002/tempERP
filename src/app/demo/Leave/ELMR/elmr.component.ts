@@ -440,8 +440,9 @@ export class ELMRComponent implements OnInit {
               day: 'numeric'
             });
         
-        const duration = item.totalDays || 1;
-        const durationText = duration === 1 ? '1 day' : `${duration} days`;
+        // Use the totalDays from the API response, default to 1 if not provided
+        const totalDays = typeof item.totalDays === 'number' ? item.totalDays : 1;
+        const durationText = totalDays === 1 ? '1 day' : `${totalDays} days`;
         
         const normalizedStatus = item.status 
           ? item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()
@@ -459,7 +460,7 @@ export class ELMRComponent implements OnInit {
           division: item.division || department, // Keep original division if available
           fromDate: item.fromDate || '',
           toDate: item.toDate || '',
-          totalDays: item.totalDays || 1,
+          totalDays: totalDays, // Use the calculated totalDays
           reason: item.reason || '',
           status: normalizedStatus,
           image: 'assets/images/default-avatar.png',
