@@ -27,7 +27,7 @@
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-label">Total Services</div>
-      <div class="stat-value">7</div>
+      <div class="stat-value">8</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Active Users</div>
@@ -46,7 +46,7 @@
   <!-- Services Grid -->
   <div class="services-container">
     <!-- HRPERP Card -->
-    <a href="/hrperp" class="service-card" onclick="navigateToService(event, 'HRPERP')">
+    <a href="/default" class="service-card" onclick="navigateToService(event, '/default')">
       <div class="service-header">
         <div class="service-icon-wrapper service-hrperp">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -71,8 +71,8 @@
       </div>
     </a>
 
-        <!-- Asset Management Card -->
-    <a href="/asset-management" class="service-card" onclick="navigateToService(event, 'Asset Management')">
+    <!-- Asset Management Card -->
+    <a href="/asset-mgt" class="service-card" onclick="navigateToService(event, 'Asset Management')">
       <div class="service-header">
         <div class="service-icon-wrapper service-asset">
           <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -92,7 +92,31 @@
           <span class="status-dot"></span>
           <span>Online</span>
         </div>
-        <span class="service-users">10 users</span>
+        <span class="service-users">5 users</span>
+      </div>
+    </a>
+
+    <a href="/shift-mgt" class="service-card" onclick="navigateToService(event, 'Shift Management')">
+      <div class="service-header">
+        <div class="service-icon-wrapper service-shift">
+          <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"></circle>
+            <path d="M12 6v6l4 2"></path>
+          </svg>
+        </div>
+        <svg class="service-arrow" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 5l7 7-7 7"></path>
+        </svg>
+      </div>
+      <h3 class="service-name">Shift Management</h3>
+      <p class="service-description">Employee scheduling, shift planning, roster management, and time tracking
+        optimization.</p>
+      <div class="service-footer">
+        <div class="service-status">
+          <span class="status-dot"></span>
+          <span>Online</span>
+        </div>
+        <span class="service-users">5 users</span>
       </div>
     </a>
 

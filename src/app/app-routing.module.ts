@@ -9,6 +9,7 @@ import { AssetManagementComponent } from './demo/asset-management/asset-manageme
 import { ReportComponent } from './demo/dashboard/report/report.component';
 import { CommanDashboardComponent } from './comman-dashboard/comman-dashboard.component';
 import { PaySlipComponent } from './demo/pay-roll/Pay-slip/pay-slip.component';
+import { ShiftManagementComponent } from './shift-management/shift-management.component';
 
 export const routes: Routes = [
   {
@@ -302,6 +303,10 @@ export const routes: Routes = [
   {
     path: 'common-dashboard',
     component: CommanDashboardComponent
+  },
+  {
+    path: 'shift-mgt',
+    component: ShiftManagementComponent
   },
   {
     path: '',

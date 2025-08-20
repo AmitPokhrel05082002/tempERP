@@ -1,0 +1,257 @@
+<!-- shift-management.component.html -->
+<div class="shift-container">
+  <header class="header">
+    <div class="header-content">
+      <h1>Shift Management</h1>
+      <p class="subtitle">Schedule and manage employee shifts</p>
+    </div>
+    <div class="export-buttons">
+      <button class="export-btn excel" (click)="exportToExcel()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M15,12H13.5V15H15V16.5H13.5V20H12V16.5H9V20H7.5V16.5H6V15H7.5V12H6V10.5H7.5V7H9V10.5H12V7H13.5V10.5H15V12M12,10.5H9V12H12V10.5M12,15V16.5H15V15H12Z"/>
+        </svg>
+        Export Excel
+      </button>
+      <button class="export-btn csv" (click)="exportData()">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 10v4a1 1 0 01-1 1H3a1 1 0 01-1-1v-4M7 11V3M4 6l3-3 3 3"/>
+        </svg>
+        Export CSV
+      </button>
+    </div>
+  </header>
+
+  <!-- Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-number">{{ getTotalShifts() }}</div>
+      <div class="stat-label">Total Shifts</div>
+    </div>
+    <div class="stat-card morning-stat">
+      <div class="stat-number">{{ getShiftCount('morning') }}</div>
+      <div class="stat-label">Morning</div>
+    </div>
+    <div class="stat-card afternoon-stat">
+      <div class="stat-number">{{ getShiftCount('afternoon') }}</div>
+      <div class="stat-label">Afternoon</div>
+    </div>
+    <div class="stat-card evening-stat">
+      <div class="stat-number">{{ getShiftCount('evening') }}</div>
+      <div class="stat-label">Evening</div>
+    </div>
+    <div class="stat-card night-stat">
+      <div class="stat-number">{{ getShiftCount('night') }}</div>
+      <div class="stat-label">Night</div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <!-- Left Panel - Form -->
+    <div class="form-panel">
+      <div class="panel-header">
+        <h2>{{ editMode ? 'Edit Shift' : 'Create New Shift' }}</h2>
+        <span class="edit-indicator" *ngIf="editMode">Editing</span>
+      </div>
+
+      <form (ngSubmit)="saveShift()" #shiftForm="ngForm">
+        <div class="form-group">
+          <label for="employee">Employee *</label>
+          <select
+            id="employee"
+            [(ngModel)]="currentShift.userId"
+            name="userId"
+            [disabled]="editMode"
+            required>
+            <option [value]="0">-- Select Employee --</option>
+            <option *ngFor="let emp of employees" [value]="emp.id">
+              {{ emp.name }} ({{ emp.department }})
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="date">Date *</label>
+          <input
+            type="date"
+            id="date"
+            [(ngModel)]="currentShift.date"
+            name="date"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label>Shift Type *</label>
+          <div class="shift-selector">
+            <button
+              type="button"
+              class="shift-option"
+              [class.active]="currentShift.shift === 'morning'"
+              (click)="selectShift('morning')">
+              <span class="shift-name">Morning</span>
+              <span class="shift-time">{{ shiftTimes.morning }}</span>
+            </button>
+            <button
+              type="button"
+              class="shift-option"
+              [class.active]="currentShift.shift === 'afternoon'"
+              (click)="selectShift('afternoon')">
+              <span class="shift-name">Afternoon</span>
+              <span class="shift-time">{{ shiftTimes.afternoon }}</span>
+            </button>
+            <button
+              type="button"
+              class="shift-option"
+              [class.active]="currentShift.shift === 'evening'"
+              (click)="selectShift('evening')">
+              <span class="shift-name">Evening</span>
+              <span class="shift-time">{{ shiftTimes.evening }}</span>
+            </button>
+            <button
+              type="button"
+              class="shift-option"
+              [class.active]="currentShift.shift === 'night'"
+              (click)="selectShift('night')">
+              <span class="shift-name">Night</span>
+              <span class="shift-time">{{ shiftTimes.night }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notes">Notes (Optional)</label>
+          <textarea
+            id="notes"
+            [(ngModel)]="currentShift.notes"
+            name="notes"
+            rows="3"
+            placeholder="Add any special instructions or notes..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" [disabled]="!shiftForm.valid">
+            {{ editMode ? 'Update Shift' : 'Create Shift' }}
+          </button>
+          <button type="button" class="btn btn-secondary" *ngIf="editMode" (click)="cancelEdit()">
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Upcoming Shifts -->
+      <div class="upcoming-section" *ngIf="getUpcomingShifts().length > 0">
+        <h3>Upcoming Shifts</h3>
+        <div class="upcoming-list">
+          <div class="upcoming-item" *ngFor="let shift of getUpcomingShifts()">
+            <div class="upcoming-date">{{ formatDate(shift.date) }}</div>
+            <div class="upcoming-employee">{{ getEmployeeName(shift.userId) }}</div>
+            <span class="shift-badge" [ngClass]="shift.shift">{{ shift.shift }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel - Table -->
+    <div class="table-panel">
+      <div class="panel-header">
+        <h2>All Shifts</h2>
+        <div class="filter-controls">
+          <input
+            type="text"
+            [(ngModel)]="searchTerm"
+            placeholder="Search employee..."
+            class="search-input">
+          <input
+            type="date"
+            [(ngModel)]="filterDate"
+            class="filter-date">
+          <select [(ngModel)]="filterShiftType" class="filter-select">
+            <option value="">All Shifts</option>
+            <option value="morning">Morning</option>
+            <option value="afternoon">Afternoon</option>
+            <option value="evening">Evening</option>
+            <option value="night">Night</option>
+          </select>
+          <button
+            class="btn-clear"
+            (click)="clearFilters()"
+            *ngIf="filterDate || filterShiftType || searchTerm">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="shifts-table" *ngIf="getFilteredShifts().length > 0">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Department</th>
+              <th>Date</th>
+              <th>Shift</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let shift of getFilteredShifts()" [class.weekend-row]="isWeekend(shift.date)">
+              <td>
+                <div class="employee-name">{{ getEmployeeName(shift.userId) }}</div>
+                <div class="multiple-shifts-indicator" *ngIf="hasMultipleShifts(shift.userId, shift.date)">
+                  <svg width="12" height="12" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                  </svg>
+                  Multiple shifts today
+                </div>
+              </td>
+              <td>
+                <span class="dept-tag">{{ getEmployeeDept(shift.userId) }}</span>
+              </td>
+              <td>
+                <div class="date-cell">
+                  {{ formatDate(shift.date) }}
+                  <span class="weekend-indicator" *ngIf="isWeekend(shift.date)">Weekend</span>
+                </div>
+              </td>
+              <td>
+                <span class="shift-badge" [ngClass]="shift.shift">
+                  {{ shift.shift }}
+                </span>
+              </td>
+              <td>
+                <span class="notes-text">{{ shift.notes || '-' }}</span>
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="btn-icon edit" (click)="editShift(shift)" title="Edit">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M7 2l1.414-1.414a1 1 0 011.414 0l2.586 2.586a1 1 0 010 1.414L11 6M7 2L2 7v5h5l5-5M7 2l5 5"/>
+                    </svg>
+                  </button>
+                  <button class="btn-icon delete" (click)="deleteShift(shift)" title="Delete">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M3 4h8M4 4V2a1 1 0 011-1h4a1 1 0 011 1v2M5 4v7a1 1 0 001 1h2a1 1 0 001-1V4"/>
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="empty-state" *ngIf="getFilteredShifts().length === 0">
+          <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3">
+            <rect x="8" y="8" width="32" height="32" rx="2"/>
+            <path d="M16 2v6M32 2v6M8 16h32M16 24h8M16 32h16"/>
+          </svg>
+          <p class="empty-title">No shifts found</p>
+          <p class="empty-desc" *ngIf="!filterDate && !filterShiftType && !searchTerm">
+            Start by creating a new shift for an employee
+          </p>
+          <p class="empty-desc" *ngIf="filterDate || filterShiftType || searchTerm">
+            Try adjusting your filters or search criteria
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
