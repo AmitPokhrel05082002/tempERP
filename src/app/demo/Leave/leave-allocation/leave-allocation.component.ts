@@ -2,8 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LeaveService } from '../../../services/leave.service';
-import { Employee } from '../../../services/leave.service';
+import { LeaveService, Employee } from '../../../services/leave.service';
+import { DepartmentService, Branch, Department } from '../../../services/department.service';
 
 @Component({
   selector: 'app-leave-allocation',
@@ -17,10 +17,19 @@ import { Employee } from '../../../services/leave.service';
 })
 export class LeaveAllocationComponent implements OnInit {
   employees: Employee[] = [];
+  filteredEmployees: Employee[] = [];
   loading = true;
   error: string | null = null;
   searchQuery = '';
   private _searchQuery = '';  // Private backing field for search query
+  
+  // Filter properties
+  branches: Branch[] = [];
+  departments: Department[] = [];
+  selectedBranch: string = '';
+  selectedDepartment: string = '';
+  
+  // Filter properties
   
   // Pagination
   currentPage = 1;
@@ -28,11 +37,69 @@ export class LeaveAllocationComponent implements OnInit {
 
   constructor(
     private leaveService: LeaveService,
+    private departmentService: DepartmentService,
     private router: Router
   ) {}
 
   ngOnInit(): void {
+    this.loadBranches();
+    this.loadDepartments();
     this.loadEmployees();
+  }
+
+  loadBranches(): void {
+    this.departmentService.getBranches().subscribe({
+      next: (branches) => {
+        this.branches = branches;
+      },
+      error: (err) => {
+        console.error('Error loading branches:', err);
+      }
+    });
+  }
+
+  loadDepartments(): void {
+    this.departmentService.getDepartments().subscribe({
+      next: (response) => {
+        this.departments = response.data;
+      },
+      error: (err) => {
+        console.error('Error loading departments:', err);
+      }
+    });
+  }
+  
+
+  onFilterChange(): void {
+    this.currentPage = 1;
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    this.filteredEmployees = this.employees.filter(employee => {
+      const matchesBranch = !this.selectedBranch || 
+        (employee.branchName === this.getBranchName(this.selectedBranch));
+      
+      const matchesDepartment = !this.selectedDepartment || 
+        (employee.departmentName === this.getDepartmentName(this.selectedDepartment));
+      
+      const matchesSearch = !this.searchQuery || 
+        (employee.empCode && employee.empCode.toLowerCase().includes(this.searchQuery.toLowerCase())) ||
+        ((employee.firstName + ' ' + (employee.middleName ? employee.middleName + ' ' : '') + employee.lastName).toLowerCase()
+          .includes(this.searchQuery.toLowerCase()));
+      
+      return matchesBranch && matchesDepartment && matchesSearch;
+    });
+  }
+  
+  getBranchName(branchId: string): string {
+    const branch = this.branches.find(b => b.branchId === branchId);
+    return branch ? branch.branchName : '';
+  }
+  
+  getDepartmentName(deptId: string): string {
+    const dept = this.departments.find(d => d.dept_id === deptId);
+    return dept ? dept.dept_name : '';
   }
 
   loadEmployees(): void {
@@ -42,6 +109,7 @@ export class LeaveAllocationComponent implements OnInit {
     this.leaveService.getAllEmployees().subscribe({
       next: (data) => {
         this.employees = data;
+        this.applyFilters();
         this.loading = false;
       },
       error: (err) => {
@@ -67,21 +135,24 @@ export class LeaveAllocationComponent implements OnInit {
     }
   }
 
-  get filteredEmployees(): Employee[] {
+  // Filter employees based on search and selected filters
+  updateFilteredEmployees(): void {
     let filtered = this.employees;
     
     if (this.searchQuery) {
       const query = this.searchQuery.toLowerCase();
-      filtered = filtered.filter(emp => 
-        emp.empCode.toLowerCase().includes(query) ||
-        this.getFullName(emp).toLowerCase().includes(query) ||
-        (emp.organizationName?.toLowerCase().includes(query) || '') ||
-        (emp.branchName?.toLowerCase().includes(query) || '') ||
-        (emp.departmentName?.toLowerCase().includes(query) || '')
-      );
+      filtered = filtered.filter(emp => {
+        const fullName = this.getFullName(emp).toLowerCase();
+        return (
+          emp.empCode.toLowerCase().includes(query) ||
+          fullName.includes(query) ||
+          (emp.organizationName?.toLowerCase().includes(query) || '')
+        );
+      });
     }
     
-    return filtered;
+    this.filteredEmployees = filtered;
+    this.currentPage = 1; // Reset to first page when filters change
   }
   
   get totalPages(): number {
@@ -90,7 +161,8 @@ export class LeaveAllocationComponent implements OnInit {
   
   get paginatedEmployees(): Employee[] {
     const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-    return this.filteredEmployees.slice(startIndex, startIndex + this.itemsPerPage);
+    const endIndex = startIndex + this.itemsPerPage;
+    return this.filteredEmployees.slice(startIndex, endIndex);
   }
   
   changePage(page: number): void {

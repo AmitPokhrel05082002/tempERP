@@ -57,12 +57,22 @@ export class LeaveAllocationDetailsComponent implements OnInit {
 
     this.leaveService.getLeaveAllocations(this.employeeId).subscribe({
       next: (data: any) => {
-        this.allocations = data;
+        // Filter out duplicate allocations based on year, month, and leave type
+        const uniqueAllocations = data.filter((allocation: any, index: number, self: any[]) => {
+          // Create a unique key for each allocation
+          const key = `${allocation.allocationYear}-${allocation.allocationMonth}-${allocation.leaveTypeName || 'default'}`;
+          // Check if this is the first occurrence of this key
+          return index === self.findIndex((a: any) => 
+            `${a.allocationYear}-${a.allocationMonth}-${a.leaveTypeName || 'default'}` === key
+          );
+        });
+        
+        this.allocations = uniqueAllocations;
         this.loading = false;
         
         // Set employee name from the first allocation if available
-        if (data.length > 0 && data[0].employeeName) {
-          this.employeeName = data[0].employeeName;
+        if (uniqueAllocations.length > 0 && uniqueAllocations[0].employeeName) {
+          this.employeeName = uniqueAllocations[0].employeeName;
         }
       },
       error: (err) => {

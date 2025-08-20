@@ -195,7 +195,8 @@
           <div class="leave-card header-row">
             <div class="employee-code">Employee ID</div>
             <div class="employee-details">Name</div>
-            <div class="leave-dates">Date Requested</div>
+            <div class="leave-dates">Start Date</div>
+            <div class="leave-dates">End Date</div>
             <div class="leave-duration">Days</div>
             <div class="status-actions">Status</div>
             <div class="leave-reason">Reason</div>
@@ -208,8 +209,9 @@
               <strong>{{ leave.name }}</strong>
               <span>{{ leave.department }}</span>
             </div>
-            <div class="leave-dates">{{ leave.date }}</div>
-            <div class="leave-duration">{{ leave.duration }}</div>
+            <div class="leave-dates">{{ formatDisplayDate(leave.fromDate) }}</div>
+            <div class="leave-dates">{{ formatDisplayDate(leave.toDate) }}</div>
+            <div class="leave-duration" title="Total Days: {{ leave.totalDays }}">{{ leave.totalDays }} days</div>
 
             <!-- Role-based Status Display -->
             <div class="status-actions">
@@ -266,66 +268,61 @@
           <div class="leave-card header-row">
             <div class="employee-code">Employee ID</div>
             <div class="employee-details">Name</div>
-            <div class="leave-dates">Date Requested</div>
+            <div class="leave-dates">Start Date</div>
+            <div class="leave-dates">End Date</div>
             <div class="leave-duration">Days</div>
             <div class="status-actions">Status</div>
             <div class="leave-reason">Reason</div>
             <div class="view-btn">Action</div>
           </div>
-
-          <div class="leave-card" *ngFor="let leave of filteredLeaves">
-            <div class="employee-code">{{ leave.empCode }}</div>
-            <div class="employee-details">
-              <strong>{{ leave.name }}</strong>
-              <span>{{ leave.department }}</span>
-            </div>
-            <div class="leave-dates">{{ leave.date }}</div>
-            <div class="leave-duration">{{ leave.duration }}</div>
-
-            <!-- Role-based Status Display -->
-            <div class="status-actions">
-              <ng-container *ngIf="canManageLeaves()">
-                <ng-container *ngIf="leave.status?.toLowerCase() === 'pending'; else adminStatusDisplay">
-                  <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')"
-                    title="Approve Leave">
-                    <i class="fas fa-check"></i> Approve
-                  </button>
-                  <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')"
-                    title="Reject Leave">
-                    <i class="fas fa-times"></i> Reject
-                  </button>
-                </ng-container>
-                <ng-template #adminStatusDisplay>
+          @for (leave of filteredLeaves; track leave.empId) {
+            <div class="leave-card">
+              <div class="employee-code">{{ leave.empCode }}</div>
+              <div class="employee-details">
+                <strong>{{ leave.name }}</strong>
+                <span>{{ leave.department }}</span>
+              </div>
+              <div class="leave-dates">{{ formatDisplayDate(leave.fromDate) }}</div>
+              <div class="leave-dates">{{ formatDisplayDate(leave.toDate) }}</div>
+              <div class="leave-duration" title="Total Days: {{ leave.totalDays }}">{{ leave.totalDays }} days</div>
+          
+              <!-- Role-based Status Display -->
+              <div class="status-actions">
+                @if (canManageLeaves()) {
+                  @if (leave.status?.toLowerCase() === 'pending') {
+                    <button class="approve" (click)="$event.stopPropagation(); updateStatus(leave, 'Approved')"
+                      title="Approve Leave">
+                      <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="reject" (click)="$event.stopPropagation(); updateStatus(leave, 'Rejected')"
+                      title="Reject Leave">
+                      <i class="fas fa-times"></i> Reject
+                    </button>
+                  } @else {
+                    <div class="leave-status">
+                      <span [class]="'status-label ' + leave.status.toLowerCase()">
+                        {{ leave.status }}
+                      </span>
+                    </div>
+                  }
+                } @else {
                   <div class="leave-status">
                     <span [class]="'status-label ' + leave.status.toLowerCase()">
                       {{ leave.status }}
                     </span>
                   </div>
-                </ng-template>
-              </ng-container>
-
-              <ng-container *ngIf="!canManageLeaves()">
-                <div class="leave-status">
-                  <span [class]="'status-label ' + leave.status.toLowerCase()">
-                    {{ leave.status }}
-                  </span>
-                </div>
-              </ng-container>
-            </div>
-
-            <div class="leave-reason" title="{{ leave.reason }}">
-              {{ leave.reason | slice:0:20 }}{{ leave.reason?.length > 20 ? '...' : '' }}
-            </div>
-            <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
-              <i class="fas fa-eye"></i> View
-            </button>
-          </div>
+                }
+              </div>
           
-          <div class="no-leaves" *ngIf="filteredLeaves.length === 0">
-            {{ searchTerm || selectedDepartment !== 'All Departments' || selectedDate ? 'No leave requests match your criteria' : 'No leave requests found' }}
-          </div>
-        </div>
-      </div>
-    </ng-container>
-  </div>
-</div>
+              <div class="leave-reason" title="{{ leave.reason }}">
+                {{ leave.reason | slice:0:20 }}{{ leave.reason?.length > 20 ? '...' : '' }}
+              </div>
+              <button class="view-btn" [routerLink]="['/balanceleave', leave.empId]" (click)="$event.stopPropagation()">
+                <i class="fas fa-eye"></i> View
+              </button>
+            </div>
+          } @empty {
+            <div class="no-leaves">
+              {{ searchTerm || selectedDepartment !== 'All Departments' || selectedDate ? 'No leave requests match your criteria' : 'No leave requests found' }}
+            </div>
+          }
