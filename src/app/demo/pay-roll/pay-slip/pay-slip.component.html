@@ -1,3 +1,4 @@
+<!-- payslip.component.html -->
 <div class="payslip-container">
   <!-- Loading State -->
   <div class="loading-container" *ngIf="isLoading">
@@ -9,18 +10,22 @@
   <div class="error-container" *ngIf="errorMessage && !isLoading">
     <h3 class="error-title"><i class="bi bi-exclamation-triangle-fill"></i> Error Loading Data</h3>
     <p>{{ errorMessage }}</p>
-    <button class="btn btn-primary" (click)="goBack()">
-      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    <button class="btn btn-secondary" (click)="retry()" style="margin-left: 10px;">
+      <i class="bi bi-arrow-clockwise"></i> Retry
     </button>
   </div>
   
   <!-- Payslip Data -->
   <div *ngIf="!isLoading && !errorMessage" class="payslip-content">
-    <div class="action-buttons" *ngIf="!isLoading && !errorMessage">
-    <button class="btn btn-primary" (click)="printPayslip()">
-      <i class="bi bi-printer"></i> Print Payslip
-    </button>
-  </div>
+    <div class="action-buttons">
+      <button class="btn btn-primary" (click)="printPayslip()">
+        <i class="bi bi-printer"></i> Print Payslip
+      </button>
+      <button class="btn btn-secondary" (click)="goBack()" style="margin-left: 10px;">
+        <i class="bi bi-arrow-left"></i> Back to Dashboard
+      </button>
+    </div>
+    
     <div class="payslip-header">
       <div class="org-info">
         <h2>{{ orgName }}</h2>
@@ -39,7 +44,14 @@
           <label>Employee Name:</label>
           <span>{{ firstName }} {{ middleName }} {{ lastName }}</span>
         </div>
-       
+        <div class="info-item">
+          <label>Designation:</label>
+          <span>{{ designation }}</span>
+        </div>
+        <div class="info-item">
+          <label>Department:</label>
+          <span>{{ department }}</span>
+        </div>
         <div class="info-item">
           <label>Employee Code:</label>
           <span>{{ empCode }}</span>
@@ -137,7 +149,7 @@
         </div>
         <div class="payment-details">
           <p><strong>Payment Status:</strong> <span class="status-badge" [class]="paymentStatus.toLowerCase()">{{ paymentStatus }}</span></p>
-          <p><strong>Payment Reference:</strong> {{ paymentReference }}</p>
+          <p><strong>Payment Reference:</strong> {{ paymentReference || 'N/A' }}</p>
           <p><strong>Payment Date:</strong> {{ formatDate(paymentDate) }}</p>
         </div>
       </div>
@@ -148,5 +160,4 @@
       <p>For any discrepancies, please contact the HR department within 7 days of receiving this payslip.</p>
     </div>
   </div>
-  
 </div>

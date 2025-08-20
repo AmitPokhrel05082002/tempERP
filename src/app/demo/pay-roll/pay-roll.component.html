@@ -104,8 +104,9 @@
                   <button class="view-btn view-tds-btn" [routerLink]="['/view/tds', employee.id]" [queryParams]="{ year: selectedYear, month: selectedMonth }">
                     View TDS
                   </button>
-                  <button class="view-btn view-salary-btn" 
-        [routerLink]="['/view/pay-slip', employee.id]">
+                 <button class="view-btn view-salary-btn" 
+        [routerLink]="['/view/pay-slip', employee.empId]"
+        [queryParams]="{ year: selectedYear, month: selectedMonth }">
   View Payslip
 </button>
                 </div>

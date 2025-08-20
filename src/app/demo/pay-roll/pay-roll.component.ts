@@ -25,6 +25,7 @@ interface Department {
 
 interface Employee {
   id: string;
+  empId: string; // Add this property
   empCode: string;
   name: string;
   department: string;
@@ -65,6 +66,7 @@ export class PayRollComponent implements OnInit {
   processedCount: number = 0;
   currentPage: number = 1;
   itemsPerPage: number = 10;
+  
 
   years: string[] = [];
   months = [
@@ -233,45 +235,67 @@ export class PayRollComponent implements OnInit {
     });
   }
 
-  loadEmployees() {
-    const monthParam = parseInt(this.selectedMonth, 10).toString();
-    const params = new HttpParams()
-      .set('year', this.selectedYear)
-      .set('month', monthParam);
+  // In pay-roll.component.ts
+loadEmployees() {
+  const monthParam = this.selectedMonth; // Use directly as string
+  
+  const params = new HttpParams()
+    .set('year', this.selectedYear)
+    .set('month', monthParam);
 
-    this.http.get<any[]>(this.payrollApiUrl, { params }).subscribe({
-      next: (data) => {
-        this.employees = data.map(emp => ({
-          id: emp.empId,
-          empCode: emp.empCode,
-          name: [emp.firstName, emp.middleName, emp.lastName].filter(n => n).join(' '),
-          department: emp.departmentName || 'Unknown',
-          department_id: emp.department_id,
-          branch_id: emp.branch_id,
-          netSalary: emp.netSalary || 0,
-          salaryMonth: emp.salaryMonth || '',
-          status: emp.employmentStatus?.toLowerCase() || 'unknown',
-          overtime: emp.overtime || '0',
-          position: emp.position || 'N/A'
-        }));
-        
-        // Update summary statistics
-        this.totalEmployees = this.employees.length;
-        this.totalPayroll = this.employees.reduce((sum, emp) => sum + (emp.netSalary || 0), 0);
-        this.processedCount = this.employees.filter(emp => emp.status === 'active').length;
-        
-        this.applyFilters();
-      },
-      error: (err) => {
-        console.error('Error loading employees:', err);
-        this.employees = [];
-        this.filteredEmployees = [];
-        this.totalEmployees = 0;
-        this.totalPayroll = 0;
-        this.processedCount = 0;
+  console.log('Fetching payroll with params:', { 
+    year: this.selectedYear, 
+    month: monthParam 
+  });
+
+  this.http.get<any[]>(this.payrollApiUrl, { params }).subscribe({
+    next: (data) => {
+      console.log('Raw employee data received:', data); // Add this for debugging
+      
+      this.employees = data.map(emp => ({
+        id: emp.empId,
+        empId: emp.empId,
+        empCode: emp.empCode,
+        name: [emp.firstName, emp.middleName, emp.lastName].filter(n => n).join(' '),
+        department: emp.departmentName || 'Unknown',
+        department_id: emp.department_id,
+        branch_id: emp.branch_id,
+        netSalary: emp.netSalary || 0,
+        salaryMonth: emp.salaryMonth || '',
+        status: emp.employmentStatus?.toLowerCase() || 'unknown',
+        overtime: emp.overtime || '0',
+        position: emp.position || 'N/A'
+      }));
+      
+      console.log('Processed employees:', this.employees); // Add this for debugging
+      
+      // Update summary statistics
+      this.totalEmployees = this.employees.length;
+      this.totalPayroll = this.employees.reduce((sum, emp) => sum + (emp.netSalary || 0), 0);
+      this.processedCount = this.employees.filter(emp => emp.status === 'active').length;
+      
+      this.applyFilters();
+    },
+    error: (err) => {
+      console.error('Error loading employees:', err);
+      
+      // More detailed error logging
+      if (err.status === 400) {
+        console.error('Bad request - check your parameters:', {
+          year: this.selectedYear,
+          month: this.selectedMonth,
+          url: this.payrollApiUrl
+        });
       }
-    });
-  }
+      
+      this.employees = [];
+      this.filteredEmployees = [];
+      this.totalEmployees = 0;
+      this.totalPayroll = 0;
+      this.processedCount = 0;
+    }
+  });
+}
 
   onBranchChange() {
     this.selectedDepartment = 'All';
@@ -373,7 +397,7 @@ viewSalaryDetails(empId: string) {
   this.router.navigate(['/pay-roll-detail', empId]);
 }
 exportPayroll() {
-    const monthParam = parseInt(this.selectedMonth, 10).toString();
+const monthParam = parseInt(this.selectedMonth, 10).toString();
     const params = new HttpParams()
       .set('year', this.selectedYear)
       .set('month', monthParam);
