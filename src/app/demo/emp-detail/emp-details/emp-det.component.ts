@@ -6,7 +6,7 @@ import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { catchError, throwError, tap, of, map } from 'rxjs';
+import { catchError, throwError, tap, of, map, Observable, concatMap, from, EMPTY, take, timeout, finalize } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService, Permission } from 'src/app/core/services/auth.service';
 
@@ -15,7 +15,24 @@ import { AuthService, Permission } from 'src/app/core/services/auth.service';
 // =============================================
 // INTERFACE DEFINITIONS
 // =============================================
-
+interface UserAccount {
+  userId: string;
+  empId: string;
+  username: string;
+  email: string;
+  roleId: string;
+  accountStatus: string;
+  mustChangePassword: boolean;
+  passwordChangedDate: string;
+  lastLoginDate: string;
+  failedLoginAttempts: number;
+  accountLockedUntil: string;
+  createdDate: string;
+  modifiedDate: string;
+  isDeptHead: boolean;
+  deptId: string;
+  isAccountLocked: boolean;
+}
 /**
  * Core employee data structures
  */
@@ -94,6 +111,7 @@ interface Qualification {
 
 interface Contact {
   contactId?: string;
+  contactType: 'Email';
   email: string;
   phonePrimary: string;
   isEmergencyContact: boolean;
@@ -185,6 +203,7 @@ interface Shift {
   createdDate: string;
   modifiedDate: string;
 }
+
 // =============================================
 // COMPONENT DEFINITION
 // =============================================
@@ -242,6 +261,13 @@ export class EmployeeDetailComponent implements OnInit {
   Math = Math;
   shifts: Shift[] = [];
   selectedShiftId: string = '';
+
+  // create-user-pop-up
+ showUserCreationModal = false;
+isCreatingUser = false;
+newEmployeeId: string | null = null;
+newEmployeeCode: string = '';
+newEmployeeDetails: any = null;
 
   // API Configuration
   private readonly apiUrl = `${environment.apiUrl}/api/v1/employees`;
@@ -337,21 +363,12 @@ export class EmployeeDetailComponent implements OnInit {
     this.onNationalityChange();
 
   }
-  get educations(): FormArray {
-    return this.employeeForm.get('educations') as FormArray;
-  }
-  addEducation(): void {
-    // First, save the main education if it has values
-    if (this.hasMainEducationValues()) {
-      this.saveMainEducationToArray();
-    }
-
-    // Add a new empty education form group
-    this.educations.push(this.createEducationFormGroup());
-
-    // Clear the main form
-    this.clearMainEducationForm();
-  }
+ get educations(): FormArray {
+  return this.employeeForm.get('educations') as FormArray;
+}
+ addEducation(education?: Qualification): void {
+  this.educations.push(this.createEducationFormGroup(education));
+}
 
   // Check if main education form has values
   private hasMainEducationValues(): boolean {
@@ -384,15 +401,15 @@ export class EmployeeDetailComponent implements OnInit {
   }
 
   // Create education form group
-  private createEducationFormGroup(education?: Qualification): FormGroup {
-    return this.fb.group({
-      qualificationId: [education?.qualificationId || ''],
-      institutionName: [education?.institutionName || ''],
-      degreeName: [education?.degreeName || ''],
-      specialization: [education?.specialization || ''],
-      yearOfCompletion: [education?.yearOfCompletion || null]
-    });
-  }
+ private createEducationFormGroup(education?: Qualification): FormGroup {
+  return this.fb.group({
+    qualificationId: [education?.qualificationId || ''],
+    institutionName: [education?.institutionName || '', Validators.required],
+    degreeName: [education?.degreeName || '', Validators.required],
+    specialization: [education?.specialization || ''],
+    yearOfCompletion: [education?.yearOfCompletion || null, [Validators.required, Validators.min(1900), Validators.max(new Date().getFullYear())]]
+  });
+}
 
   // Remove education entry
   removeEducation(index: number): void {
@@ -1155,164 +1172,352 @@ export class EmployeeDetailComponent implements OnInit {
   // EMPLOYEE CRUD OPERATIONS
   // =============================================
 
+
+private createUserAccount(empId: string): Observable<any> {
+  if (!empId) {
+    const errorMsg = 'Missing employee ID for user account creation';
+    console.error('User account creation failed:', errorMsg);
+    return throwError(() => new Error(errorMsg));
+  }
+
+  console.log('Creating user account for employee ID:', empId);
+
+  // No payload needed - backend will fetch details from database
+  return this.http.post(
+    `${environment.apiUrl}/api/auth/user-accounts/create/${empId}`, 
+    null, // No payload required
+    { 
+      headers: this.httpOptions.headers,
+      observe: 'response',
+      responseType: 'text'
+    }
+  ).pipe(
+    tap(response => {
+      console.log('User account creation API response:', response);
+      console.log('Response status:', response.status);
+      console.log('Response body:', response.body);
+    }),
+    
+    // Map the response to a standardized format
+    map(response => {
+      // Check if status is successful (200-299)
+      if (response.status >= 200 && response.status < 300) {
+        return {
+          success: true,
+          status: response.status,
+          message: response.body || 'User account created successfully',
+          data: response.body
+        };
+      }
+      
+      // If status is not in 200-299 range, throw error
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }),
+    
+    // Handle specific error cases
+    catchError(error => {
+      console.error('User account creation error:', {
+        error: error,
+        status: error.status,
+        statusText: error.statusText,
+        url: error.url,
+        headers: error.headers,
+        errorResponse: error.error
+      });
+      
+      // Check if this is a 200 status that was incorrectly treated as error
+      if (error.status === 200 && error.statusText === 'OK') {
+        return of({
+          success: true,
+          status: error.status,
+          message: 'User account created successfully (recovered from parsing error)',
+          recoveredFromError: true
+        });
+      }
+      
+      // Handle specific HTTP error codes
+      let userFriendlyMessage = 'Failed to create user account.';
+      
+      switch (error.status) {
+        case 400:
+          userFriendlyMessage = 'Bad request. Please check if the employee data is valid.';
+          break;
+        case 409:
+          userFriendlyMessage = 'User account already exists for this employee.';
+          break;
+        case 404:
+          userFriendlyMessage = 'User creation endpoint not found. Please contact administrator.';
+          break;
+        case 500:
+          userFriendlyMessage = 'Server error occurred while creating user account.';
+          break;
+        case 0:
+          userFriendlyMessage = 'Network error: Could not connect to server.';
+          break;
+      }
+      
+      // Return a standardized error response
+      return throwError(() => ({
+        success: false,
+        status: error.status,
+        message: userFriendlyMessage,
+        technicalMessage: error.message,
+        error: error.error
+      }));
+    })
+  );
+}
+
+
+private openUserCreationModal(empId: string, empCode: string, details: any): void {
+  console.log('Opening user creation modal with details:', { empId, empCode, details });
+  
+  this.newEmployeeId = empId;
+  this.newEmployeeCode = empCode;
+  this.newEmployeeDetails = details;
+  
+  // Use setTimeout to ensure the modal shows after the current execution cycle
+  setTimeout(() => {
+    this.showUserCreationModal = true;
+    console.log('Modal should be visible now. showUserCreationModal =', this.showUserCreationModal);
+  }, 100);
+}
+
+closeUserCreationModal(): void {
+  console.log('Closing user creation modal');
+  this.showUserCreationModal = false;
+  this.isCreatingUser = false;
+  this.newEmployeeId = null;
+  this.newEmployeeCode = '';
+  this.newEmployeeDetails = null;
+}
+
+confirmUserCreation(): void {
+  if (!this.newEmployeeId) {
+    console.error('No employee ID found for user creation');
+    alert('No employee ID found for user creation.');
+    return;
+  }
+  
+  console.log('Starting user account creation for employee ID:', this.newEmployeeId);
+  this.isCreatingUser = true;
+  
+  this.createUserAccount(this.newEmployeeId).subscribe({
+    next: (response: any) => {
+      console.log('User account creation response:', response);
+      this.isCreatingUser = false;
+      this.closeUserCreationModal();
+      
+      if (response.success) {
+        alert(`User account created successfully! ${response.message || ''}`);
+      } else {
+        alert(`User account creation completed with status: ${response.message || 'Unknown status'}`);
+      }
+    },
+    error: (error) => {
+      console.error('User account creation failed:', error);
+      this.isCreatingUser = false;
+      
+      const errorMessage = error.message || 'Failed to create user account.';
+      alert(`${errorMessage} You can create the user account manually later.`);
+      
+      // Don't close modal on error - let user decide
+    }
+  });
+}
+declineUserCreation(): void {
+  console.log('User declined user account creation');
+  this.closeUserCreationModal();
+  alert('Employee saved successfully. You can create a user account later from the user management section.');
+}
   /**
    * Save employee (create or update)
    */
-  saveEmployee(): void {
+/**
+ * Save employee (create or update)
+ */
+/**
+ * Save employee (create or update)
+ */
+saveEmployee(): void {
+  if (this.employeeForm.invalid) {
+    this.errorMessage = 'Please fill all required fields correctly.';
+    this.employeeForm.markAllAsTouched();
+    return;
+  }
 
-    if (this.employeeForm.invalid) {
-      this.errorMessage = 'Please fill all required fields correctly.';
-      this.employeeForm.markAllAsTouched();
+  // Save main education to array if it has values
+  if (this.hasMainEducationValues()) {
+    this.saveMainEducationToArray();
+  }
 
-      // Log validation errors for debugging
-      Object.keys(this.employeeForm.controls).forEach(key => {
-        const control = this.employeeForm.get(key);
-        if (control?.invalid) {
-          console.error(`Validation error for ${key}:`, control.errors);
-        }
-      });
+  this.isSaving = true;
+  this.errorMessage = '';
 
+  const formValue = this.employeeForm.getRawValue();
+  const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
+  const isBhutanese = formValue.nationality === 'Bhutanese';
+
+  try {
+    const branchId = this.getBranchId(formValue.location);
+    if (!branchId) {
+      throw new Error('Invalid location selected');
+    }
+
+    // Get the most recent existing IDs
+    const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
+    const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
+    const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
+    const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
+
+    // Prepare address payload based on nationality
+    const addressPayload: any = {
+      addressId: existingAddress?.addressId || undefined,
+      addressType: formValue.addressType || 'Permanent',
+      addressLine1: formValue.addressLine1,
+      isCurrent: true
+    };
+
+    if (isBhutanese) {
+      addressPayload.addressLine2 = '';
+      addressPayload.thromde = formValue.thromde;
+      addressPayload.dzongkhag = formValue.dzongkhag;
+      addressPayload.country = 'Bhutan';
+    } else {
+      addressPayload.addressLine2 = formValue.addressLine2;
+      addressPayload.thromde = '';
+      addressPayload.dzongkhag = '';
+      addressPayload.country = 'Non-Bhutanese';
+    }
+
+    const shiftId = formValue.shift;
+    if (!this.shifts.some(s => s.shiftId === shiftId)) {
+      this.errorMessage = 'Invalid shift selected';
+      this.isSaving = false;
       return;
     }
 
-    // Save main education to array if it has values
-    if (this.hasMainEducationValues()) {
-      this.saveMainEducationToArray();
-    }
+    // Create contact payload with explicit contact_type
+    const contactPayload = {
+      contactId: existingContact?.contactId || undefined,
+  contactType: 'Email',      // Camel case version  
+  email: formValue.email,
+  phonePrimary: formValue.phonePrimary,
+  phoneSecondary: '',
+  isEmergencyContact: false,
+  relationship: 'Self',
+  priorityLevel: 1
+    };
 
-    this.isSaving = true;
-    this.errorMessage = '';
+    console.log('Contact payload:', contactPayload);
 
-    const formValue = this.employeeForm.getRawValue();
-    const empId = this.isEditMode ? this.selectedEmployee?.empId : undefined;
-    const isBhutanese = formValue.nationality === 'Bhutanese';
+    const payload = {
+      employee: {
+        empId: empId,
+        empCode: formValue.empCode,
+        firstName: formValue.firstName,
+        middleName: formValue.middleName || null,
+        lastName: formValue.lastName,
+        positionId: formValue.position,
+        deptId: formValue.department,
+        dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
+        gender: formValue.gender,
+        maritalStatus: formValue.maritalStatus,
+        nationality: formValue.nationality,
+        cidNumber: formValue.cidNumber,
+        hireDate: this.formatDateForAPI(formValue.hireDate),
+        employmentStatus: formValue.employmentStatus,
+        employmentType: formValue.employmentType,
+        branchId: branchId,
+        orgId: formValue.organization,
+        shiftId: formValue.shift,
+        gradeId: formValue.grade,
+        basicSalary: formValue.basicSalary,
+        maxSalary: formValue.maxSalary
+      },
+      contacts: [contactPayload], // Use the properly constructed contact payload
+      addresses: [addressPayload],
+      qualifications: this.educations.controls.map(control => ({
+        qualificationId: control.value.qualificationId || undefined,
+        institutionName: control.value.institutionName,
+        degreeName: control.value.degreeName,
+        specialization: control.value.specialization,
+        yearOfCompletion: control.value.yearOfCompletion
+      })),
+      bankDetails: [{
+        bankDetailId: existingBankDetail?.bankDetailId || undefined,
+        bankName: formValue.bankName,
+        branchName: formValue.branchName,
+        accountNumber: formValue.accountNumber,
+        accountType: formValue.accountType
+      }],
+      updateOperation: this.isEditMode
+    };
 
-    try {
-      const branchId = this.getBranchId(formValue.location);
-      if (!branchId) {
-        throw new Error('Invalid location selected');
-      }
+    console.log('Full payload being sent:', JSON.stringify(payload, null, 2));
 
-      // Get the most recent existing IDs
-      const existingContact = this.selectedEmployee?.contacts?.slice(-1)[0];
-      const existingAddress = this.selectedEmployee?.addresses?.slice(-1)[0];
-      const existingQualification = this.selectedEmployee?.qualifications?.slice(-1)[0];
-      const existingBankDetail = this.selectedEmployee?.bankDetails?.slice(-1)[0];
+    const request$ = this.isEditMode && empId
+      ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
+      : this.http.post(this.apiUrl, payload, this.httpOptions);
 
-      // Prepare address payload based on nationality
-      const addressPayload: any = {
-        addressId: existingAddress?.addressId || undefined,
-        addressType: formValue.addressType || 'Permanent',
-        addressLine1: formValue.addressLine1,
-        isCurrent: true
-      };
-
-      if (isBhutanese) {
-        addressPayload.addressLine2 = ''; // Clear for Bhutanese
-        addressPayload.thromde = formValue.thromde;
-        addressPayload.dzongkhag = formValue.dzongkhag;
-        addressPayload.country = 'Bhutan';
-      } else {
-        addressPayload.addressLine2 = formValue.addressLine2;
-        addressPayload.thromde = ''; // Clear for non-Bhutanese
-        addressPayload.dzongkhag = ''; // Clear for non-Bhutanese
-        addressPayload.country = 'Non-Bhutanese'; // Or get from a country field if you add one
-      }
-      const shiftId = formValue.shift;
-      if (!this.shifts.some(s => s.shiftId === shiftId)) {
-        this.errorMessage = 'Invalid shift selected';
+    request$.pipe(
+      catchError(err => {
+        console.error('Error saving employee:', {
+          status: err.status,
+          message: err.message,
+          error: err.error
+        });
+        this.errorMessage = this.extractErrorMessage(err);
         this.isSaving = false;
-        return;
-      }
-      const payload = {
-        employee: {
-          empId: empId,
-          empCode: formValue.empCode,
-          firstName: formValue.firstName,
-          middleName: formValue.middleName || null,
-          lastName: formValue.lastName,
-          positionId: formValue.position,
-          deptId: formValue.department,
-          dateOfBirth: this.formatDateForAPI(formValue.dateOfBirth),
-          gender: formValue.gender,
-          maritalStatus: formValue.maritalStatus,
-          nationality: formValue.nationality,
-          cidNumber: formValue.cidNumber,
-          hireDate: this.formatDateForAPI(formValue.hireDate),
-          employmentStatus: formValue.employmentStatus,
-          employmentType: formValue.employmentType,
-          branchId: branchId,
-          orgId: formValue.organization,
-          shiftId: formValue.shift,
-          gradeId: formValue.grade,
-          basicSalary: formValue.basicSalary,
-          maxSalary: formValue.maxSalary
-        },
-        contacts: [{
-          contactId: existingContact?.contactId || undefined,
-          email: formValue.email,
-          phonePrimary: formValue.phonePrimary,
-          isEmergencyContact: false,
-          relationship: 'Self',
-          priorityLevel: 1
-        }],
-        addresses: [addressPayload],
-        qualifications: this.educations.controls.map(control => ({
-          qualificationId: control.value.qualificationId || undefined,
-          institutionName: control.value.institutionName,
-          degreeName: control.value.degreeName,
-          specialization: control.value.specialization,
-          yearOfCompletion: control.value.yearOfCompletion
-        })),
-        bankDetails: [{
-          bankDetailId: existingBankDetail?.bankDetailId || undefined,
-          bankName: formValue.bankName,
-          branchName: formValue.branchName,
-          accountNumber: formValue.accountNumber,
-          accountType: formValue.accountType
-        }],
-        updateOperation: this.isEditMode
-      };
-
-      console.log('Sending payload:', payload);
-
-      const request$ = this.isEditMode && empId
-        ? this.http.put(`${this.apiUrl}/${empId}`, payload, this.httpOptions)
-        : this.http.post(this.apiUrl, payload, this.httpOptions);
-
-      request$.pipe(
-        catchError(err => {
-          console.error('Error saving employee:', {
-            status: err.status,
-            message: err.message,
-            error: err.error
-          });
-          this.errorMessage = this.extractErrorMessage(err);
-          this.isSaving = false;
-          return throwError(() => err);
-        })
-      ).subscribe({
-        next: (response: ApiEmployeeResponse | any) => {
-          this.isSaving = false;
-          this.closeModal();
-
-          const generatedCode = (response as ApiEmployeeResponse)?.employee?.empCode ||
-            response?.empCode ||
-            'N/A';
-          console.log('Employee saved successfully with code:', generatedCode);
-          this.handleUpdateResponse(response, empId);
-        },
-        error: (err) => {
-          console.error('Save failed:', err);
-          this.isSaving = false;
+        return throwError(() => err);
+      })
+    ).subscribe({
+      next: (response: ApiEmployeeResponse | any) => {
+        this.isSaving = false;
+        
+        const generatedCode = (response as ApiEmployeeResponse)?.employee?.empCode ||
+          response?.empCode ||
+          'N/A';
+        
+        const savedEmpId = (response as ApiEmployeeResponse)?.employee?.empId ||
+          response?.empId;
+          
+        console.log('Employee saved successfully with code:', generatedCode);
+        console.log('Employee ID:', savedEmpId);
+        console.log('Full response:', response);
+        
+        // Close the main modal first
+        this.closeModal();
+        
+        // Handle the update response (refresh employee list)
+        this.handleUpdateResponse(response, empId);
+        
+        // Show user creation modal only for NEW employees (not edits)
+        if (!this.isEditMode && savedEmpId) {
+          const employeeDetails = {
+            firstName: formValue.firstName,
+            lastName: formValue.lastName,
+            email: formValue.email,
+            department: this.getDepartmentName(formValue.department),
+            position: this.getPositionName(formValue.position)
+          };
+          
+          this.openUserCreationModal(savedEmpId, generatedCode, employeeDetails);
+        } else if (this.isEditMode) {
+          alert(`Employee ${generatedCode} updated successfully!`);
         }
-      });
-    } catch (error) {
-      this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-      this.isSaving = false;
-      console.error('Exception in saveEmployee:', error);
-    }
+      },
+      error: (err) => {
+        console.error('Save failed:', err);
+        this.isSaving = false;
+      }
+    });
+  } catch (error) {
+    this.errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    this.isSaving = false;
+    console.error('Exception in saveEmployee:', error);
   }
+}
   private getFormValidationErrors(): any {
     const errors = {};
     Object.keys(this.employeeForm.controls).forEach(key => {
@@ -1661,6 +1866,7 @@ export class EmployeeDetailComponent implements OnInit {
 
     const rows = this.filteredEmployees.map(emp => {
       const primaryContact: Contact = emp.contacts?.[0] || {
+        contactType: 'Email',
         email: '',
         phonePrimary: '',
         isEmergencyContact: false

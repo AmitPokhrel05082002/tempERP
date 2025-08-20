@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient, HttpClientModule, HttpParams } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
+import { saveAs } from 'file-saver';
 
 interface Branch {
   branchId: string;
@@ -371,4 +372,29 @@ viewSalaryDetails(empId: string) {
   console.log('Attempting to view salary for employee:', empId); // Debug log
   this.router.navigate(['/pay-roll-detail', empId]);
 }
+exportPayroll() {
+    const monthParam = parseInt(this.selectedMonth, 10).toString();
+    const params = new HttpParams()
+      .set('year', this.selectedYear)
+      .set('month', monthParam);
+
+    // Make the GET request to the export endpoint
+    this.http.get(`${environment.payrollApiUrl}/api/payRoll/exportPayroll`, {
+      params,
+      responseType: 'blob' // Important: response type should be blob
+    }).subscribe({
+      next: (blob: Blob) => {
+        // Create a filename with the selected year and month
+        const monthName = this.months.find(m => m.value === this.selectedMonth)?.name || 'Month';
+        const fileName = `Payroll_${monthName}_${this.selectedYear}.xlsx`;
+        
+        // Use file-saver to save the file
+        saveAs(blob, fileName);
+      },
+      error: (err) => {
+        console.error('Error exporting payroll:', err);
+        alert('Failed to export payroll data. Please try again.');
+      }
+    });
+  }
 }

@@ -735,7 +735,128 @@
   </div>
 </div>
 
-<!-- Modal Backdrop -->
-<div class="emp-det-modal-backdrop modal-backdrop fade" [class.show]="showModal || showViewModal"
-  [style.display]="showModal || showViewModal ? 'block' : 'none'" (click)="closeModal(); closeViewModal()">
+
+<!-- User Creation Modal - Place this OUTSIDE the main emp-det-container -->
+<div class="modal fade" 
+     [class.show]="showUserCreationModal" 
+     [style.display]="showUserCreationModal ? 'block' : 'none'"
+     id="userCreationModal" 
+     tabindex="-1" 
+     role="dialog">
+  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-success text-white border-0">
+        <h5 class="modal-title fw-bold">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Employee Saved Successfully!
+        </h5>
+        <button type="button" class="btn-close btn-close-white" (click)="closeUserCreationModal()"></button>
+      </div>
+      
+      <div class="modal-body p-4">
+        <div class="alert alert-success mb-4">
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Employee <strong>{{ newEmployeeCode }}</strong> 
+          ({{ newEmployeeDetails?.firstName }} {{ newEmployeeDetails?.lastName }}) 
+          has been saved successfully!
+        </div>
+
+        <div class="alert alert-info mb-4">
+          <i class="bi bi-info-circle me-2"></i>
+          Would you like to create a user account for this employee? The system will use the employee details stored in the database.
+        </div>
+        
+        <h6 class="mb-3">User account will be created with:</h6>
+        
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">Employee Details</h6>
+              </div>
+              <div class="card-body">
+                
+                <div class="mb-2">
+                  <strong>Employee Code:</strong> {{ newEmployeeCode }}
+                </div>
+                <div class="mb-2">
+                  <strong>Name:</strong> {{ newEmployeeDetails?.firstName }} {{ newEmployeeDetails?.lastName }}
+                </div>
+                <div class="mb-2">
+                  <strong>Department:</strong> {{ newEmployeeDetails?.department }}
+                </div>
+                <div class="mb-2">
+                  <strong>Position:</strong> {{ newEmployeeDetails?.position }}
+                </div>
+                <div class="mb-2">
+                  <strong>Email:</strong> {{ newEmployeeDetails?.email }}
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="col-md-6">
+            <div class="card mb-3">
+              <div class="card-header bg-light">
+                <h6 class="mb-0">User Account Details</h6>
+              </div>
+              <div class="card-body">
+                <div class="mb-3">
+                  <label class="form-label fw-medium">Username</label>
+                  <input type="text" class="form-control" [value]="newEmployeeCode" readonly>
+                  <small class="text-muted">Will use employee code as username</small>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label fw-medium">Email</label>
+                  <input type="text" class="form-control" [value]="newEmployeeDetails?.email || 'From employee database'" readonly>
+                </div>
+                
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" checked disabled>
+                  <label class="form-check-label">
+                    Password change required on first login
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-warning mt-3">
+          <i class="bi bi-exclamation-triangle me-2"></i>
+          <strong>Note:</strong> The User will be created through your Confirmation.
+        </div>
+      </div>
+      
+      <div class="modal-footer border-0 p-4 pt-0">
+        <button type="button" 
+                class="btn btn-outline-secondary" 
+                (click)="declineUserCreation()"
+                [disabled]="isCreatingUser">
+          Skip for Now
+        </button>
+        <button type="button" 
+                class="btn btn-success" 
+                (click)="confirmUserCreation()"
+                [disabled]="isCreatingUser">
+          <span *ngIf="!isCreatingUser">
+            <i class="bi bi-person-plus me-2"></i>
+            Create User Account
+          </span>
+          <span *ngIf="isCreatingUser">
+            <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            Creating...
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
+
+<!-- Modal Backdrop for User Creation Modal -->
+<div class="modal-backdrop fade" 
+     [class.show]="showUserCreationModal" 
+     [style.display]="showUserCreationModal ? 'block' : 'none'"
+     *ngIf="showUserCreationModal"></div>
+

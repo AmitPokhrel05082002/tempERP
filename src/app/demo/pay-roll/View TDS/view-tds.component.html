@@ -1,0 +1,155 @@
+<div class="table-download-wrapper">
+  <h2 style="margin-bottom: 10px; font-weight: 600; color: #333;">
+    Select Date Range to View Salary Summary
+  </h2>
+
+  <div class="date-range-selectors">
+    <div class="selector-group">
+      <label for="startYear">Start Year:</label>
+      <select id="startYear" [(ngModel)]="startYear" (change)="onRangeChange()">
+        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+      </select>
+    </div>
+
+    <div class="selector-group">
+      <label for="startMonth">Start Month:</label>
+      <select id="startMonth" [(ngModel)]="startMonth" (change)="onRangeChange()">
+        <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
+      </select>
+    </div>
+
+    <div class="selector-group">
+      <label for="endYear">End Year:</label>
+      <select id="endYear" [(ngModel)]="endYear" (change)="onRangeChange()">
+        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
+      </select>
+    </div>
+
+    <div class="selector-group">
+      <label for="endMonth">End Month:</label>
+      <select id="endMonth" [(ngModel)]="endMonth" (change)="onRangeChange()">
+        <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
+      </select>
+    </div>
+  </div>
+
+  <p *ngIf="salaryData.length > 0">
+    Showing salary data from {{ startMonth }}/{{ startYear }} to {{ endMonth }}/{{ endYear }}.
+  </p>
+
+  <p *ngIf="salaryData.length === 0">
+    <strong>No salary summary found</strong> for selected range ({{ startMonth }}/{{ startYear }} to {{ endMonth }}/{{ endYear }}).
+    Showing single month details of {{ endMonth }}/{{ endYear }} instead.
+  </p>
+
+  <div id="pdfContent">
+    <div class="certificate-container">
+      <div class="certificate-content">
+        <div class="header">
+          TDS Certificate For Income From Salary From {{ getMonthName(startMonth) }} {{ startYear }} 
+          to {{ getMonthName(endMonth) }} {{ endYear }}
+        </div>
+
+        <div class="employee-details">
+          <div class="detail-row">
+            <div class="detail-label">Name of the Employee:</div>
+            <div class="detail-value">
+              {{ employeeDetails?.firstName }} {{ employeeDetails?.middleName || '' }} {{ employeeDetails?.lastName }}
+            </div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Tax payer Number:</div>
+            <div class="detail-value">{{ employeeDetails?.empCode }}</div>
+          </div>
+          <div class="detail-row">
+            <div class="detail-label">Name of the Employer:</div>
+            <div class="detail-value">{{ employeeDetails?.orgName }}</div>
+          </div>
+        </div>
+
+        <table class="salary-table" *ngIf="salaryData.length > 0 || employeeDetails">
+          <thead>
+            <tr>
+              <th>Sl.No</th>
+              <th>Month</th>
+              <th>Gross Salary</th>
+              <th>Allowance</th>
+              <th>Benefits</th>
+              <th>Others</th>
+              <th>Net Salary</th>
+              <th>TDS</th>
+              <th>GPF</th>
+              <th>GIS</th>
+              <th>Leave Without Payment</th>
+              <th>Revenue Rt.No.</th>
+              <th>Revenue Rt. Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of salaryData; let i = index">
+              <td>{{ i + 1 }}</td>
+              <td>{{ item.salaryMonth }}</td>
+              <td>{{ formatDecimal(item.grossSalary) }}</td>
+              <td>{{ formatDecimal(item.allowance) }}</td>
+              <td>0</td>
+              <td>0</td>
+              <td>{{ formatDecimal(item.netSalary) }}</td>
+              <td>{{ formatDecimal(item.tds) }}</td>
+              <td>{{ formatDecimal(item.gpf) }}</td>
+              <td>{{ formatDecimal(item.gis) }}</td>
+              <td>{{ formatDecimal(item.lwp) }}</td>
+              <td></td>
+              <td></td>
+            </tr>
+
+            <tr *ngIf="salaryData.length === 0">
+              <td>1</td>
+              <td>{{ employeeDetails?.salaryMonth }}</td>
+              <td>{{ formatDecimal(employeeDetails?.basicPay) }}</td>
+              <td>{{ formatDecimal(employeeDetails?.allowance) }}</td>
+              <td>0</td>
+              <td>0</td>
+              <td>{{ formatDecimal((employeeDetails?.basicPay || 0) + (employeeDetails?.allowance || 0)) }}</td>
+              <td>{{ formatDecimal(employeeDetails?.tds) }}</td>
+              <td>{{ formatDecimal(employeeDetails?.gpf) }}</td>
+              <td>{{ formatDecimal(employeeDetails?.gis) }}</td>
+              <td>{{ formatDecimal(employeeDetails?.lwp) }}</td>
+              <td></td>
+              <td></td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td colspan="2">Total</td>
+              <td>{{ formatDecimal(totalgrossSalary) }}</td>
+              <td>{{ formatDecimal(totalAllowance) }}</td>
+              <td>0</td>
+              <td>0</td>
+              <td>{{ formatDecimal(totalnetSalary) }}</td>
+              <td>{{ formatDecimal(totalTds) }}</td>
+              <td>{{ formatDecimal(totalGpf) }}</td>
+              <td>{{ formatDecimal(totalGis) }}</td>
+              <td>{{ formatDecimal(totalLwp) }}</td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    <div class="instruction-container mt-5">
+      <div class="instruction">
+        <h3 class="instruction-title">Instructions</h3>
+        <ol class="instruction-list">
+          <li>All details must be completed and correct.</li>
+          <li>Challan No. and Challan Date columns are for those with RGR accounts.</li>
+          <li>Multiple entries can occur in a month for bonuses, fees, etc.</li>
+          <li>Information here is used for tax adjustment/refund purposes.</li>
+          <li>This certificate must be given to employees with salary TDS.</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <button class="save-button" (click)="saveData()">Download</button>
+</div>

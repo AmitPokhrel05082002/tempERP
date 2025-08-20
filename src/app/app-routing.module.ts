@@ -65,7 +65,6 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent)
       },
-
       {
         path: 'rbac',
         loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent)
@@ -124,8 +123,12 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
       },
       {
-        path: 'pay-slip/:empId',
-        loadComponent: () => import('./demo/pay-roll/pay-slip/pay-slip.component').then((c) => c.PaySlipComponent)
+        path: 'view/tds/:empId',
+        loadComponent: () => import('./demo/pay-roll/View TDS/view-tds.component').then((c) => c.TDSComponent)
+      },
+      {
+        path: 'view/pay-slip/:empId',
+        loadComponent: () => import('./demo/pay-roll/Pay-slip/pay-slip.component').then((c) => c.PaySlipComponent)
       },
       {
         path: 'pay-revision',
