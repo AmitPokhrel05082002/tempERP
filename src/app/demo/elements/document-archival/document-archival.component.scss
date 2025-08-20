@@ -5,28 +5,475 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-  // Header
+  // Header with enhanced role information
   .header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 24px;
     
+    > div:first-child {
+      flex: 1;
+    }
+    
     h2 {
-      margin: 0;
+      margin: 0 0 8px 0;
       color: #1f2937;
       font-size: 24px;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
     
-    p {
-      margin: 4px 0 0 0;
-      color: #6b7280;
-      font-size: 14px;
+    .header-info {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      
+      p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.4;
+      }
+      
+      .user-role-badge {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        
+        .role-indicator {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 12px;
+          font-weight: 500;
+          background: #f3f4f6;
+          color: #374151;
+          
+          &.admin {
+            background: #dbeafe;
+            color: #1d4ed8;
+          }
+          
+          &.manager {
+            background: #fef3c7;
+            color: #d97706;
+          }
+          
+          &.employee {
+            background: #dcfce7;
+            color: #166534;
+          }
+          
+          i {
+            font-size: 10px;
+          }
+        }
+        
+        .user-name {
+          font-size: 13px;
+          color: #6b7280;
+          font-weight: 500;
+        }
+      }
+    }
+    
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .back-btn {
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      color: #374151;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      
+      &:hover {
+        background: #e5e7eb;
+        border-color: #9ca3af;
+        transform: translateX(-2px);
+      }
+      
+      i {
+        font-size: 16px;
+      }
     }
   }
 
-  // Controls
+  // Enhanced permission notices
+  .permission-notice {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    
+    &.employee-notice {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      
+      i {
+        color: #22c55e;
+      }
+    }
+    
+    &.manager-notice {
+      background: #fffbeb;
+      border: 1px solid #fed7aa;
+      color: #c2410c;
+      
+      i {
+        color: #ea580c;
+      }
+    }
+    
+    i {
+      font-size: 16px;
+    }
+  }
+
+  // Enhanced admin stats
+  .admin-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+    
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      
+      &:nth-child(2) {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      }
+      
+      &:nth-child(3) {
+        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      }
+      
+      i {
+        font-size: 32px;
+        opacity: 0.9;
+      }
+      
+      .stat-info {
+        flex: 1;
+        
+        .stat-number {
+          display: block;
+          font-size: 24px;
+          font-weight: 700;
+          line-height: 1;
+          margin-bottom: 4px;
+        }
+        
+        .stat-label {
+          font-size: 14px;
+          opacity: 0.9;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+
+  // Loading states
+  .loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    color: #6b7280;
+    font-size: 14px;
+    
+    i {
+      margin-right: 8px;
+      color: #3b82f6;
+    }
+  }
+
+  // Enhanced Department Folders View
+  .departments-view {
+    .departments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+    
+    .department-folder {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      
+      // Enhanced employee department styling
+      &.employee-dept {
+        border-color: #22c55e;
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        
+        .folder-icon {
+          background: rgba(34, 197, 94, 0.1);
+        }
+      }
+      
+      &:hover:not(.restricted) {
+        border-color: #3b82f6;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        transform: translateY(-2px);
+        
+        .folder-icon i {
+          transform: scale(1.1);
+        }
+        
+        .folder-arrow i {
+          transform: translateX(4px);
+        }
+        
+        .upload-btn-small {
+          background: #2563eb;
+        }
+      }
+      
+      &.restricted {
+        opacity: 0.6;
+        cursor: not-allowed;
+        
+        .folder-content {
+          cursor: not-allowed;
+        }
+        
+        .folder-icon {
+          position: relative;
+          
+          .access-indicator {
+            position: absolute;
+            top: -4px;
+            right: -4px;
+            background: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+          }
+        }
+      }
+      
+      &.active {
+        border-color: #3b82f6;
+        background: #eff6ff;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+      }
+      
+      .folder-content {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        flex: 1;
+        cursor: pointer;
+      }
+      
+      .folder-icon {
+        flex-shrink: 0;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 10px;
+        position: relative;
+        
+        i {
+          font-size: 24px;
+          transition: transform 0.2s ease;
+        }
+        
+        // Enhanced department indicators
+        .my-dept-indicator {
+          position: absolute;
+          top: -4px;
+          right: -4px;
+          background: #22c55e;
+          color: white;
+          border-radius: 50%;
+          width: 16px;
+          height: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
+        }
+      }
+      
+      .folder-info {
+        flex: 1;
+        min-width: 0;
+        
+        .folder-name {
+          margin: 0 0 2px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #1f2937;
+          line-height: 1.3;
+          word-break: break-word;
+          
+          // Enhanced employee department label
+          .my-dept-label {
+            font-size: 12px;
+            color: #22c55e;
+            font-weight: 500;
+            margin-left: 8px;
+          }
+        }
+        
+        .folder-subtitle {
+          font-size: 12px;
+          color: #9ca3af;
+          margin-bottom: 4px;
+          font-weight: 400;
+        }
+        
+        .document-count {
+          font-size: 13px;
+          color: #6b7280;
+          font-weight: 500;
+        }
+        
+        .restricted-access {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 12px;
+          color: #ef4444;
+          font-weight: 500;
+          
+          i {
+            font-size: 10px;
+          }
+        }
+      }
+      
+      .folder-arrow {
+        flex-shrink: 0;
+        color: #9ca3af;
+        
+        i {
+          font-size: 14px;
+          transition: transform 0.2s ease;
+        }
+      }
+      
+      .department-actions {
+        padding: 12px 20px;
+        border-top: 1px solid #f3f4f6;
+        background: #f9fafb;
+        
+        .upload-btn-small {
+          background: #3b82f6;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 6px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s;
+          width: 100%;
+          justify-content: center;
+          
+          &:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+          }
+          
+          &:active {
+            transform: translateY(0);
+          }
+        }
+      }
+    }
+  }
+
+  // Documents view section
+  .documents-view {
+    // Employee welcome message
+    .employee-welcome {
+      margin-bottom: 24px;
+      
+      .welcome-card {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 2px solid #bbf7d0;
+        border-radius: 12px;
+        padding: 32px;
+        text-align: center;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        
+        i {
+          font-size: 48px;
+          color: #22c55e;
+          margin-bottom: 16px;
+        }
+        
+        h3 {
+          margin: 0 0 12px 0;
+          color: #166534;
+          font-size: 20px;
+          font-weight: 600;
+        }
+        
+        p {
+          margin: 0 0 8px 0;
+          color: #15803d;
+          font-size: 16px;
+          line-height: 1.5;
+        }
+        
+        small {
+          color: #059669;
+          font-size: 14px;
+          font-style: italic;
+          display: block;
+        }
+      }
+    }
+  }
+
+  // Enhanced controls with admin indicators
   .controls {
     display: flex;
     gap: 12px;
@@ -36,9 +483,9 @@
     
     .search-box {
       position: relative;
-      flex: 0 1 250px; // Fixed width instead of flex: 1 for smaller search bar
+      flex: 0 1 250px;
       min-width: 200px;
-      max-width: 300px; // Maximum width constraint
+      max-width: 300px;
       
       i {
         position: absolute;
@@ -68,6 +515,97 @@
       }
     }
     
+    .export-btn {
+      background: #059669;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+      
+      &:hover:not(:disabled) {
+        background: #047857;
+      }
+      
+      &:disabled {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+    }
+    
+    .view-options {
+      margin-left: auto;
+      
+      .view-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        color: #6b7280;
+        background: #f8fafc;
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid #e2e8f0;
+        
+        i {
+          font-size: 12px;
+          color: #3b82f6;
+        }
+        
+        // Enhanced role indicators
+        .admin-access-indicator {
+          margin-left: 8px;
+          padding: 2px 6px;
+          background: #dbeafe;
+          color: #1d4ed8;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          
+          i {
+            font-size: 8px;
+            color: #fbbf24;
+          }
+        }
+        
+        .employee-dept-indicator {
+          margin-left: 8px;
+          padding: 2px 6px;
+          background: #dcfce7;
+          color: #166534;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          
+          i {
+            font-size: 8px;
+            color: #22c55e;
+          }
+        }
+        
+        .manager-dept-indicator {
+          margin-left: 8px;
+          padding: 2px 6px;
+          background: #fef3c7;
+          color: #d97706;
+          border-radius: 4px;
+          font-size: 10px;
+          font-weight: 600;
+          
+          i {
+            font-size: 8px;
+            color: #f59e0b;
+          }
+        }
+      }
+    }
+    
     select {
       padding: 8px 12px;
       border: 1px solid #d1d5db;
@@ -88,45 +626,7 @@
     }
   }
 
-  // Buttons
-  .upload-btn {
-    background: #3b82f6;
-    color: white;
-    border: none;
-    padding: 8px 16px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: background 0.2s;
-    
-    &:hover:not(:disabled) {
-      background: #2563eb;
-    }
-    
-    &:disabled {
-      background: #9ca3af;
-      cursor: not-allowed;
-    }
-  }
-
-  // Loading
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #6b7280;
-    font-size: 16px;
-    
-    i {
-      margin-right: 8px;
-      color: #3b82f6;
-    }
-  }
-
-  // Empty State
+  // Enhanced empty states
   .empty-state {
     text-align: center;
     padding: 60px 20px;
@@ -150,7 +650,7 @@
     }
   }
 
-  // Table
+  // Enhanced document table with better indicators
   .documents-table {
     width: 100%;
     border-collapse: collapse;
@@ -177,8 +677,22 @@
         border-bottom: 1px solid #f3f4f6;
         transition: background-color 0.2s ease;
         
-        &:hover {
+        // Enhanced row styling
+        &.my-document {
+          background: #f0fdf4;
+        }
+        
+        &.cross-department {
+          background: #fef3c7;
+        }
+        
+        &:hover:not(.restricted) {
           background: #f9fafb;
+        }
+        
+        &.restricted {
+          opacity: 0.7;
+          background: #fef2f2;
         }
         
         td {
@@ -212,7 +726,7 @@
       
       .file-info {
         flex: 1;
-        min-width: 0; // Allow text to wrap/truncate
+        min-width: 0;
         
         .file-name {
           font-weight: 500;
@@ -225,30 +739,70 @@
         .document-code {
           color: #6b7280;
           font-size: 12px;
-          display: block;
+          display: inline-block;
           font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
           background: #f3f4f6;
           padding: 2px 6px;
           border-radius: 3px;
-          display: inline-block;
-          margin-top: 2px;
+          margin: 2px 0;
+        }
+        
+        // Enhanced document indicators
+        .document-indicators {
+          display: flex;
+          gap: 4px;
+          margin-top: 4px;
+          flex-wrap: wrap;
+          
+          .pdf-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #dc2626;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+            
+            i {
+              font-size: 9px;
+            }
+          }
+          
+          .my-doc-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #22c55e;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+            
+            i {
+              font-size: 9px;
+            }
+          }
+          
+          .cross-dept-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #f59e0b;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+            
+            i {
+              font-size: 9px;
+            }
+          }
         }
       }
-    }
-    
-    .file-type-badge {
-      padding: 4px 8px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border: none;
-      color: white !important;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
-      min-width: 60px;
-      text-align: center;
-      display: inline-block;
     }
     
     .badge {
@@ -265,18 +819,35 @@
       }
     }
     
+    .owner-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      margin-left: 8px;
+      font-size: 11px;
+      color: #059669;
+      font-weight: 500;
+      
+      i {
+        font-size: 10px;
+      }
+    }
+    
     .actions {
       display: flex;
       gap: 8px;
       align-items: center;
       
-      .view-btn, .download-btn, .debug-btn {
+      .view-btn, .download-btn {
         padding: 6px 8px;
         border: none;
         border-radius: 4px;
         cursor: pointer;
         transition: all 0.2s;
         font-size: 12px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
         
         &:hover:not(:disabled) {
           transform: translateY(-1px);
@@ -286,15 +857,30 @@
           opacity: 0.6;
           cursor: not-allowed;
         }
+        
+        .btn-label {
+          font-size: 10px;
+          font-weight: 500;
+        }
       }
       
       .view-btn {
         background: #3b82f6;
         color: white;
         
+        &.pdf-btn {
+          background: #dc2626;
+          box-shadow: 0 2px 4px rgba(220, 38, 38, 0.2);
+        }
+        
         &:hover:not(:disabled) {
           background: #2563eb;
           box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+          
+          &.pdf-btn {
+            background: #b91c1c;
+            box-shadow: 0 2px 4px rgba(185, 28, 28, 0.3);
+          }
         }
       }
       
@@ -308,19 +894,50 @@
         }
       }
       
-      .debug-btn {
-        background: #ef4444;
-        color: white;
+      .no-access {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #ef4444;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 8px;
+        background: #fef2f2;
+        border-radius: 4px;
         
-        &:hover:not(:disabled) {
-          background: #dc2626;
-          box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+        i {
+          font-size: 10px;
         }
       }
     }
   }
 
-  // Modal
+  // Common upload button styles
+  .upload-btn {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+    
+    &:hover:not(:disabled) {
+      background: #2563eb;
+    }
+    
+    &:disabled {
+      background: #9ca3af;
+      cursor: not-allowed;
+    }
+  }
+
+  // Enhanced modal styles
   .modal {
     position: fixed;
     top: 0;
@@ -366,6 +983,64 @@
             border-radius: 4px;
             font-size: 12px;
             font-weight: 500;
+          }
+          
+          .pdf-enhanced {
+            background: #dc2626;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            
+            i {
+              font-size: 10px;
+            }
+          }
+          
+          // Enhanced cross-department viewer indicator
+          .cross-dept-viewer {
+            background: #f59e0b;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            
+            i {
+              font-size: 10px;
+              color: #fbbf24;
+            }
+          }
+          
+          .download-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 6px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            
+            &:hover:not(:disabled) {
+              background: #047857;
+              box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+            }
+            
+            &:disabled {
+              opacity: 0.6;
+              cursor: not-allowed;
+            }
           }
         }
         
@@ -413,10 +1088,19 @@
             }
           }
           
+          .field-help {
+            display: block;
+            margin-top: 6px;
+            color: #6b7280;
+            font-size: 12px;
+            line-height: 1.4;
+          }
+          
           .file-upload {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
             
             .file-select-btn {
               background: #f3f4f6;
@@ -440,6 +1124,11 @@
               color: #059669;
               font-size: 14px;
               font-weight: 500;
+              
+              small {
+                color: #6b7280;
+                font-weight: 400;
+              }
             }
           }
           
@@ -461,6 +1150,100 @@
             
             input[type="checkbox"] {
               margin: 0;
+            }
+          }
+
+          .department-display {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-weight: 500;
+            color: #374151;
+            
+            // Enhanced employee upload styling
+            &.employee-upload {
+              background: #f0fdf4;
+              border-color: #bbf7d0;
+            }
+            
+            i {
+              font-size: 18px;
+              flex-shrink: 0;
+            }
+            
+            .dept-info {
+              flex: 1;
+              min-width: 0;
+              
+              .dept-name {
+                display: block;
+                font-weight: 600;
+                color: #1f2937;
+                margin-bottom: 2px;
+              }
+              
+              .dept-code {
+                display: block;
+                font-size: 11px;
+                color: #6b7280;
+                font-weight: 400;
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                background: #f3f4f6;
+                padding: 1px 4px;
+                border-radius: 2px;
+                display: inline-block;
+                margin-bottom: 2px;
+              }
+              
+              // Enhanced upload indicator for employees
+              .upload-indicator {
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                font-size: 11px;
+                color: #22c55e;
+                font-weight: 500;
+                
+                i {
+                  font-size: 10px;
+                }
+              }
+            }
+          }
+          
+          .privacy-note {
+            display: block;
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #f0f9ff;
+            border-radius: 4px;
+            color: #0369a1;
+            font-size: 12px;
+            line-height: 1.4;
+            
+            i {
+              color: #0284c7;
+              margin-right: 4px;
+            }
+          }
+          
+          .admin-upload-note {
+            display: block;
+            margin-top: 6px;
+            padding: 8px 12px;
+            background: #eff6ff;
+            border-radius: 4px;
+            color: #1d4ed8;
+            font-size: 12px;
+            line-height: 1.4;
+            
+            i {
+              color: #3b82f6;
+              margin-right: 4px;
             }
           }
         }
@@ -486,7 +1269,6 @@
             cursor: not-allowed;
           }
           
-          // Default button
           background: #f9fafb;
           border: 1px solid #d1d5db;
           color: #374151;
@@ -495,7 +1277,6 @@
             background: #f3f4f6;
           }
           
-          // Primary button
           &.primary {
             background: #3b82f6;
             border: 1px solid #3b82f6;
@@ -511,7 +1292,7 @@
     }
   }
 
-  // View Modal Specific Styles
+  // Enhanced View Modal for PDFs
   .view-modal {
     .modal-content {
       max-width: 90vw;
@@ -519,16 +1300,72 @@
       width: 1000px;
       height: 700px;
       
-      .view-modal-body {
-        position: relative;
-        height: 600px;
-        overflow: hidden;
-        padding: 0;
+      &.view-modal-content {
+        .view-modal-body {
+          position: relative;
+          height: 600px;
+          overflow: hidden;
+          padding: 0;
+        }
       }
     }
   }
 
-  // Office Viewer Styles
+  // PDF Loading Notice
+  .pdf-loading-notice {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+    .pdf-notice {
+      text-align: center;
+      padding: 3rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      max-width: 400px;
+
+      i {
+        font-size: 4rem;
+        color: #dc2626;
+        margin-bottom: 1.5rem;
+      }
+
+      h4 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.5rem;
+        color: #1e293b;
+        font-weight: 700;
+      }
+
+      p {
+        margin: 0 0 2rem 0;
+        color: #64748b;
+        line-height: 1.6;
+        font-size: 1.1rem;
+      }
+
+      .loading-bar {
+        width: 100%;
+        height: 4px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+        position: relative;
+
+        .loading-progress {
+          height: 100%;
+          background: linear-gradient(90deg, #dc2626, #ef4444);
+          border-radius: 2px;
+          animation: progressBar 2s ease-in-out infinite;
+        }
+      }
+    }
+  }
+
+  // Office viewer and error states
   .office-viewer {
     display: flex;
     justify-content: center;
@@ -571,7 +1408,6 @@
     }
   }
 
-  // Loading and Error States
   .iframe-loading {
     position: absolute;
     top: 0;
@@ -671,16 +1507,29 @@
       color: #64748b;
       line-height: 1.5;
     }
+
+    .preview-options {
+      display: flex;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
   }
 
+  // Enhanced PDF viewer
   .document-viewer {
     width: 100%;
     height: 100%;
     border: none;
     background: white;
+    
+    &.pdf-viewer {
+      border: 2px solid #dc2626;
+      border-radius: 4px;
+    }
   }
 
-  // Option Buttons
+  // Button variants
   .option-btn {
     display: inline-flex;
     align-items: center;
@@ -739,12 +1588,65 @@
     }
   }
 
-  // Highlight styles
+  // Search highlighting
   mark {
     background: #fef08a;
     color: #92400e;
     padding: 1px 2px;
     border-radius: 2px;
+  }
+
+  // Keyframe animations
+  @keyframes progressBar {
+    0% {
+      width: 0%;
+      margin-left: 0%;
+    }
+    50% {
+      width: 75%;
+      margin-left: 25%;
+    }
+    100% {
+      width: 0%;
+      margin-left: 100%;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes folderBounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-4px);
+    }
+    60% {
+      transform: translateY(-2px);
+    }
+  }
+
+  // Animations
+  .departments-view,
+  .documents-view {
+    animation: fadeInUp 0.3s ease-out;
+  }
+
+  .department-folder {
+    &:hover:not(.restricted) {
+      .folder-icon {
+        animation: folderBounce 0.6s ease-in-out;
+      }
+    }
   }
 
   // Responsive Design
@@ -755,6 +1657,75 @@
       flex-direction: column;
       align-items: flex-start;
       gap: 12px;
+      
+      h2 {
+        font-size: 20px;
+      }
+      
+      .header-info {
+        width: 100%;
+        
+        .user-role-badge {
+          flex-wrap: wrap;
+        }
+      }
+      
+      .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+    
+    .admin-stats {
+      grid-template-columns: 1fr;
+      gap: 12px;
+      
+      .stat-card {
+        padding: 16px;
+        
+        i {
+          font-size: 24px;
+        }
+        
+        .stat-number {
+          font-size: 20px;
+        }
+      }
+    }
+    
+    .departments-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .department-folder {
+      .folder-content {
+        padding: 16px;
+        gap: 12px;
+      }
+      
+      .folder-icon {
+        width: 40px;
+        height: 40px;
+        
+        i {
+          font-size: 20px;
+        }
+      }
+      
+      .folder-info {
+        .folder-name {
+          font-size: 15px;
+        }
+        
+        .folder-subtitle {
+          font-size: 11px;
+        }
+        
+        .document-count {
+          font-size: 12px;
+        }
+      }
     }
     
     .controls {
@@ -766,6 +1737,10 @@
         max-width: none;
         min-width: auto;
       }
+      
+      .view-options {
+        margin-left: 0;
+      }
     }
     
     .documents-table {
@@ -774,12 +1749,6 @@
       thead th,
       tbody td {
         padding: 8px 6px;
-      }
-      
-      // Hide department column on mobile to save space
-      th:nth-child(4),
-      td:nth-child(4) {
-        display: none;
       }
       
       .file-cell {
@@ -801,26 +1770,18 @@
           
           .document-code {
             font-size: 10px;
-            padding: 1px 4px;
           }
         }
       }
       
-      .file-type-badge {
-        font-size: 10px;
-        padding: 3px 6px;
-        min-width: 50px;
-      }
-      
       .actions {
         gap: 4px;
+        flex-direction: column;
         
         button {
           padding: 4px 6px;
-          
-          i {
-            font-size: 11px;
-          }
+          font-size: 11px;
+          width: 100%;
         }
       }
     }
@@ -831,8 +1792,10 @@
         height: 80vh;
         margin: 20px;
         
-        .view-modal-body {
-          height: calc(80vh - 120px);
+        &.view-modal-content {
+          .view-modal-body {
+            height: calc(80vh - 120px);
+          }
         }
       }
     }
@@ -841,72 +1804,34 @@
       .modal-content {
         width: 95%;
         margin: 20px;
-        
-        .modal-body {
-          padding: 16px 20px;
-        }
-        
-        .modal-header,
-        .modal-footer {
-          padding: 16px 20px;
-        }
-      }
-    }
-    
-    .option-btn,
-    .retry-btn {
-      width: 100%;
-      justify-content: center;
-      max-width: 250px;
-      min-width: auto;
-    }
-    
-    .office-viewer .office-notice {
-      margin: 1rem;
-      padding: 2rem 1rem;
-      
-      .viewer-options {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.5rem;
       }
     }
   }
   
   @media (max-width: 480px) {
-    .documents-table {
-      // On very small screens, hide additional columns
-      th:nth-child(3),
-      td:nth-child(3),
-      th:nth-child(4),
-      td:nth-child(4) {
-        display: none;
-      }
-      
-      .actions {
+    .admin-stats {
+      .stat-card {
         flex-direction: column;
-        gap: 2px;
+        text-align: center;
+        gap: 8px;
         
-        button {
-          padding: 3px 5px;
-          font-size: 10px;
+        .stat-info {
+          .stat-number {
+            font-size: 18px;
+          }
+          
+          .stat-label {
+            font-size: 13px;
+          }
         }
       }
-      
-      .file-cell {
-        .file-icon-container {
-          width: 24px;
-          height: 24px;
-          
-          .file-type-icon {
-            font-size: 12px;
-          }
-        }
-        
-        .file-info {
-          .document-code {
-            font-size: 9px;
-          }
+    }
+    
+    .documents-table {
+      .actions {
+        .no-access {
+          font-size: 9px;
+          padding: 2px 4px;
         }
       }
     }
@@ -916,9 +1841,31 @@
         width: 98%;
         height: 90vh;
         
-        .view-modal-body {
-          height: calc(90vh - 100px);
+        &.view-modal-content {
+          .view-modal-body {
+            height: calc(90vh - 100px);
+          }
         }
+      }
+    }
+  }
+
+  // Print styles
+  @media print {
+    .header-actions,
+    .controls,
+    .actions,
+    .modal {
+      display: none !important;
+    }
+    
+    .documents-table {
+      box-shadow: none;
+      border: 1px solid #000;
+      
+      th, td {
+        border: 1px solid #000;
+        padding: 8px 4px;
       }
     }
   }
