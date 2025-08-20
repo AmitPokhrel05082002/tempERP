@@ -223,32 +223,26 @@ export class EmployeeViewComponent implements OnInit {
     setTimeout(() => this.router.navigate(['/employees']), 3000);
   }
 
-checkPermissions(): void {
-  this.currentUser = this.authService.getCurrentUser();
-  this.currentUserEmpCode = this.currentUser?.empId || '';
+  checkPermissions(): void {
+    this.currentUser = this.authService.getCurrentUser();
+    this.currentUserEmpCode = this.currentUser?.empId || '';
 
-  const isViewingOwnProfile = this.isViewingOwnProfile();
-  const isAdmin = this.authService.isAdmin();
-  const isManager = this.authService.isCTO(); // Since you're using CTO for managers
+    // Check if user is viewing their own profile
+    const isViewingOwnProfile = this.isViewingOwnProfile();
 
-  // Permission flags
-  this.canEditEmployee = isAdmin || isManager ||
-    (this.authService.isEmployee() && isViewingOwnProfile &&
-     this.authService.hasPermission('EMP_EDIT_OWN'));
+    // Admin permissions
+    const isAdmin = this.authService.isAdmin();
+    const isCTO = this.authService.isCTO();
 
-  // Managers can view sensitive info for their team
-  this.canViewSensitiveInfo = this.authService.hasPermission('EMP_VIEW_SENSITIVE') ||
-    isAdmin ||
-    (isManager && this.isTeamMember());
-}
+    // Permission flags
+    this.canEditEmployee = isAdmin || isCTO ||
+      (this.authService.isEmployee() && isViewingOwnProfile &&
+        this.authService.hasPermission('EMP_EDIT_OWN'));
 
-private isTeamMember(): boolean {
-  if (!this.employee || !this.currentUser) return false;
-  
-  // Implement your team checking logic here
-  // Example: check if same department
-  return this.employee.department === this.currentUser.deptID;
-}
+    this.canViewSensitiveInfo = this.authService.hasPermission('EMP_VIEW_SENSITIVE') ||
+      isAdmin ||
+      isCTO;
+  }
 
   private loadShifts(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -405,11 +399,6 @@ private isTeamMember(): boolean {
     }
   }
 
-  // private handleMissingCodeError(): void {
-  //   this.isLoading = false;
-  //   this.errorMessage = 'Employee code is missing from URL';
-  //   setTimeout(() => this.router.navigate(['/employees']), 3000);
-  // }
 
   loadEmployeeById(empId: string): void {
     this.isLoading = true;

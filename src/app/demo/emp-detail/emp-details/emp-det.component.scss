@@ -21,7 +21,202 @@ $info-color: #0d6efd;
     padding: 2rem;
   }
 }
+// Add this to your component SCSS file
 
+// User Creation Modal Styles
+.modal {
+  z-index: 1055 !important;
+  
+  &.show {
+    display: block !important;
+  }
+  
+  .modal-dialog {
+    z-index: 1056;
+  }
+  
+  .modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  }
+  
+  .modal-header {
+    background: linear-gradient(135deg, #23a9d2, #015b9d);
+    color: white;
+    border-radius: 15px 15px 0 0;
+    border-bottom: none;
+    
+    .modal-title {
+      font-weight: 600;
+      
+      i {
+        font-size: 1.2em;
+      }
+    }
+    
+    .btn-close {
+      filter: brightness(0) invert(1);
+    }
+  }
+  
+  .modal-body {
+    padding: 2rem;
+    
+    .alert {
+      border: none;
+      border-radius: 10px;
+      
+      &.alert-success {
+        background: linear-gradient(135deg, #d4edda, #c3e6cb);
+        border-left: 4px solid #23a9d2;
+      }
+      
+      &.alert-info {
+        background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+        border-left: 4px solid #17a2b8;
+      }
+      
+      &.alert-warning {
+        background: linear-gradient(135deg, #fff3cd, #ffeaa7);
+        border-left: 4px solid #ffc107;
+      }
+    }
+    
+    .card {
+      border-radius: 10px;
+      border: 1px solid #e0e0e0;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transform: translateY(-2px);
+      }
+      
+      .card-header {
+        background: #f8f9fa;
+        border-radius: 10px 10px 0 0;
+        border-bottom: 1px solid #e0e0e0;
+        
+        h6 {
+          color: #495057;
+          font-weight: 600;
+        }
+      }
+      
+      .card-body {
+        padding: 1.5rem;
+        
+        .form-control {
+          border-radius: 8px;
+          border: 1px solid #ced4da;
+          
+          &:focus {
+            border-color: #23a9d2;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+          }
+        }
+        
+        .form-check-input {
+          &:checked {
+            background-color: #23a9d2;
+            border-color: #23a9d2;
+          }
+        }
+        
+        small.text-muted {
+          font-size: 0.875rem;
+          color: #6c757d;
+        }
+      }
+    }
+  }
+  
+  .modal-footer {
+    border-top: none;
+    padding: 1rem 2rem 2rem;
+    
+    .btn {
+      border-radius: 8px;
+      font-weight: 500;
+      padding: 0.5rem 1.5rem;
+      transition: all 0.3s ease;
+      
+      &.btn-success {
+        background:#23a9d2;
+        border: none;
+        
+        &:hover:not(:disabled) {
+          background: #015b9d;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(36, 128, 186, 0.3);
+        }
+        
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+      }
+      
+      &.btn-outline-secondary {
+        border: 2px solid #6c757d;
+        color: #6c757d;
+        
+        &:hover:not(:disabled) {
+          background: #6c757d;
+          color: white;
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+}
+
+.modal-backdrop {
+  z-index: 1050 !important;
+  background-color: rgba(0, 0, 0, 0.5);
+  
+  &.show {
+    opacity: 0.5;
+  }
+}
+
+// Animation for modal
+.modal.fade {
+  .modal-dialog {
+    transition: transform 0.3s ease-out;
+    transform: translate(0, -50px);
+  }
+  
+  &.show .modal-dialog {
+    transform: none;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .modal-dialog {
+    margin: 1rem;
+    max-width: none;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+    
+    .row .col-md-6 {
+      margin-bottom: 1rem;
+    }
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+    
+    .btn {
+      width: 100%;
+    }
+  }
+}
 /* Header Section */
 .emp-det-header {
   display: flex;

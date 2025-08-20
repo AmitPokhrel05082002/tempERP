@@ -1,4 +1,4 @@
-// auth.service.ts - Complete Updated Version
+// auth.service.ts - Complete Corrected Version
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, catchError, map, switchMap, filter } from 'rxjs/operators';
@@ -31,12 +31,8 @@ export interface User {
   mustChangePassword: boolean;
   accessToken: string;
   refreshToken: string;
-  isDeptHead: boolean;
-  deptID: string | null;  // Changed to explicitly show it can be null
   permissions?: Permission[];
   getRoleBasedId: () => string;
-  
-  // Helper method to get department ID regardless of case
   getDepartmentId?(): string | undefined;
 }
 
@@ -49,7 +45,7 @@ export class AuthService {
   private permissionsSubject = new BehaviorSubject<Permission[]>([]);
   public permissions$ = this.permissionsSubject.asObservable();
 
-  // Define role constants
+  // Role constants
   readonly ADMIN_ROLE = 'Admin';
   readonly CTO_ROLE = 'CTO';
   readonly EMPLOYEE_ROLE = 'Employee';
@@ -69,12 +65,11 @@ export class AuthService {
     }
   }
 
-  // Observable stream of current user
+  // Observable streams
   get user$(): Observable<User | null> {
     return this.currentUser$;
   }
 
-  // Stream of just the userId, useful for composing API calls
   get userId$(): Observable<string> {
     return this.user$.pipe(
       filter((u): u is User => !!u),
@@ -82,7 +77,7 @@ export class AuthService {
     );
   }
 
-  // Synchronous access to userId
+  // Synchronous accessors
   public get userId(): string | null {
     return this.currentUserValue?.userId ?? null;
   }
@@ -98,200 +93,113 @@ export class AuthService {
   public get isAdminOrCTO(): boolean {
     const user = this.currentUserValue;
     return user ? [this.ADMIN_ROLE, this.CTO_ROLE].includes(user.roleName) : false;
-  isManager(): boolean {
-    const user = this.currentUserValue;
-    return user?.roleName === 'Manager';
   }
 
-  /**
-   * Gets the role-based ID for the current user
-   * Returns the CTO ID for CTOs, Employee ID for Employees, or null if no user is logged in
-   */
   public get roleBasedId(): string | null {
     const user = this.currentUserValue;
     if (!user) return null;
     
-    // Use the user's getRoleBasedId method if it exists
     if (typeof user.getRoleBasedId === 'function') {
       return user.getRoleBasedId();
     }
     
-    // Fallback implementation if getRoleBasedId is not available
     return user.roleName === this.CTO_ROLE
       ? (user.ctoId || user.userId)
       : (user.empId || user.userId);
   }
 
-  // Define role constants
-  readonly ADMIN_ROLE = 'Admin';
-  readonly CTO_ROLE = 'Manager';
-  readonly EMPLOYEE_ROLE = 'Employee';
-
-
-  /**
-   * Check if current user is an Admin
-   */
+  // Role checking methods
   isAdmin(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.ADMIN_ROLE;
   }
 
-  /**
-   * Check if current user is a CTO
-   */
   isCTO(): boolean {
     const user = this.currentUserValue;
     return user?.roleCode === 'CTO' || user?.roleName === this.CTO_ROLE;
   }
 
-  /**
-   * Check if current user is an Employee
-   */
   isEmployee(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.EMPLOYEE_ROLE;
   }
 
-  /**
-   * Check if current user is HR
-   */
   isHR(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.HR_ROLE;
   }
 
-  /**
-   * Check if current user is a Manager
-   */
   isManager(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.MANAGER_ROLE;
   }
 
-  /**
-   * Check if current user is a Department Head Manager
-   * LEGACY METHOD - kept for backward compatibility
-   */
   isManagerDeptHead(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.MANAGER_ROLE && user?.isDeptHead === true;
   }
 
-  /**
-   * UPDATED: Check if current user is a Manager with department access
-   * Now checks for deptId presence regardless of isDeptHead status
-   */
   isManagerWithDepartment(): boolean {
     const user = this.currentUserValue;
     return user?.roleName === this.MANAGER_ROLE && !!this.getManagerDepartmentId();
   }
 
-  // ===============================
-  // ENHANCED ACCESS CONTROL METHODS
-  // ===============================
-
-  /**
-   * Check if user has full system access (Admin or CTO)
-   */
+  // Access control methods
   hasFullAccess(): boolean {
     return this.isAdmin() || this.isCTO();
   }
 
-  /**
-   * Check if user has admin-level access (Admin or CTO)
-   */
   hasAdminAccess(): boolean {
     return this.hasFullAccess();
   }
 
-  /**
-   * Check if user has read-only access (typically employees)
-   */
   hasReadOnlyAccess(): boolean {
-    return this.isEmployee();
+    return this.isEmployee() && !this.hasAnyPermission(['write_access', 'admin_access']);
   }
 
-  /**
-   * UPDATED: Check if user can view all employee data
-   */
   canViewAllEmployees(): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
     
-    // Admin and CTO can see all
     if (this.hasAdminAccess()) return true;
-    
-    // HR can see all
     if (this.isHR()) return true;
-    
-    // UPDATED: Managers with department ID can see their department employees
     if (this.isManagerWithDepartment()) return true;
     
     return false;
   }
 
-  /**
-   * Check if user can export data
-   */
   canExportData(): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
-    
-    // All roles except regular employees without special permissions can export
     return !this.isEmployee() || this.hasAdminAccess();
   }
 
-  /**
-   * UPDATED: Check if user can search employee data
-   */
   canSearchEmployees(): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
-    
-    // Admin, HR, and Managers with department can search
     return this.hasAdminAccess() || this.isHR() || this.isManagerWithDepartment();
   }
 
-  /**
-   * Check if user can filter by all branches
-   */
   canViewAllBranches(): boolean {
     const user = this.currentUserValue;
     return user ? ['Admin', 'Manager'].includes(user.roleName) : false;
   }
 
-  /**
-   * Check if user can filter by all departments
-   */
   canViewAllDepartments(): boolean {
     const user = this.currentUserValue;
     if (!user) return false;
-    
-    // Only Admin and HR can see all departments
     return this.hasAdminAccess() || this.isHR();
   }
 
-  // ===============================
-  // MANAGER-SPECIFIC METHODS
-  // ===============================
-
-  /**
-   * UPDATED: Get manager's department ID
-   * Returns deptId if user is a manager and has one, regardless of isDeptHead status
-   */
+  // Manager-specific methods
   getManagerDepartmentId(): string | null {
     const user = this.currentUserValue;
     if (user?.roleName === this.MANAGER_ROLE) {
-      // Return deptId if it exists (regardless of isDeptHead status)
       return user.getDepartmentId?.() || user.deptID || user.deptId || null;
     }
     return null;
   }
 
-  /**
-   * UPDATED: Check if manager has access to department data
-   * Now based on having a deptId rather than being a department head
-   */
   canManagerAccessDepartment(departmentId?: string): boolean {
     const user = this.currentUserValue;
     if (user?.roleName !== this.MANAGER_ROLE) {
@@ -303,18 +211,13 @@ export class AuthService {
       return false;
     }
     
-    // If no specific department provided, check if manager has any department
     if (!departmentId) {
       return true;
     }
     
-    // Check if the requested department matches manager's department
     return managerDeptId === departmentId;
   }
 
-  /**
-   * UPDATED: Get user's access level for debugging and role-based UI
-   */
   getUserAccessLevel(): string {
     const user = this.currentUserValue;
     if (!user) return 'NONE';
@@ -328,99 +231,90 @@ export class AuthService {
     return 'UNKNOWN';
   }
 
-  // ===============================
-  // AUTHENTICATION METHODS
-  // ===============================
-
-  /**
-   * UPDATED: Enhanced login method with better Manager handling
-   */
+  // Authentication methods
   login(username: string, password: string): Observable<boolean> {
     const url = `${environment.apiUrl}/api/auth/login`;
 
-  return this.http.post<any>(url, { username, password }).pipe(
-    switchMap(loginResponse => {
-      if (!loginResponse.success) {
-        throw new Error('Login failed');
-      }
-      const userData = loginResponse.data.user;
-      
-      // New logic: user is department head if they have a deptID
-      const isDeptHead = !!userData.deptID;
-
-      const roleId = userData.role.roleId;
-      const roleName = userData.role.roleName;
-      const roleCode = userData.role.roleCode;
-
-      const baseUser: User = {
-        userId: userData.userId,
-        empId: roleName === 'Employee' ? userData.empId : undefined,
-        ctoId: roleName === 'Manager' ? (userData.ctoId || userData.userId) : undefined,
-        username: userData.username,
-        email: userData.email,
-        accountStatus: userData.accountStatus,
-        roleId: roleId,
-        roleName: roleName,
-        roleCode: roleCode,
-        mustChangePassword: userData.mustChangePassword,
-        accessToken: loginResponse.data.accessToken,
-        refreshToken: loginResponse.data.refreshToken,
-        isDeptHead: isDeptHead,
-        deptID: userData.deptID || null, // Ensure deptID is either string or null
-        getRoleBasedId: function() {
-          return this.roleName === 'Manager' 
-            ? (this.ctoId || this.userId) 
-            : (this.empId || this.userId);
+    return this.http.post<any>(url, { username, password }).pipe(
+      switchMap(loginResponse => {
+        if (!loginResponse.success) {
+          throw new Error('Login failed');
         }
-      };
+        const userData = loginResponse.data.user;
+        const isDeptHead = !!userData.deptID;
 
-      // Since we already have role info, we can skip the first role fetch
-      // Just get permissions for this role
-      return this.http.get<Permission[]>(
-        `${environment.apiUrl}/api/v1/role-permissions/role/${roleId}/permissions`
-      ).pipe(
-        tap(permissions => {
-          const completeUser = {
-            ...baseUser,
-            permissions: permissions
-          };
-          localStorage.setItem('currentUser', JSON.stringify(completeUser));
-          this.currentUserSubject.next(completeUser);
-          this.permissionsSubject.next(permissions);
-        }),
-        map(() => true)
-      );
-    }),
-    catchError(error => {
-      console.error('Login error', error);
-      return of(false);
-    })
-  );
-}
-refreshUserData(): Observable<User> {
-  return this.http.get<any>(`${environment.apiUrl}/api/auth/current-user`).pipe(
-    map(response => {
-      const userData = response.data;
-      // New logic: department head status based on deptID
-      const isDeptHead = !!userData.deptID;
-      
-      const updatedUser = {
-        ...this.currentUserValue,
-        isDeptHead: isDeptHead,
-        deptID: userData.deptID || null
-      };
-      
-      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
-      this.currentUserSubject.next(updatedUser);
-      return updatedUser;
-    }),
-    catchError(error => {
-      console.error('Error refreshing user data:', error);
-      return throwError(() => error);
-    })
-  );
-}
-refreshToken(): Observable<any> {
+        const roleId = userData.role.roleId;
+        const roleName = userData.role.roleName;
+        const roleCode = userData.role.roleCode;
+
+        const baseUser: User = {
+          userId: userData.userId,
+          empId: roleName === 'Employee' ? userData.empId : undefined,
+          ctoId: roleName === 'Manager' ? (userData.ctoId || userData.userId) : undefined,
+          username: userData.username,
+          email: userData.email,
+          accountStatus: userData.accountStatus,
+          roleId: roleId,
+          roleName: roleName,
+          roleCode: roleCode,
+          mustChangePassword: userData.mustChangePassword,
+          accessToken: loginResponse.data.accessToken,
+          refreshToken: loginResponse.data.refreshToken,
+          isDeptHead: isDeptHead,
+          deptID: userData.deptID || null,
+          getRoleBasedId: function() {
+            return this.roleName === 'Manager' 
+              ? (this.ctoId || this.userId) 
+              : (this.empId || this.userId);
+          }
+        };
+
+        return this.http.get<Permission[]>(
+          `${environment.apiUrl}/api/v1/role-permissions/role/${roleId}/permissions`
+        ).pipe(
+          tap(permissions => {
+            const completeUser = {
+              ...baseUser,
+              permissions: permissions
+            };
+            localStorage.setItem('currentUser', JSON.stringify(completeUser));
+            this.currentUserSubject.next(completeUser);
+            this.permissionsSubject.next(permissions);
+          }),
+          map(() => true)
+        );
+      }),
+      catchError(error => {
+        console.error('Login error', error);
+        return of(false);
+      })
+    );
+  }
+
+  refreshUserData(): Observable<User> {
+    return this.http.get<any>(`${environment.apiUrl}/api/auth/current-user`).pipe(
+      map(response => {
+        const userData = response.data;
+        const isDeptHead = !!userData.deptID;
+        
+        const updatedUser = {
+          ...this.currentUserValue,
+          isDeptHead: isDeptHead,
+          deptID: userData.deptID || null
+        };
+        
+        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        this.currentUserSubject.next(updatedUser);
+        return updatedUser;
+      }),
+      catchError(error => {
+        console.error('Error refreshing user data:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  refreshToken(): Observable<any> {
     const user = this.currentUserValue;
     if (!user?.refreshToken) {
       this.logout();
@@ -448,9 +342,6 @@ refreshToken(): Observable<any> {
     );
   }
 
-  /**
-   * Logout the current user
-   */
   logout(): Observable<boolean> {
     const token = this.getToken();
     if (!token) {
@@ -468,14 +359,11 @@ refreshToken(): Observable<any> {
       catchError(error => {
         console.error('Logout error:', error);
         this.clearLocalAuthData();
-        return of(true); // Still return true to proceed with local cleanup
+        return of(true);
       })
     );
   }
 
-  /**
-   * Logout from all sessions
-   */
   logoutAllSessions(): Observable<boolean> {
     const token = this.getToken();
     if (!token) {
@@ -498,9 +386,6 @@ refreshToken(): Observable<any> {
     );
   }
 
-  /**
-   * Admin force logout a specific user
-   */
   forceLogoutUser(userId: string): Observable<boolean> {
     return this.http.post<any>(`${environment.apiUrl}/api/auth/admin/force-logout/${userId}`, {}).pipe(
       map(() => true),
@@ -511,9 +396,6 @@ refreshToken(): Observable<any> {
     );
   }
 
-  /**
-   * Clear local auth data and redirect to login
-   */
   private clearLocalAuthData(): void {
     localStorage.removeItem('currentUser');
     this.currentUserSubject.next(null);
@@ -521,20 +403,11 @@ refreshToken(): Observable<any> {
     this.router.navigate(['/guest/login']).then(() => window.location.reload());
   }
 
-  // ===============================
-  // USER DATA METHODS
-  // ===============================
-
-  /**
-   * Get current user object
-   */
+  // User data methods
   getCurrentUser(): User | null {
     return this.currentUserSubject.value;
   }
 
-  /**
-   * Update current user data
-   */
   updateCurrentUser(user: User): void {
     localStorage.setItem('currentUser', JSON.stringify(user));
     this.currentUserSubject.next(user);
@@ -543,16 +416,10 @@ refreshToken(): Observable<any> {
     }
   }
 
-  /**
-   * Get user permissions
-   */
   getUserPermissions(): Permission[] {
     return this.permissionsSubject.value;
   }
 
-  /**
-   * Get employee data by employee ID
-   */
   getEmployeeByEmpId(empId: string): Observable<any> {
     return this.http.get(`${environment.apiUrl}/api/v1/employees/${empId}`).pipe(
       catchError(error => {
@@ -562,35 +429,18 @@ refreshToken(): Observable<any> {
     );
   }
 
-  /**
-   * Retrieve the current user's access token
-   */
   getToken(): string | null {
     return this.currentUserValue?.accessToken ?? null;
   }
 
-  // ===============================
-  // PERMISSION CHECKING METHODS
-  // ===============================
-
-  /**
-   * Check if user has a specific permission
-   */
+  // Permission checking methods
   hasPermission(permissionCode: string): boolean {
     const user = this.currentUserValue;
     if (!user || !user.permissions) return false;
     return user.permissions.some(p => p.permissionCode === permissionCode);
   }
 
-  /**
-   * Check if user has any of the specified permissions
-   */
   hasAnyPermission(permissionCodes: string[]): boolean {
-    return user?.roleCode === 'CTO';
-  }
-
-
-  isEmployee(): boolean {
     const user = this.currentUserValue;
     if (!user || !user.permissions) return false;
     return permissionCodes.some(code => 
@@ -598,9 +448,6 @@ refreshToken(): Observable<any> {
     );
   }
 
-  /**
-   * Check if user has all specified permissions
-   */
   hasAllPermissions(permissionCodes: string[]): boolean {
     const user = this.currentUserValue;
     if (!user || !user.permissions) return false;
@@ -609,88 +456,57 @@ refreshToken(): Observable<any> {
     );
   }
 
-  hasReadOnlyAccess(): boolean {
-  return this.isEmployee() || this.isCTO();
-}
+  // Module-specific permission checks
+  public hasPermissionForModule(moduleName: string, actionType: string): boolean {
+    const user = this.currentUserValue;
+    if (!user || !user.permissions) return false;
+    
+    return user.permissions.some(p => 
+      p.moduleName.toLowerCase() === moduleName.toLowerCase() && 
+      p.actionType.toLowerCase() === actionType.toLowerCase()
+    );
+  }
 
-  // ===============================
-  // MODULE-SPECIFIC PERMISSION CHECKS
-  // ===============================
-
-  /**
-   * Check if user can view a specific module
-   */
   canViewModule(moduleName: string): boolean {
     if (this.hasFullAccess()) return true;
     return this.hasPermissionForModule(moduleName, 'read');
   }
 
-  /**
-   * Check if user can edit a specific module
-   */
   canEditModule(moduleName: string): boolean {
     if (this.hasFullAccess()) return true;
     return this.hasPermissionForModule(moduleName, 'write');
   }
 
-  /**
-   * Check if user can delete from a specific module
-   */
   canDeleteModule(moduleName: string): boolean {
     if (this.hasFullAccess()) return true;
     return this.hasPermissionForModule(moduleName, 'delete');
   }
 
-  // ===============================
-  // ATTENDANCE-SPECIFIC PERMISSIONS
-  // ===============================
-
-  /**
-   * UPDATED: Check if user can view attendance data
-   */
+  // Attendance-specific permissions
   canViewAttendance(): boolean {
     return this.canViewModule('attendance') || 
            this.hasFullAccess() || 
            this.isHR() || 
-           this.isManagerWithDepartment();  // UPDATED: Use new method
+           this.isManagerWithDepartment();
   }
 
-  /**
-   * Check if user can export attendance data
-   */
   canExportAttendance(): boolean {
     return this.canExportData() && (this.canViewAttendance() || this.hasFullAccess());
   }
 
-  /**
-   * Check if user can filter attendance by date
-   */
   canFilterAttendanceByDate(): boolean {
     return this.canViewAttendance();
   }
 
-  /**
-   * Check if user can filter attendance by status
-   */
   canFilterAttendanceByStatus(): boolean {
-    // Employees typically can't filter by status in most systems
     return !this.isEmployee() && this.canViewAttendance();
   }
 
-  /**
-   * UPDATED: Check if user can search attendance records
-   */
   canSearchAttendance(): boolean {
     return this.canSearchEmployees() && this.canViewAttendance();
   }
 
-  // ===============================
-  // DEBUG AND UTILITY METHODS
-  // ===============================
-
-  /**
-   * UPDATED: Get comprehensive user info for debugging
-   */
+  // Debug methods
   getDebugUserInfo(): any {
     const user = this.currentUserValue;
     if (!user) return { error: 'No user logged in' };
@@ -713,7 +529,7 @@ refreshToken(): Observable<any> {
         isHR: this.isHR(),
         isManager: this.isManager(),
         isManagerDeptHead: this.isManagerDeptHead(),
-        isManagerWithDepartment: this.isManagerWithDepartment(),  // UPDATED: New method
+        isManagerWithDepartment: this.isManagerWithDepartment(),
         isEmployee: this.isEmployee(),
         hasFullAccess: this.hasFullAccess(),
         canViewAllEmployees: this.canViewAllEmployees(),
@@ -726,9 +542,6 @@ refreshToken(): Observable<any> {
     };
   }
 
-  /**
-   * Log comprehensive user debug info to console
-   */
   debugUserInfo(): void {
     console.log('=== AUTH SERVICE DEBUG INFO ===');
     console.log(this.getDebugUserInfo());

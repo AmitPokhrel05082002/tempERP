@@ -1,7 +1,9 @@
+
 <div class="rbac-dashboard">
   <header class="dashboard-header">
     <div class="header-actions">
       <h1 class="dashboard-title">Permission Management</h1>
+
       <div *ngIf="userId" class="action-buttons">
         <button class="edit-button" (click)="toggleEditMode()" *ngIf="!isEditMode">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -25,9 +27,14 @@
         </div>
       </div>
     </div>
-    <p class="dashboard-subtitle" *ngIf="userId">Configure access controls for User ID: {{userId}}</p>
   </header>
 
+  <div *ngIf="isNewUser && !isEditMode" class="new-user-indicator">
+    <span class="indicator-icon">👤</span>
+    <span>This user has no permissions set up yet.</span>
+    <button class="setup-button" (click)="toggleEditMode()">Set Up Permissions</button>
+  </div>
+  
   <!-- Permission Controls -->
   <div *ngIf="isEditMode" class="permission-controls">
     <div class="control-row">
@@ -40,9 +47,17 @@
       </div>
 
       <div class="control-group">
-        <label>Selected Menu</label>
-        <div class="selected-menu-display">
-          {{selectedMenuId ? getMenuName(selectedMenuId) : 'No menu selected'}}
+        <label>Selected Menu(s)</label>
+        <div class="selected-menu-display" [class.multi-module]="isMultiModuleSelection && selectedMenuIds.length > 1">
+          {{ getSelectedMenusDisplay() }}
+          <span *ngIf="isMultiModuleSelection && selectedMenuIds.length > 3" 
+                class="tooltip-trigger" 
+                [title]="getMenuNames(selectedMenuIds)">
+            
+          </span>
+        </div>
+        <div *ngIf="isMultiModuleSelection && selectedMenuIds.length > 0" class="selected-count">
+          Total modules selected: {{ selectedMenuIds.length }}
         </div>
       </div>
 
@@ -97,114 +112,68 @@
           <div class="sub-group-item" *ngFor="let subGroup of group.subGroups">
             <div class="sub-group-header" (click)="selectedMenuId = subGroup.id">
               <h3 class="sub-group-title">{{ subGroup.name }}</h3>
-              <label class="select-all-toggle">
-                <input type="checkbox" 
-                  [checked]="areAllPermissionsChecked(subGroup.permissions)"
-                  (change)="toggleAllPermissions(group.id, subGroup.id, $event.target.checked)"
-                  [disabled]="userId !== null && !isEditMode">
-                <span class="toggle-label">Select All</span>
-              </label>
-            </div>
-
-            <div class="permission-options">
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.view" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">View</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.create" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Create</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.update" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Update</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.delete" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Delete</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.export" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Export</span>
-              </label>
-              
-              <label class="permission-option" *ngIf="subGroup.permissions.approve !== undefined">
-                <input type="checkbox" 
-                       [(ngModel)]="subGroup.permissions.approve" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Approve</span>
-              </label>
             </div>
           </div>
         </div>
 
-        <div class="direct-permissions" *ngIf="!group.subGroups && group.permissions">
-          <div class="permission-controls">
-            <label class="select-all-toggle">
+        <div class="group-permissions">
+          <div class="group-permissions-header">
+            <h3>{{ group.subGroups?.length ? 'Apply to all submodules:' : 'Module Permissions:' }}</h3>
+          </div>
+          <div class="group-permission-options">
+            <label class="permission-option">
               <input type="checkbox" 
-                [checked]="areAllPermissionsChecked(group.permissions)"
-                (change)="toggleAllPermissions(group.id, undefined, $event.target.checked)"
-                [disabled]="userId !== null && !isEditMode">
-              <span class="toggle-label">Select All</span>
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'view')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'view')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'view', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">View</span>
             </label>
-
-            <div class="permission-options">
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.view" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">View</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.create" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Create</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.update" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Update</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.delete" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Delete</span>
-              </label>
-              
-              <label class="permission-option">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.export" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Export</span>
-              </label>
-              
-              <label class="permission-option" *ngIf="group.permissions.approve !== undefined">
-                <input type="checkbox" 
-                       [(ngModel)]="group.permissions.approve" 
-                       [disabled]="userId !== null && !isEditMode">
-                <span class="option-label">Approve</span>
-              </label>
-            </div>
+            
+            <label class="permission-option">
+              <input type="checkbox" 
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'create')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'create')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'create', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">Create</span>
+            </label>
+            
+            <label class="permission-option">
+              <input type="checkbox" 
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'update')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'update')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'update', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">Update</span>
+            </label>
+            
+            <label class="permission-option">
+              <input type="checkbox" 
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'delete')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'delete')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'delete', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">Delete</span>
+            </label>
+            
+            <label class="permission-option">
+              <input type="checkbox" 
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'export')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'export')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'export', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">Export</span>
+            </label>
+            
+            <label class="permission-option" *ngIf="hasSubgroupWithApprove(group)">
+              <input type="checkbox" 
+                [checked]="isPermissionCheckedForAllSubmodules(group.id, 'approve')"
+                [indeterminate]="isPermissionIndeterminate(group.id, 'approve')"
+                (change)="isEditMode && togglePermissionForAllSubmodules(group.id, 'approve', $event.target.checked)"
+                [disabled]="!isEditMode">
+              <span class="option-label" [class.disabled]="!isEditMode">Approve</span>
+            </label>
           </div>
         </div>
       </div>

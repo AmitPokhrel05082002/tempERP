@@ -13,6 +13,38 @@ $shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 $radius: 8px;
 
 // Base styles
+
+.new-user-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  
+  .indicator-icon {
+    font-size: 1.1rem;
+  }
+  
+  .setup-button {
+    margin-left: auto;
+    padding: 0.25rem 0.75rem;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    
+    &:hover {
+      background-color: darken($primary-color, 5%);
+    }
+  }
+}
+
 .rbac-dashboard {
   max-width: 1200px;
   margin: 0 auto;
@@ -39,6 +71,13 @@ $radius: 8px;
     margin-bottom: 1rem;
     flex-wrap: wrap;
     gap: 1rem;
+    width: 100%;
+  
+    @media (max-width: 576px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
   }
 }
 
@@ -119,6 +158,30 @@ $radius: 8px;
   }
 }
 
+.permission-cell {
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  border: 1px solid #e9ecef;
+  min-width: 60px;
+  word-break: break-word;
+  
+  @media (max-width: 768px) {
+    padding: 0.5rem 0.25rem;
+    min-width: 50px;
+  }
+}
+
+.permission-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+  table-layout: fixed;
+  
+  @media (max-width: 768px) {
+    font-size: 0.85rem;
+  }
+}
+
 // Date picker styles
 .date-picker {
   position: relative;
@@ -157,6 +220,13 @@ $radius: 8px;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  overflow-x: auto; // Enable horizontal scrolling on small screens
+  -webkit-overflow-scrolling: touch; // Smooth scrolling on iOS
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    gap: 1rem;
+  }
 }
 
 // Loading and error messages
@@ -176,54 +246,146 @@ $radius: 8px;
 
 // Permission group styles
 .permission-group {
-  background-color: $card-bg;
-  border-radius: $radius;
-  box-shadow: $shadow;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
   overflow: hidden;
-  transition: all 0.2s ease;
-}
+  min-width: 600px; // Ensure minimum width for the table
+  
+  @media (max-width: 768px) {
+    min-width: 100%;
+    margin-bottom: 1rem;
+  }
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
-.group-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 1.5rem;
-  background-color: lighten($primary-color, 45%);
-  cursor: pointer;
-  transition: background-color 0.2s;
+  .group-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
 
-  &:hover {
-    background-color: lighten($primary-color, 40%);
+    &:hover {
+      background-color: #f1f3f5;
+    }
+
+    .group-title-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .group-icon {
+      display: flex;
+      align-items: center;
+      color: #495057;
+    }
+
+    .group-title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #495057;
+    }
+
+    .toggle-icon {
+      font-size: 1.25rem;
+      font-weight: bold;
+      color: #6c757d;
+      margin-left: 0.5rem;
+    }
+  }
+
+  .group-permissions {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+
+    .group-permissions-header {
+      margin-bottom: 0.75rem;
+
+      h3 {
+        margin: 0;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #495057;
+      }
+    }
+
+    .group-permission-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+
+      .permission-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: #495057;
+        cursor: pointer;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+          background-color: #e9ecef;
+        }
+
+        input[type="checkbox"] {
+          margin: 0;
+          cursor: pointer;
+        }
+
+        .option-label {
+          font-weight: 500;
+          white-space: nowrap;
+        }
+      }
+    }
+  }
+
+  .group-content {
+    padding: 1.5rem;
   }
 }
 
-.group-title-container {
+.permission-header {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  background-color: #f8f9fa;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem 1rem;
+  }
+
+  &:hover {
+    background-color: #f1f3f5;
+  }
 }
 
-.group-icon {
-  color: $primary-color;
+.permission-actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
-}
-
-.group-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: $primary-color;
-}
-
-.toggle-icon {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: $primary-color;
-}
-
-.group-content {
-  padding: 1.5rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  
+  @media (max-width: 576px) {
+    width: 100%;
+    margin-top: 0.5rem;
+    justify-content: flex-start;
+  }
 }
 
 // Sub-group styles
@@ -294,6 +456,28 @@ $radius: 8px;
   }
 }
 
+.permission-summary {
+  background-color: #f8f9fa;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  margin-top: 0.5rem;
+  border: 1px dashed #dee2e6;
+  
+  &-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    font-style: italic;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    &::before {
+      content: 'ℹ️';
+      font-style: normal;
+    }
+  }
+}
+
 .permission-option {
   display: flex;
   align-items: center;
@@ -335,6 +519,18 @@ $radius: 8px;
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
+  
+  @media (max-width: 576px) {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.5rem;
+    
+    button {
+      flex: 1;
+      min-width: 120px;
+      justify-content: center;
+    }
+  }
 }
 
 .edit-button, .save-button, .cancel-button {

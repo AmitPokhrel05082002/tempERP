@@ -1,155 +1,152 @@
-<div class="table-download-wrapper">
-  <h2 style="margin-bottom: 10px; font-weight: 600; color: #333;">
-    Select Date Range to View Salary Summary
-  </h2>
-
-  <div class="date-range-selectors">
-    <div class="selector-group">
-      <label for="startYear">Start Year:</label>
-      <select id="startYear" [(ngModel)]="startYear" (change)="onRangeChange()">
-        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
-      </select>
-    </div>
-
-    <div class="selector-group">
-      <label for="startMonth">Start Month:</label>
-      <select id="startMonth" [(ngModel)]="startMonth" (change)="onRangeChange()">
-        <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
-      </select>
-    </div>
-
-    <div class="selector-group">
-      <label for="endYear">End Year:</label>
-      <select id="endYear" [(ngModel)]="endYear" (change)="onRangeChange()">
-        <option *ngFor="let y of years" [value]="y">{{ y }}</option>
-      </select>
-    </div>
-
-    <div class="selector-group">
-      <label for="endMonth">End Month:</label>
-      <select id="endMonth" [(ngModel)]="endMonth" (change)="onRangeChange()">
-        <option *ngFor="let m of months" [value]="m.value">{{ m.name }}</option>
-      </select>
-    </div>
+<div class="payslip-container">
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading payslip data...</p>
   </div>
-
-  <p *ngIf="salaryData.length > 0">
-    Showing salary data from {{ startMonth }}/{{ startYear }} to {{ endMonth }}/{{ endYear }}.
-  </p>
-
-  <p *ngIf="salaryData.length === 0">
-    <strong>No salary summary found</strong> for selected range ({{ startMonth }}/{{ startYear }} to {{ endMonth }}/{{ endYear }}).
-    Showing single month details of {{ endMonth }}/{{ endYear }} instead.
-  </p>
-
-  <div id="pdfContent">
-    <div class="certificate-container">
-      <div class="certificate-content">
-        <div class="header">
-          TDS Certificate For Income From Salary From {{ getMonthName(startMonth) }} {{ startYear }} 
-          to {{ getMonthName(endMonth) }} {{ endYear }}
+  
+  <!-- Error State -->
+  <div class="error-container" *ngIf="errorMessage && !isLoading">
+    <h3 class="error-title"><i class="bi bi-exclamation-triangle-fill"></i> Error Loading Data</h3>
+    <p>{{ errorMessage }}</p>
+    <button class="btn btn-primary" (click)="goBack()">
+      <i class="bi bi-arrow-left"></i> Back to Dashboard
+    </button>
+  </div>
+  
+  <!-- Payslip Data -->
+  <div *ngIf="!isLoading && !errorMessage" class="payslip-content">
+    <div class="action-buttons" *ngIf="!isLoading && !errorMessage">
+    <button class="btn btn-primary" (click)="printPayslip()">
+      <i class="bi bi-printer"></i> Print Payslip
+    </button>
+  </div>
+    <div class="payslip-header">
+      <div class="org-info">
+        <h2>{{ orgName }}</h2>
+        <h3>EMPLOYEE PAYSLIP</h3>
+      </div>
+      <div class="payslip-meta">
+        <p><strong>Salary Month:</strong> {{ formatMonthYear(salaryMonth) }}</p>
+        <p><strong>Generated Date:</strong> {{ generatedDate | date:'fullDate' }}</p>
+      </div>
+    </div>
+    
+    <div class="employee-details">
+      <div class="section-title">Employee Information</div>
+      <div class="employee-info-grid">
+        <div class="info-item">
+          <label>Employee Name:</label>
+          <span>{{ firstName }} {{ middleName }} {{ lastName }}</span>
         </div>
-
-        <div class="employee-details">
-          <div class="detail-row">
-            <div class="detail-label">Name of the Employee:</div>
-            <div class="detail-value">
-              {{ employeeDetails?.firstName }} {{ employeeDetails?.middleName || '' }} {{ employeeDetails?.lastName }}
-            </div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Tax payer Number:</div>
-            <div class="detail-value">{{ employeeDetails?.empCode }}</div>
-          </div>
-          <div class="detail-row">
-            <div class="detail-label">Name of the Employer:</div>
-            <div class="detail-value">{{ employeeDetails?.orgName }}</div>
-          </div>
+       
+        <div class="info-item">
+          <label>Employee Code:</label>
+          <span>{{ empCode }}</span>
         </div>
-
-        <table class="salary-table" *ngIf="salaryData.length > 0 || employeeDetails">
-          <thead>
-            <tr>
-              <th>Sl.No</th>
-              <th>Month</th>
-              <th>Gross Salary</th>
-              <th>Allowance</th>
-              <th>Benefits</th>
-              <th>Others</th>
-              <th>Net Salary</th>
-              <th>TDS</th>
-              <th>GPF</th>
-              <th>GIS</th>
-              <th>Leave Without Payment</th>
-              <th>Revenue Rt.No.</th>
-              <th>Revenue Rt. Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let item of salaryData; let i = index">
-              <td>{{ i + 1 }}</td>
-              <td>{{ item.salaryMonth }}</td>
-              <td>{{ formatDecimal(item.grossSalary) }}</td>
-              <td>{{ formatDecimal(item.allowance) }}</td>
-              <td>0</td>
-              <td>0</td>
-              <td>{{ formatDecimal(item.netSalary) }}</td>
-              <td>{{ formatDecimal(item.tds) }}</td>
-              <td>{{ formatDecimal(item.gpf) }}</td>
-              <td>{{ formatDecimal(item.gis) }}</td>
-              <td>{{ formatDecimal(item.lwp) }}</td>
-              <td></td>
-              <td></td>
-            </tr>
-
-            <tr *ngIf="salaryData.length === 0">
-              <td>1</td>
-              <td>{{ employeeDetails?.salaryMonth }}</td>
-              <td>{{ formatDecimal(employeeDetails?.basicPay) }}</td>
-              <td>{{ formatDecimal(employeeDetails?.allowance) }}</td>
-              <td>0</td>
-              <td>0</td>
-              <td>{{ formatDecimal((employeeDetails?.basicPay || 0) + (employeeDetails?.allowance || 0)) }}</td>
-              <td>{{ formatDecimal(employeeDetails?.tds) }}</td>
-              <td>{{ formatDecimal(employeeDetails?.gpf) }}</td>
-              <td>{{ formatDecimal(employeeDetails?.gis) }}</td>
-              <td>{{ formatDecimal(employeeDetails?.lwp) }}</td>
-              <td></td>
-              <td></td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr class="total-row">
-              <td colspan="2">Total</td>
-              <td>{{ formatDecimal(totalgrossSalary) }}</td>
-              <td>{{ formatDecimal(totalAllowance) }}</td>
-              <td>0</td>
-              <td>0</td>
-              <td>{{ formatDecimal(totalnetSalary) }}</td>
-              <td>{{ formatDecimal(totalTds) }}</td>
-              <td>{{ formatDecimal(totalGpf) }}</td>
-              <td>{{ formatDecimal(totalGis) }}</td>
-              <td>{{ formatDecimal(totalLwp) }}</td>
-              <td colspan="2"></td>
-            </tr>
-          </tfoot>
+        <div class="info-item">
+          <label>CID Number:</label>
+          <span>{{ cid }}</span>
+        </div>
+        <div class="info-item">
+          <label>Nationality:</label>
+          <span>{{ nationality }}</span>
+        </div>
+        <div class="info-item">
+          <label>Gender:</label>
+          <span>{{ gender }}</span>
+        </div>
+        <div class="info-item">
+          <label>Hire Date:</label>
+          <span>{{ formatDate(hireDate) }}</span>
+        </div>
+      </div>
+    </div>
+    
+    <div class="salary-details">
+      <div class="earnings-section">
+        <div class="section-title">Earnings</div>
+        <table class="details-table">
+          <tr>
+            <td>Basic Salary</td>
+            <td class="amount">Nu. {{ formatCurrency(basicSalary) }}</td>
+          </tr>
+          <tr>
+            <td>Allowance</td>
+            <td class="amount">Nu. {{ formatCurrency(allowance) }}</td>
+          </tr>
+          <tr>
+            <td>Benefits</td>
+            <td class="amount">Nu. {{ formatCurrency(benefits) }}</td>
+          </tr>
+          <tr>
+            <td>Incentives</td>
+            <td class="amount">Nu. {{ formatCurrency(incentives) }}</td>
+          </tr>
+          <tr>
+            <td>Overtime</td>
+            <td class="amount">Nu. {{ formatCurrency(overtime) }}</td>
+          </tr>
+          <tr class="total-row">
+            <td><strong>Gross Salary</strong></td>
+            <td class="amount"><strong>Nu. {{ formatCurrency(grossSalary) }}</strong></td>
+          </tr>
+        </table>
+      </div>
+      
+      <div class="deductions-section">
+        <div class="section-title">Deductions</div>
+        <table class="details-table">
+          <tr>
+            <td>Tax Deducted at Source (TDS)</td>
+            <td class="amount">Nu. {{ formatCurrency(tds) }}</td>
+          </tr>
+          <tr>
+            <td>General Provident Fund (GPF)</td>
+            <td class="amount">Nu. {{ formatCurrency(gpf) }}</td>
+          </tr>
+          <tr>
+            <td>Group Insurance Scheme (GIS)</td>
+            <td class="amount">Nu. {{ formatCurrency(gis) }}</td>
+          </tr>
+          <tr>
+            <td>Leave Without Pay (LWP)</td>
+            <td class="amount">Nu. {{ formatCurrency(lwp) }}</td>
+          </tr>
+          <tr>
+            <td>Statutory Contributions</td>
+            <td class="amount">Nu. {{ formatCurrency(statutoryContributions) }}</td>
+          </tr>
+          <tr>
+            <td>Other Deductions</td>
+            <td class="amount">Nu. {{ formatCurrency(otherDeduction) }}</td>
+          </tr>
+          <tr class="total-row">
+            <td><strong>Total Deductions</strong></td>
+            <td class="amount"><strong>Nu. {{ formatCurrency(totalDeductions) }}</strong></td>
+          </tr>
         </table>
       </div>
     </div>
-
-    <div class="instruction-container mt-5">
-      <div class="instruction">
-        <h3 class="instruction-title">Instructions</h3>
-        <ol class="instruction-list">
-          <li>All details must be completed and correct.</li>
-          <li>Challan No. and Challan Date columns are for those with RGR accounts.</li>
-          <li>Multiple entries can occur in a month for bonuses, fees, etc.</li>
-          <li>Information here is used for tax adjustment/refund purposes.</li>
-          <li>This certificate must be given to employees with salary TDS.</li>
-        </ol>
+    
+    <div class="net-pay-section">
+      <div class="net-pay-card">
+        <div class="net-amount">
+          <span class="label">Net Pay:</span>
+          <span class="value">Nu. {{ formatCurrency(netSalary) }}</span>
+        </div>
+        <div class="payment-details">
+          <p><strong>Payment Status:</strong> <span class="status-badge" [class]="paymentStatus.toLowerCase()">{{ paymentStatus }}</span></p>
+          <p><strong>Payment Reference:</strong> {{ paymentReference }}</p>
+          <p><strong>Payment Date:</strong> {{ formatDate(paymentDate) }}</p>
+        </div>
       </div>
     </div>
+    
+    <div class="footer-notes">
+      <p>This is a computer-generated payslip and does not require a signature.</p>
+      <p>For any discrepancies, please contact the HR department within 7 days of receiving this payslip.</p>
+    </div>
   </div>
-
-  <button class="save-button" (click)="saveData()">Download</button>
+  
 </div>

@@ -5,9 +5,9 @@
       <h1>Employee Payroll</h1>
       <p>Keep track employee salary on daily basis.</p>
     </div>
-    <button class="export-button">
+    <button class="export-button" (click)="exportPayroll()">
       <i class="bi bi-box-arrow-up"></i>
-      Export
+      Generate Monthly Payroll
     </button>
   </div>
 
@@ -101,12 +101,12 @@
               <td class="overtime">{{ employee.overtime }}</td>
               <td class="action-cell">
                 <div class="action-buttons">
-                  <button class="view-btn view-tds-btn" [routerLink]="['/pay-slip', employee.id]" [queryParams]="{ year: selectedYear, month: selectedMonth }">
+                  <button class="view-btn view-tds-btn" [routerLink]="['/view/tds', employee.id]" [queryParams]="{ year: selectedYear, month: selectedMonth }">
                     View TDS
                   </button>
                   <button class="view-btn view-salary-btn" 
-        [routerLink]="['/pay-roll-detail', employee.id]">
-  View Payroll
+        [routerLink]="['/view/pay-slip', employee.id]">
+  View Payslip
 </button>
                 </div>
               </td>

@@ -734,11 +734,10 @@
 
   /* Modal Header */
   .emp-det-modal-header {
-    padding: 1rem 1.25rem;
-    background-color: #23a9d2;
+     background: linear-gradient(135deg, #23a9d2, #015b9d);
     color: white;
-    border-radius: 0.5rem 0.5rem 0 0;
-    border: none;
+    border-radius: 15px 15px 0 0;
+    border-bottom: none;
 
     @media (min-width: 576px) {
       padding: 1.25rem 1.75rem;
