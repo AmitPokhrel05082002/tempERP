@@ -280,8 +280,8 @@ export const routes: Routes = [
 
       {
         path: 'rbac',
-        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent)
-      }
+        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent),
+      },
     ]
   },
   {
