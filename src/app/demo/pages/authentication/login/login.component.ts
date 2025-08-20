@@ -16,7 +16,7 @@ export class LoginComponent implements OnInit {
   loginForm: FormGroup;
   error: string = '';
   loading = false;
-  private returnUrl: string = '/default';
+  private returnUrl: string = '/common-dashboard';
 
   constructor(
     private formBuilder: FormBuilder,
@@ -40,7 +40,7 @@ export class LoginComponent implements OnInit {
 
     // Get return url from route parameters or default to '/default'
     this.returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/default';
-    
+
     // Check for remember me data
     const rememberMeData = localStorage.getItem('rememberMeData');
     if (rememberMeData) {

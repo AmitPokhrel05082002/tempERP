@@ -27,7 +27,7 @@ interface SystemStats {
   styleUrl: './comman-dashboard.component.scss'
 })
 export class CommanDashboardComponent {
-services: Service[] = [
+  services: Service[] = [
     {
       id: 'hrperp',
       name: 'HR & Payroll ERP',
@@ -39,16 +39,6 @@ services: Service[] = [
       status: 'online'
     },
     {
-      id: 'accounts',
-      name: 'Financial Accounts',
-      description: 'General ledger, accounts payable/receivable, financial reporting and budgeting tools.',
-      route: '/accounts',
-      iconPath: 'assets/icons/dollar.svg',
-      colorClass: 'service-accounts',
-      activeUsers: 28,
-      status: 'online'
-    },
-    {
       id: 'asset-management',
       name: 'Asset Management',
       description: 'Track physical assets, depreciation, maintenance schedules and asset lifecycle management.',
@@ -56,6 +46,26 @@ services: Service[] = [
       iconPath: 'assets/icons/building.svg',
       colorClass: 'service-asset',
       activeUsers: 15,
+      status: 'online'
+    },
+    {
+      id: 'shift-management',
+      name: 'Shift Management',
+      description: 'Employee scheduling, shift planning, roster management, and time tracking optimization.',
+      route: '/shift-management',
+      iconPath: 'assets/icons/clock.svg',
+      colorClass: 'service-shift',
+      activeUsers: 35,
+      status: 'online'
+    },
+    {
+      id: 'accounts',
+      name: 'Financial Accounts',
+      description: 'General ledger, accounts payable/receivable, financial reporting and budgeting tools.',
+      route: '/accounts',
+      iconPath: 'assets/icons/dollar.svg',
+      colorClass: 'service-accounts',
+      activeUsers: 28,
       status: 'online'
     },
     {
@@ -101,8 +111,8 @@ services: Service[] = [
   ];
 
   stats: SystemStats = {
-    totalServices: 7,
-    activeUsers: 248,
+    totalServices: 8,  // Updated to 8 services
+    activeUsers: 283,   // Updated total active users (added 35 from shift management)
     systemHealth: 100,
     lastUpdated: new Date()
   };
