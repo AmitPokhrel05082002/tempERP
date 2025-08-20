@@ -1,6 +1,7 @@
+// payslip.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -47,9 +48,6 @@ export class PaySlipComponent implements OnInit {
   gis: number = 0;
   tds: number = 0;
   
-  // Additional fields from the JSON
-  payrollId: string = '';
-  
   // Payment information
   paymentStatus: string = '';
   paymentReference: string = '';
@@ -65,91 +63,154 @@ export class PaySlipComponent implements OnInit {
     private http: HttpClient
   ) { }
 
-  ngOnInit(): void {
-    // For demo purposes, we'll use the provided JSON directly
-    // In a real application, you would use the API call
-    this.processPayrollData({
-      "firstName": "Sonam",
-      "lastName": "Yoezer",
-      "empId": "646bf427-4f97-4a4c-b30b-49a70604f3b7",
-      "empCode": "80",
-      "orgName": "NGN Technologies",
-      "hireDate": "2025-05-11",
-      "middleName": "Jigme",
-      "nationality": "Bhutanese",
-      "cidNumber": "11904001813",
-      "netSalary": 41783.84,
-      "allowance": 24000,
-      "benefits": 0,
-      "totalDeductions": 42216.16,
-      "statutoryContributions": 7200,
-      "paymentStatus": "PROCESSED",
-      "paymentReference": "PAY-22D514A0",
-      "grossSalary": 84000,
-      "taxDeducted": 600,
-      "otherDeduction": 0,
-      "payrollId": "16548e70-e722-48d2-ba8e-8f522a7259b6",
-      "salaryMonth": "2025-03",
-      "gender": "Other",
-      "tds": 600,
-      "gpf": 1100,
-      "lwp": 32516.16,
-      "gis": 800,
-      "basic": 65000
-    });
+ ngOnInit(): void {
+  this.route.paramMap.subscribe(params => {
+    console.log('Route parameters:', params);
     
-    this.isLoading = false;
-  }
-
-  processPayrollData(data: any): void {
-    // Check if data is valid
-    if (!data || Object.keys(data).length === 0) {
-      this.errorMessage = 'No payroll data found for this employee.';
+    const empId = params.get('empId');
+    
+    // Validate employee ID
+    if (!empId || empId === 'undefined' || empId === 'null') {
+      this.errorMessage = 'Invalid employee ID provided.';
+      this.isLoading = false;
+      console.error('Invalid employee ID:', empId);
       return;
     }
     
+    const year = this.route.snapshot.queryParamMap.get('year');
+    const month = this.route.snapshot.queryParamMap.get('month');
+    
+    console.log('Query parameters - year:', year, 'month:', month);
+    
+    this.empId = empId;
+    this.fetchPayrollData(empId, year, month);
+  });
+}
+
+// In pay-slip.component.ts
+fetchPayrollData(empId: string, year: string, month: string): void {
+  this.isLoading = true;
+  this.errorMessage = '';
+  
+  // Use current year/month if not provided
+  const currentDate = new Date();
+  const queryYear = year || currentDate.getFullYear().toString();
+  const queryMonth = month || (currentDate.getMonth() + 1).toString().padStart(2, '0');
+  
+  console.log('Fetching payroll for:', { empId, year: queryYear, month: queryMonth });
+
+  // Correct URL construction - empId should be a query parameter, not path parameter
+  const payrollApiUrl = `${environment.payrollApiUrl}/api/payRoll/viewEachEmployeePayroll`;
+  console.log('Full API URL:', payrollApiUrl);
+  
+  // Add ALL parameters as query parameters
+  const params = new HttpParams()
+    .set('empId', empId)  // Add empId as query parameter
+    .set('year', queryYear)
+    .set('month', queryMonth);
+
+  this.http.get<any>(payrollApiUrl, { params }).subscribe({
+    next: (data) => {
+      console.log('Payroll data received:', data);
+      this.processPayrollData(data);
+      this.isLoading = false;
+    },
+    error: (err: HttpErrorResponse) => {
+      console.error('Error fetching payroll data:', err);
+      console.error('Error details:', {
+        url: err.url,
+        status: err.status,
+        statusText: err.statusText,
+        error: err.error
+      });
+      
+      if (err.status === 404) {
+        this.errorMessage = `No payroll data found for employee ${empId} for ${this.formatMonthYear(queryYear + '-' + queryMonth)}.`;
+      } else if (err.status === 500) {
+        this.errorMessage = 'Server error occurred while fetching payroll data.';
+      } else {
+        this.errorMessage = 'Failed to load payslip data. Please try again.';
+      }
+      
+      this.isLoading = false;
+    }
+  });
+}
+
+  processPayrollData(data: any): void {
+  // Check if data is valid
+  if (!data || (Array.isArray(data) && data.length === 0)) {
+    this.errorMessage = 'No payroll data found for this employee and period.';
+    this.isLoading = false;
+    return;
+  }
+
+  // Handle case where data might be an array (take first element)
+  const payrollData = Array.isArray(data) ? data[0] : data;
+
+  // Check if the response contains actual data or just a message
+  if (payrollData.message && !payrollData.empId) {
+    this.errorMessage = payrollData.message || 'No payroll data available.';
+    this.isLoading = false;
+    return;
+  }
+
+  console.log('Processing payroll data:', payrollData);
     // Map the API response fields to component properties
-    this.orgName = data.orgName || '';
-    this.lastName = data.lastName || '';
-    this.firstName = data.firstName || '';
-    this.middleName = data.middleName || '';
-    this.empCode = data.empCode || '';
-    this.cid = data.cidNumber || data.cid || '';
-    this.nationality = data.nationality || '';
-    this.gender = data.gender || '';
-    this.hireDate = data.hireDate || '';
+    this.orgName = payrollData.orgName || payrollData.organizationName || '';
+    this.lastName = payrollData.lastName || '';
+    this.firstName = payrollData.firstName || '';
+    this.middleName = payrollData.middleName || '';
+    this.empCode = payrollData.empCode || payrollData.employeeCode || '';
+    this.designation = payrollData.designation || payrollData.position || '';
+    this.department = payrollData.department || payrollData.departmentName || '';
+    this.cid = payrollData.cidNumber || payrollData.cid || '';
+    this.nationality = payrollData.nationality || '';
+    this.gender = payrollData.gender || '';
+    this.hireDate = payrollData.hireDate || payrollData.dateOfJoining || '';
     
     // Salary information
-    this.netSalary = data.netSalary || 0;
-    this.salaryMonth = data.salaryMonth || '';
-    this.grossSalary = data.grossSalary || 0;
-    this.allowance = data.allowance || 0;
-    this.benefits = data.benefits || 0;
-    this.basicSalary = data.basic || data.basicSalary || 0;
+    this.netSalary = payrollData.netSalary || 0;
+    this.salaryMonth = payrollData.salaryMonth || '';
+    this.grossSalary = payrollData.grossSalary || 0;
+    this.allowance = payrollData.allowance || 0;
+    this.benefits = payrollData.benefits || 0;
+    this.basicSalary = payrollData.basic || payrollData.basicSalary || 0;
     
     // Deductions
-    this.totalDeductions = data.totalDeductions || 0;
-    this.taxDeducted = data.taxDeducted || 0;
-    this.statutoryContributions = data.statutoryContributions || 0;
-    this.otherDeduction = data.otherDeduction || 0;
-    this.gpf = data.gpf || 0;
-    this.lwp = data.lwp || 0;
-    this.gis = data.gis || 0;
-    this.tds = data.tds || 0;
+    this.totalDeductions = payrollData.totalDeductions || 0;
+    this.taxDeducted = payrollData.taxDeducted || 0;
+    this.statutoryContributions = payrollData.statutoryContributions || 0;
+    this.otherDeduction = payrollData.otherDeduction || 0;
+    this.gpf = payrollData.gpf || 0;
+    this.lwp = payrollData.lwp || 0;
+    this.gis = payrollData.gis || 0;
+    this.tds = payrollData.tds || 0;
+    
+    // Additional fields that might be in the response
+    this.incentives = payrollData.incentives || 0;
+    this.overtime = payrollData.overtime || 0;
     
     // Payment information
-    this.paymentStatus = data.paymentStatus || 'Pending';
-    this.paymentReference = data.paymentReference || '';
-    
-    // Set default values for missing fields
-    this.incentives = data.incentives || 0;
-    this.overtime = data.overtime || 0;
+    this.paymentStatus = payrollData.paymentStatus || 'Pending';
+    this.paymentReference = payrollData.paymentReference || '';
     
     // Set payment date to end of salary month if available
     if (this.salaryMonth) {
-      const [year, month] = this.salaryMonth.split('-');
-      this.paymentDate = new Date(parseInt(year), parseInt(month), 0).toISOString();
+      try {
+        const [year, month] = this.salaryMonth.split('-');
+        this.paymentDate = new Date(parseInt(year), parseInt(month), 0).toISOString();
+      } catch (error) {
+        this.paymentDate = new Date().toISOString();
+      }
     }
+
+    console.log('Processed data:', {
+      orgName: this.orgName,
+      employee: `${this.firstName} ${this.lastName}`,
+      netSalary: this.netSalary,
+      salaryMonth: this.salaryMonth
+    });
   }
 
   formatCurrency(amount: number): string {
@@ -192,12 +253,10 @@ export class PaySlipComponent implements OnInit {
     this.router.navigate(['/pay-roll']);
   }
   
-  // Add a retry method for better UX
   retry(): void {
     this.ngOnInit();
   }
   
-  // Print the payslip
   printPayslip(): void {
     window.print();
   }

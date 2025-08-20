@@ -10,14 +10,14 @@ export const environment = {
   production: false,
   apiUrl: 'http://localhost:8088',
   leaveApiUrl: 'http://localhost:8085/api/leave',
-  payrollApiUrl: 'http://localhost:8081',
+  payrollApiUrl: 'http://localhost:8082',
   transferApiUrl: 'http://localhost:8080',
   documentUploadUrl:'http://localhost:8081',
   geminiApiKey: 'AIzaSyCnoIDiqK0N2pHx4W4psCpp3mYXRA-SW94',
 };
 
 /*
- * For easier debugging in development mode, you can import the following file
+ * For easier debugging in development mode, you can import the following file 
  * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
  *
  * This import should be commented out in production mode because it will have a negative impact

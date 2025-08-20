@@ -1,9 +1,18 @@
+// pay-roll-detail.component.ts
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { CommonModule } from '@angular/common';
 import { AuthService } from 'src/app/core/services/auth.service';
+
+// Define the User interface if it doesn't exist
+interface User {
+  empId?: string;
+  id?: string;
+  username?: string;
+  // Add other properties as needed
+}
 
 @Component({
     standalone: true,
@@ -39,95 +48,146 @@ export class PayRollDetailComponent implements OnInit {
         
         this.route.paramMap.subscribe(params => {
             this.employeeId = params.get('id');
-            
-            if (this.isAdmin && !this.employeeId) {
-                console.error('No employee ID found in route parameters');
-                this.errorMessage = 'Employee information could not be loaded';
-                this.isLoading = false;
-                setTimeout(() => this.router.navigate(['/pay-roll']), 3000);
-                return;
-            }
-
-            if (this.isAdmin) {
-                this.loadSalaryDetailsAdmin();
-            } else {
-                this.loadSalaryDetails();
-            }
+            this.loadSalaryDetails();
         });
     }
 
-    // For employee view (gets own salary details)
     loadSalaryDetails(): void {
         this.isLoading = true;
         this.errorMessage = null;
         
-        // Endpoint for employee's own salary details (no employeeId needed)
-        const url = `${environment.payrollApiUrl}/api/payRoll/salary-details/${this.employeeId}`;
-        
-        this.http.get<any[]>(url).subscribe({
-            next: (data) => {
-                this.salaryDetails = data;
-                
-                if (data.length > 0) {
-                    this.employeeInfo = {
-                        name: `${data[0].firstName || ''} ${data[0].lastName || ''}`.trim(),
-                        empCode: data[0].empCode || 'N/A',
-                        department: data[0].departmentName || 
-                                   data[0].department || 
-                                   data[0].deptName || 
-                                   data[0].dept || 
-                                   'N/A'
-                    };
-                }
+        if (this.isAdmin) {
+            if (!this.employeeId) {
+                this.errorMessage = 'Employee ID is required for admin view';
                 this.isLoading = false;
-            },
-            error: (err) => {
-                console.error('Error loading salary details:', err);
-                this.errorMessage = 'Failed to load salary details. Please try again later.';
-                this.isLoading = false;
+                return;
             }
-        });
-    }
-
-    // For admin view (gets details for specific employee)
-    loadSalaryDetailsAdmin(): void {
-        this.isLoading = true;
-        this.errorMessage = null;
-        
-        if (!this.employeeId) {
-            this.errorMessage = 'Invalid employee ID';
-            this.isLoading = false;
-            return;
+            this.fetchSalaryDetails(this.employeeId);
+        } else {
+            this.getCurrentUserEmployeeId();
         }
+    }
 
-        const url = `${environment.payrollApiUrl}/api/payRoll/salary-details/${this.employeeId}`;
+    private getCurrentUserEmployeeId(): void {
+        const currentUser = this.authService.getCurrentUser() as User;
+        
+        if (currentUser && currentUser.empId) {
+            this.fetchSalaryDetails(currentUser.empId);
+        } else if (currentUser && currentUser.id) {
+            this.fetchSalaryDetails(currentUser.id);
+        } else if (currentUser && currentUser.username) {
+            this.fetchSalaryDetails(currentUser.username);
+        } else {
+            this.getEmployeeIdFromToken();
+        }
+    }
+
+    private getEmployeeIdFromToken(): void {
+        try {
+            const token = localStorage.getItem('access_token') || this.authService.getToken();
+            
+            if (token) {
+                const payload = JSON.parse(atob(token.split('.')[1]));
+                if (payload.employeeId) {
+                    this.fetchSalaryDetails(payload.employeeId);
+                } else if (payload.sub) {
+                    this.fetchSalaryDetails(payload.sub);
+                } else if (payload.preferred_username) {
+                    this.fetchSalaryDetails(payload.preferred_username);
+                } else {
+                    this.handleNoEmployeeId();
+                }
+            } else {
+                this.handleNoEmployeeId();
+            }
+        } catch (error) {
+            console.error('Error decoding token:', error);
+            this.handleNoEmployeeId();
+        }
+    }
+
+    private handleNoEmployeeId(): void {
+        this.errorMessage = 'Could not determine employee ID. Please contact administrator.';
+        this.isLoading = false;
+    }
+
+    private fetchSalaryDetails(empId: string): void {
+        const url = `${environment.payrollApiUrl}/api/payRoll/salary-details/${empId}`;
+        
+        console.log('Fetching salary details from:', url);
         
         this.http.get<any[]>(url).subscribe({
             next: (data) => {
-                this.salaryDetails = data;
-                
-                if (data.length > 0) {
-                    this.employeeInfo = {
-                        name: `${data[0].firstName || ''} ${data[0].lastName || ''}`.trim(),
-                        empCode: data[0].empCode || 'N/A',
-                        department: data[0].departmentName || 
-                                   data[0].department || 
-                                   data[0].deptName || 
-                                   data[0].dept || 
-                                   'N/A'
-                    };
-                }
+                this.processSalaryData(data);
                 this.isLoading = false;
             },
             error: (err) => {
                 console.error('Error loading salary details:', err);
-                this.errorMessage = 'Failed to load salary details. Please try again later.';
+                this.handleError(err);
                 this.isLoading = false;
+                
+                if (err.status === 400) {
+                    this.tryAlternativeIdFormat(empId);
+                }
             }
         });
     }
 
-    // ... rest of your helper methods remain the same
+    private tryAlternativeIdFormat(empId: string): void {
+        const cleanId = empId.replace(/[^a-zA-Z0-9]/g, '');
+        const alternativeUrl = `${environment.payrollApiUrl}/api/payRoll/salary-details/${cleanId}`;
+        
+        console.log('Trying alternative URL:', alternativeUrl);
+        
+        this.http.get<any[]>(alternativeUrl).subscribe({
+            next: (data) => {
+                this.processSalaryData(data);
+                this.isLoading = false;
+            },
+            error: (err) => {
+                console.error('Error with alternative ID format:', err);
+            }
+        });
+    }
+
+    private processSalaryData(data: any[]): void {
+        this.salaryDetails = data;
+        
+        if (data && data.length > 0) {
+            this.employeeInfo = {
+                name: `${data[0].firstName || ''} ${data[0].lastName || ''}`.trim(),
+                empCode: data[0].empCode || 'N/A',
+                department: this.getDepartmentName(data[0])
+            };
+        } else {
+            this.errorMessage = 'No salary details found';
+        }
+    }
+
+    private getDepartmentName(data: any): string {
+        const departmentFields = ['departmentName', 'department', 'deptName', 'dept'];
+        for (const field of departmentFields) {
+            if (data[field]) return data[field];
+        }
+        return 'N/A';
+    }
+
+    private handleError(err: any): void {
+        console.log('Error details:', err);
+        
+        if (err.status === 400) {
+            this.errorMessage = 'Invalid request. The employee ID might be incorrect or malformed.';
+        } else if (err.status === 404) {
+            this.errorMessage = 'Salary details not found for this employee.';
+        } else if (err.status === 403) {
+            this.errorMessage = 'Access denied. You may not have permission to view these details.';
+        } else if (err.status === 0) {
+            this.errorMessage = 'Network error. Please check your connection.';
+        } else {
+            this.errorMessage = 'Failed to load salary details. Please try again later.';
+        }
+    }
+
     isEarning(componentCode: string): boolean {
         return this.earningCodes.includes(componentCode);
     }

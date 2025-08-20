@@ -8,6 +8,7 @@ import { PayRollDetailComponent } from './demo/pay-roll/pay-roll-details/pay-rol
 import { AssetManagementComponent } from './demo/asset-management/asset-management.component';
 import { ReportComponent } from './demo/dashboard/report/report.component';
 import { CommanDashboardComponent } from './comman-dashboard/comman-dashboard.component';
+import { PaySlipComponent } from './demo/pay-roll/Pay-slip/pay-slip.component';
 
 export const routes: Routes = [
   {
@@ -126,10 +127,7 @@ export const routes: Routes = [
         path: 'view/tds/:empId',
         loadComponent: () => import('./demo/pay-roll/View TDS/view-tds.component').then((c) => c.TDSComponent)
       },
-      {
-        path: 'view/pay-slip/:empId',
-        loadComponent: () => import('./demo/pay-roll/Pay-slip/pay-slip.component').then((c) => c.PaySlipComponent)
-      },
+      { path: 'view/pay-slip/:empId', component: PaySlipComponent },
       {
         path: 'pay-revision',
         loadComponent: () =>
