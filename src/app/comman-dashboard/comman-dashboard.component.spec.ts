@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { MenuPermissionsComponent } from './menu-permissions.component';
+import { CommanDashboardComponent } from './comman-dashboard.component';
 
-describe('MenuPermissionsComponent', () => {
-  let component: MenuPermissionsComponent;
-  let fixture: ComponentFixture<MenuPermissionsComponent>;
+describe('CommanDashboardComponent', () => {
+  let component: CommanDashboardComponent;
+  let fixture: ComponentFixture<CommanDashboardComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [MenuPermissionsComponent]
+      imports: [CommanDashboardComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(MenuPermissionsComponent);
+    fixture = TestBed.createComponent(CommanDashboardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

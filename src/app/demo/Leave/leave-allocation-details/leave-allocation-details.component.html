@@ -28,6 +28,7 @@
     <table class="table table-striped table-hover">
       <thead>
         <tr>
+          <th>Leave Type</th>
           <th>Year</th>
           <th>Month</th>
           <th>Opening Balance</th>
@@ -40,6 +41,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let allocation of paginatedAllocations">
+          <td>{{ allocation.leaveTypeName || 'Regular Leave' }}</td>
           <td>{{ allocation.allocationYear }}</td>
           <td>{{ allocation.allocationMonthName }}</td>
           <td>{{ allocation.openingBalance | number:'1.2-2' }}</td>

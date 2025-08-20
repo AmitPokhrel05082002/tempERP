@@ -107,28 +107,48 @@ export class EmpTrainingComponent implements OnInit {
     this.form = this.fb.group({
       orgId: ['', Validators.required],
       categoryId: ['', Validators.required],
-      programName: ['', Validators.required],
-      programType: ['', Validators.required],
-      deliveryMethod: ['', Validators.required],
+      programName: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(200)
+      ]],
+      programCode: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(50),
+        Validators.pattern('^[a-zA-Z0-9_-]+$')
+      ]],
+      programType: ['In-House', Validators.required],
+      deliveryMethod: ['In-Person', Validators.required],
       startDate: ['', Validators.required],
       endDate: ['', Validators.required],
-      durationHours: ['', [
+      durationHours: [8, [
         Validators.required, 
-        Validators.min(1)
+        Validators.min(1),
+        Validators.max(1000)
       ]],
-      costPerParticipant: ['', [
+      costPerParticipant: [0, [
         Validators.required, 
         Validators.min(0)
       ]],
-      batchName: [''],
-      heldBy: ['', Validators.required],
-      venue: ['', Validators.required],
-      maxSeats: ['', [
-        Validators.required, 
-        Validators.min(1)
+      batchName: ['', Validators.maxLength(100)],
+      heldBy: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(100)
       ]],
-      isActive: [false],
-      description: ['']
+      venue: ['', [
+        Validators.required,
+        Validators.minLength(2),
+        Validators.maxLength(200)
+      ]],
+      maxSeats: [20, [
+        Validators.required, 
+        Validators.min(1),
+        Validators.max(1000)
+      ]],
+      isActive: [true],
+      description: ['', Validators.maxLength(1000)]
     }, { 
       validators: [
         this.dateRangeValidator,
@@ -331,9 +351,13 @@ export class EmpTrainingComponent implements OnInit {
     
     this.form.reset({
       programType: 'In-House',
+      programCode: '',
       deliveryMethod: 'In-Person',
+      durationHours: 8,
+      costPerParticipant: 0,
+      maxSeats: 20,
       isActive: true,
-      maxSeats: 10
+      status: 'Planned'
     });
     
     this.modalRef = this.modalService.open(this.trainingModalRef, { size: 'lg' });

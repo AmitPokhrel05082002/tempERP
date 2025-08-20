@@ -52,7 +52,6 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
   itemsPerPage = 10;
   totalPages = 1;
   errorMessage = '';
-  statusForm: FormGroup;
 
   // NEW: Date range filter properties
   dateFilterForm: FormGroup;
@@ -67,16 +66,16 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
   isCurrentUserEmployee = false;
   canCreateSeparationForOthers = false;
 
-  statusOptions = [
+  // Add status options for the form
+  separationStatusOptions = [
     { value: 'Pending', label: 'Pending' },
     { value: 'Approved', label: 'Approved' },
-    { value: 'Rejected', label: 'Rejected' },
-    { value: 'Completed', label: 'Completed' }
+    { value: 'Completed', label: 'Completed' },
+    { value: 'Cancelled', label: 'Cancelled' }
   ];
 
   @ViewChild('separationModal', { static: true }) separationModalTemplate!: TemplateRef<any>;
   @ViewChild('viewSeparationModal', { static: true }) viewSeparationModalTemplate!: TemplateRef<any>;
-  @ViewChild('statusModal', { static: true }) statusModalTemplate!: TemplateRef<any>;
   @ViewChild('dateFilterModal', { static: true }) dateFilterModalTemplate!: TemplateRef<any>;
 
   private modalRef: any;
@@ -100,12 +99,8 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       separationReason: ['', Validators.required],
       resignationLetterPath: [''],
       rehireEligible: [false],
-      rehireNotes: ['']
-    });
-
-    this.statusForm = this.fb.group({
-      status: ['', Validators.required],
-      notes: ['']
+      rehireNotes: [''],
+      separationStatus: ['Pending'] // Add status field
     });
 
     // NEW: Date filter form
@@ -236,6 +231,14 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
 
     // Can't update status of completed separations
     return separation.status !== 'Completed';
+  }
+
+  /**
+   * Check if user can edit separation status in the form
+   */
+  canEditSeparationStatus(): boolean {
+    // Only Admin/CTO/HR can edit separation status
+    return this.authService.hasFullAccess();
   }
 
   /**
@@ -428,6 +431,16 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       customClass: {
         popup: 'text-start'
       }
+    });
+  }
+
+  // Open view modal
+  openViewModal(separation: Separation): void {
+    this.currentSeparation = separation;
+    this.modalRef = this.modalService.open(this.viewSeparationModalTemplate, {
+      size: 'lg',
+      backdrop: 'static',
+      keyboard: false
     });
   }
 
@@ -731,7 +744,8 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       separationReason: ['', Validators.required],
       resignationLetterPath: [''],
       rehireEligible: [false],
-      rehireNotes: ['']
+      rehireNotes: [''],
+      separationStatus: ['Pending'] // Add status field
     });
   }
 
@@ -1279,6 +1293,8 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
         return 'bg-danger';
       case 'Completed':
         return 'bg-info';
+      case 'Cancelled':
+        return 'bg-secondary';
       case 'Pending':
       default:
         return 'bg-warning text-dark';
@@ -1335,6 +1351,11 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
     // If user is an employee, pre-populate their details
     if (this.isCurrentUserEmployee && this.currentUserEmployee) {
       this.prePopulateEmployeeForm(this.currentUserEmployee);
+    }
+
+    // Employees cannot set status during creation
+    if (this.isCurrentUserEmployee) {
+      this.form.get('separationStatus')?.disable();
     }
 
     // Reload separation types to ensure we have the latest
@@ -1421,7 +1442,8 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
       separationReason: separation.separationReason || '',
       resignationLetterPath: separation.resignationLetterPath || '',
       rehireEligible: Boolean(separation.rehireEligible),
-      rehireNotes: separation.rehireNotes || ''
+      rehireNotes: separation.rehireNotes || '',
+      separationStatus: separation.status || separation.separationStatus || 'Pending'
     };
 
     console.log('Form data for editing:', formData);
@@ -1430,10 +1452,17 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
 
     this.form.enable();
 
-    // If current user is employee editing their own separation, disable employee fields
+    // If current user is employee editing their own separation, disable certain fields
     if (this.isCurrentUserEmployee && separation.employeeId === this.getCurrentUserEmpId()) {
       this.form.get('empId')?.disable();
       this.form.get('empName')?.disable();
+      // Employees cannot edit separation status
+      this.form.get('separationStatus')?.disable();
+    }
+
+    // If user cannot edit separation status, disable the field
+    if (!this.canEditSeparationStatus()) {
+      this.form.get('separationStatus')?.disable();
     }
 
     // Verify separation type is available
@@ -1461,41 +1490,6 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       const focusField = this.isCurrentUserEmployee ? 'separationTypeId' : 'empName';
       const input = document.getElementById(focusField) as HTMLInputElement;
-      if (input) {
-        input.focus();
-      }
-    }, 300);
-  }
-
-  openViewModal(separation: Separation): void {
-    this.currentSeparation = separation;
-    this.modalRef = this.modalService.open(this.viewSeparationModalTemplate, {
-      size: 'lg',
-      backdrop: 'static',
-      keyboard: false
-    });
-  }
-
-  openStatusModal(separation: Separation): void {
-    if (!this.canUpdateStatus(separation)) {
-      this.showError('You do not have permission to update the status of this separation.');
-      return;
-    }
-
-    this.currentSeparation = separation;
-    this.statusForm.patchValue({
-      status: separation.status || 'Pending',
-      notes: ''
-    });
-
-    this.modalRef = this.modalService.open(this.statusModalTemplate, {
-      size: 'md',
-      backdrop: 'static',
-      keyboard: false
-    });
-
-    setTimeout(() => {
-      const input = document.getElementById('status') as HTMLSelectElement;
       if (input) {
         input.focus();
       }
@@ -1543,6 +1537,11 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
         rehireNotes: (formValue.rehireNotes || '').trim()
       };
 
+      // Add separationStatus if user has permission to edit it
+      if (this.canEditSeparationStatus() && formValue.separationStatus) {
+        updateRequest.separationStatus = formValue.separationStatus;
+      }
+
       console.log('Update request payload:', updateRequest);
       console.log('Separation ID for update:', this.currentSeparation.separationId);
 
@@ -1572,7 +1571,7 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
 
       this.subscriptions.push(updateSub);
     } else {
-      // Create new separation
+      // Create new separation (status field handled based on user role)
       const createRequest: SeparationRequest = {
         empId: formValue.empId,
         separationTypeId: formValue.separationTypeId,
@@ -1582,7 +1581,8 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
         separationReason: formValue.separationReason.trim(),
         resignationLetterPath: (formValue.resignationLetterPath || '').trim(),
         rehireEligible: Boolean(formValue.rehireEligible),
-        rehireNotes: (formValue.rehireNotes || '').trim()
+        rehireNotes: (formValue.rehireNotes || '').trim(),
+        separationStatus: this.canEditSeparationStatus() ? (formValue.separationStatus || 'Pending') : 'Pending'
       };
 
       console.log('Create request payload:', createRequest);
@@ -1604,36 +1604,6 @@ export class EmpSeparationComponent implements OnInit, OnDestroy {
 
       this.subscriptions.push(createSub);
     }
-  }
-
-  updateStatus(): void {
-    if (this.statusForm.invalid || !this.currentSeparation) {
-      this.markFormGroupTouched(this.statusForm);
-      return;
-    }
-
-    this.isLoading = true;
-    const formValue = this.statusForm.value;
-
-    const statusSub = this.separationService.updateSeparationStatus(
-      this.currentSeparation.separationId!,
-      formValue.status,
-      formValue.notes || ''
-    ).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.modalRef?.close();
-        this.showSuccess('Separation status updated successfully!');
-        this.loadSeparations(); // Reload the list
-      },
-      error: (error) => {
-        console.error('Error updating separation status:', error);
-        this.isLoading = false;
-        this.showError(error.message || 'Failed to update separation status. Please try again.');
-      }
-    });
-
-    this.subscriptions.push(statusSub);
   }
 
   deleteSeparation(separation: Separation): void {

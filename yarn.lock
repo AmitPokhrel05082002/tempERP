@@ -1781,7 +1781,6 @@
   version "3.2.6"
   resolved "https://registry.npmjs.org/@lmdb/lmdb-win32-x64/-/lmdb-win32-x64-3.2.6.tgz"
   integrity sha512-XlqVtILonQnG+9fH2N3Aytria7P/1fwDgDhl29rde96uH2sLB8CHORIf2PfuLVzFQJ7Uqp8py9AYwr3ZUCFfWg==
-
 "@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.3":
   version "3.0.3"
   resolved "https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-darwin-arm64/-/msgpackr-extract-darwin-arm64-3.0.3.tgz"
@@ -1811,7 +1810,7 @@
   version "3.0.3"
   resolved "https://registry.npmjs.org/@msgpackr-extract/msgpackr-extract-win32-x64/-/msgpackr-extract-win32-x64-3.0.3.tgz"
   integrity sha512-x0fWaQtYp4E6sktbsdAqnehxDgEc/VwM7uLsRCYWaiGu0ykYdZPiS8zCWdnjHwyiumousxfBm4SO31eXqwEZhQ==
-
+  
 "@napi-rs/nice-android-arm-eabi@1.0.1":
   version "1.0.1"
   resolved "https://registry.npmjs.org/@napi-rs/nice-android-arm-eabi/-/nice-android-arm-eabi-1.0.1.tgz"
@@ -1886,7 +1885,6 @@
   version "1.0.1"
   resolved "https://registry.npmjs.org/@napi-rs/nice-win32-ia32-msvc/-/nice-win32-ia32-msvc-1.0.1.tgz"
   integrity sha512-t7eBAyPUrWL8su3gDxw9xxxqNwZzAqKo0Szv3IjVQd1GpXXVkb6vBBQUuxfIYaXMzZLwlxRQ7uzM2vdUE9ULGw==
-
 "@napi-rs/nice-win32-x64-msvc@1.0.1":
   version "1.0.1"
   resolved "https://registry.npmjs.org/@napi-rs/nice-win32-x64-msvc/-/nice-win32-x64-msvc-1.0.1.tgz"

@@ -1,138 +1,317 @@
 <div class="documents-container">
-  <!-- Header -->
+  <!-- Header with Role Information -->
   <div class="header">
     <div>
-      <h2>Documents</h2>
-      <p>Manage and organize all your documents in one place.</p>
-    </div>
-    <button class="upload-btn" (click)="openUploadModal()" [disabled]="isLoading">
-      <i class="fas fa-upload"></i> Upload File
-    </button>
-  </div>
-
-  <!-- Controls -->
-  <div class="controls">
-    <!-- <select [(ngModel)]="selectedFileType" (change)="filterByType()" [disabled]="isLoading">
-      <option value="">All Types</option>
-      <option value="pdf">PDF</option>
-      <option value="docx">Word Document</option>
-      <option value="xlsx">Excel Spreadsheet</option>
-      <option value="csv">CSV File</option>
-      <option value="txt">Text File</option>
-      <option value="jpg">JPEG Image</option>
-      <option value="png">PNG Image</option>
-      <option value="zip">ZIP Archive</option>
-      <option value="ppt">PowerPoint</option>
-      <option value="mp4">Video</option>
-      <option value="mp3">Audio</option>
-    </select> -->
-
-    <select [(ngModel)]="selectedYear" (change)="filterByYear()" [disabled]="isLoading">
-      <option *ngFor="let year of years" [value]="year">{{year}}</option>
-    </select>
-
-    <div class="search-box">
-      <i class="fas fa-search"></i>
-      <input 
-        type="text" 
-        placeholder="Search documents..." 
-        [(ngModel)]="searchQuery"
-        (input)="searchDocuments()"
-        [disabled]="isLoading">
-    </div>
-  </div>
-
-  <!-- Loading -->
-  <div *ngIf="isLoading" class="loading">
-    <i class="fas fa-spinner fa-spin"></i> Loading...
-  </div>
-
-  <!-- Empty State -->
-  <div *ngIf="!isLoading && filteredDocuments.length === 0" class="empty-state">
-    <i class="fas fa-folder-open"></i>
-    <h3>No documents found</h3>
-    <p>Upload your first document or try adjusting your filters.</p>
-    <button class="upload-btn" (click)="openUploadModal()">
-      <i class="fas fa-upload"></i> Upload Document
-    </button>
-  </div>
-
-  <!-- Documents Table -->
-  <table class="documents-table" *ngIf="!isLoading && filteredDocuments.length > 0">
-    <thead>
-      <tr>
-        <th>File Name</th>
-        <!-- <th>Type</th> -->
-        <th>Uploaded By</th>
-        <th>Department</th>
-        <th>Uploaded Date</th>
-        <th>Visibility</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let doc of filteredDocuments">
-        <!-- File Name with Icon -->
-        <td class="file-cell">
-          <div class="file-icon-container">
-            <i [class]="getFileIconClass(doc.userInputFileName)" 
-               [style.color]="getFileIconColor(doc.userInputFileName)"
-               class="file-type-icon"></i>
-          </div>
-          <div class="file-info">
-            <div class="file-name" [innerHTML]="highlightText(getDisplayName(doc))"></div>
-            <small class="document-code">{{doc.documentCode}}</small>
-          </div>
-        </td>
-        <!-- File Type with Color Badge -->
-        <!-- <td>
-          <span class="file-type-badge" 
-                [style.background-color]="getFileIconColor(doc.userInputFileName)"
-                [style.color]="'white'">
-            {{getFileTypeDisplayName(getFileExtension(doc.userInputFileName || ''))}}
-          </span>
-        </td> -->
-        <td [innerHTML]="highlightText(getUploadedBy(doc))"></td>
-        <td [innerHTML]="highlightText(getDepartmentName(doc))"></td>
-        <td>{{getCreatedDate(doc)}}</td>
-        <td>
-          <span class="badge" [class.private]="doc.visibleOnlyToMe">
-            {{doc.visibleOnlyToMe ? 'Private' : 'Public'}}
-          </span>
-        </td>
-        
-        <!-- Actions column -->
-        <td class="actions">
-          <!-- View dropdown for better options -->
-          <div class="view-dropdown" *ngIf="doc.documentCode">
-            <button class="view-btn" 
-                    (click)="viewDocument(doc)" 
-                    title="View Document">
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-          
-          <button *ngIf="doc.documentCode" 
-                  (click)="downloadDocument(doc.documentCode, $event)" 
-                  title="Download" 
-                  class="download-btn"
-                  [disabled]="isDownloading(doc.documentCode)">
-            <i class="fas fa-download" *ngIf="!isDownloading(doc.documentCode)"></i>
-            <i class="fas fa-spinner fa-spin" *ngIf="isDownloading(doc.documentCode)"></i>
+      <h2>
+        <!-- ENHANCED: Different headers based on user role and view -->
+        <span *ngIf="shouldShowDepartmentFolders() && hasAdminAccess()">Documents by Department</span>
+        <span *ngIf="shouldShowDepartmentFolders() && isManager">Your Department</span>
+        <span *ngIf="!shouldShowDepartmentFolders() && selectedDepartment">
+          <button class="back-btn" 
+                  *ngIf="shouldShowBackButton()"
+                  (click)="backToDepartments()" 
+                  title="Back to Departments">
+            <i class="fas fa-arrow-left"></i>
           </button>
+          <!-- ENHANCED: Employee always sees their department name -->
+          <span *ngIf="isEmployee">{{getEmployeeDepartmentHeaderText()}}</span>
+          <span *ngIf="!isEmployee">{{getDepartmentDisplayName(selectedDepartment)}}</span>
+        </span>
+      </h2>
+      <div class="header-info">
+        <!-- ENHANCED: Different info for different roles -->
+        <p *ngIf="shouldShowDepartmentFolders() && hasAdminAccess()">
+          Manage documents across all departments. 
+        </p>
+        <!-- Total: {{getTotalDocumentsCount()}} documents in {{getAccessibleDepartmentsCount()}} departments. -->
+        <p *ngIf="shouldShowDepartmentFolders() && isManager">
+          Browse and manage documents for your department.
+        </p>
+        <p *ngIf="!shouldShowDepartmentFolders() && selectedDepartment && isEmployee">
+          Upload, search, and manage your department documents.
+        </p>
+        <p *ngIf="!shouldShowDepartmentFolders() && selectedDepartment && !isEmployee">
+          Manage documents for {{getDepartmentDisplayName(selectedDepartment)}}.
+        </p>
+        
+        <div class="user-role-badge" *ngIf="userProfile">
+          <span class="role-indicator" 
+                [class.admin]="hasAdminAccess()" 
+                [class.manager]="isManager"
+                [class.employee]="isEmployee">
+            <i class="fas fa-user-tag"></i>
+            {{getUserRoleDisplayName()}}
+          </span>
+          <span class="user-name" *ngIf="userProfile.userName">{{userProfile.userName}}</span>
+        </div>
+      </div>
+    </div>
+    
+    <!-- ENHANCED: Upload button always visible for employees and department access -->
+    <div class="header-actions">
+      <button class="upload-btn" 
+              *ngIf="(selectedDepartment && canUploadToDepartment(selectedDepartment.dept_id)) || 
+                     (isEmployee && userDepartment && canUploadToDepartment(userDepartment.dept_id)) ||
+                     (isManager && managedDepartment && canUploadToDepartment(managedDepartment.dept_id))" 
+              (click)="openUploadModal()" 
+              [disabled]="isLoading || isDepartmentLoading">
+        <i class="fas fa-upload"></i> Upload File
+      </button>
+    </div>
+  </div>
+
+  <!-- Department Folders View (only for Admin/HR/Manager) -->
+  <div *ngIf="shouldShowDepartmentFolders()" class="departments-view">
+    <!-- Loading -->
+    <div *ngIf="isLoading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i> Loading departments...
+    </div>
+
+    <!-- ENHANCED: Permission notices for different user types -->
+    <div *ngIf="!isLoading && isManager && departments.length > 0" class="permission-notice manager-notice">
+      <i class="fas fa-users-cog"></i>
+      <span>You can manage all documents in your department. Contact HR for access to other departments if needed.</span>
+    </div>
+
+    <!-- Admin Dashboard Stats -->
+    <div *ngIf="!isLoading && hasAdminAccess() && departments.length > 0" class="admin-stats">
+      <div class="stat-card">
+        <i class="fas fa-building"></i>
+        <div class="stat-info">
+          <span class="stat-label">Total Departments</span> 
+          <span class="stat-number">{{departments.length}}</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <i class="fas fa-file-alt"></i>
+        <div class="stat-info">
+          <span class="stat-label">Total Documents</span>  
+          <span class="stat-number">{{getTotalDocumentsCount()}}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div *ngIf="!isLoading && departments.length === 0" class="empty-state">
+      <i class="fas fa-building"></i>
+      <h3>No departments available</h3>
+      <p *ngIf="isManager">You don't have access to any departments. Please contact your administrator.</p>
+      <p *ngIf="hasAdminAccess()">No departments are configured in the system.</p>
+    </div>
+
+    <!-- Department Folders Grid -->
+    <div *ngIf="!isLoading && departments.length > 0" class="departments-grid">
+      <div *ngFor="let dept of departments; let i = index" 
+           class="department-folder"
+           [class.active]="dept.isActive"
+           [class.restricted]="!canAccessDepartment(dept.dept_id)">
+        
+        <!-- Department Info Section -->
+        <div class="folder-content" (click)="selectDepartment(dept)">
+          <div class="folder-icon" [style.color]="getDepartmentColor(i)">
+            <i [class]="getDepartmentIcon(dept.dept_name)"></i>
+            <span class="access-indicator" *ngIf="!canAccessDepartment(dept.dept_id)">
+              <i class="fas fa-lock"></i>
+            </span>
+          </div>
+          <div class="folder-info">
+            <h3 class="folder-name">{{getDepartmentDisplayName(dept)}}</h3>
+            <div class="folder-subtitle">{{getDepartmentSubtitle(dept)}}</div>
+            <span class="document-count" *ngIf="canAccessDepartment(dept.dept_id)">
+              {{dept.documentCount || 0}} document{{(dept.documentCount || 0) !== 1 ? 's' : ''}}
+            </span>
+            <span class="restricted-access" *ngIf="!canAccessDepartment(dept.dept_id)">
+              <i class="fas fa-lock"></i> Restricted Access
+            </span>
+          </div>
+          <div class="folder-arrow">
+            <i class="fas fa-chevron-right"></i>
+          </div>
+        </div>
+        
+        <!-- ENHANCED: Upload Button for Admin in Department Folders -->
+        <div class="department-actions" *ngIf="hasAdminAccess() && canUploadToDepartment(dept.dept_id)">
+          <button class="upload-btn-small" 
+                  (click)="selectDepartmentAndUpload(dept, $event)"
+                  title="Upload to {{getDepartmentDisplayName(dept)}}">
+            <i class="fas fa-upload"></i>
+            <span>Quick Upload</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Employee Document Interface OR Document List View (when department is selected) -->
+  <div *ngIf="(!shouldShowDepartmentFolders() && selectedDepartment) || (isEmployee || isManager)" class="documents-view">
+    <!-- Employee Welcome Message -->
+    <div *ngIf="isEmployee && !isDepartmentLoading && documents.length === 0" class="employee-welcome">
+      <div class="welcome-card">
+        <i class="fas fa-folder-plus"></i>
+        <h3>Welcome to your department's document center!</h3>
+        <p>Start by uploading your first document using the "Upload File" button above.</p>
+        <small>Your uploaded documents will be visible to department administrators and can be set as private if needed.</small>
+      </div>
+    </div>
+    
+    <!-- Controls -->
+    <div class="controls" *ngIf="selectedDepartment || isEmployee || isManager">
+      <select [(ngModel)]="selectedYear" (change)="filterByYear()" [disabled]="isDepartmentLoading">
+        <option *ngFor="let year of years" [value]="year">{{year}}</option>
+      </select>
+
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input 
+          type="text" 
+          placeholder="Search documents..." 
+          [(ngModel)]="searchQuery"
+          (input)="searchDocuments()"
+          [disabled]="isDepartmentLoading">
+      </div>
+
+      <!-- Export/Download All Button for Employee and Manager -->
+      <button class="export-btn" 
+              *ngIf="(isEmployee || isManager) && filteredDocuments.length > 0"
+              (click)="exportDocuments()"
+              title="Export search results">
+        <i class="fas fa-file-export"></i> Export List
+      </button>
+
+      <div class="view-options">
+        <span class="view-label">
+          <i class="fas fa-eye"></i>
+          Viewing: {{filteredDocuments.length}} of {{documents.length}} documents
+          <!-- ENHANCED: Show cross-department access for admin -->
+          <span *ngIf="hasAdminAccess()" class="admin-access-indicator">
+            <i class="fas fa-crown"></i> Admin Access
+          </span>
+          <!-- Employee department indicator -->
+          <span *ngIf="isEmployee && userDepartment" class="employee-dept-indicator">
+            <i class="fas fa-building"></i> {{userDepartment.dept_name}}
+          </span>
+          <!-- Manager department indicator -->
+          <span *ngIf="isManager && managedDepartment" class="manager-dept-indicator">
+            <i class="fas fa-users-cog"></i> {{managedDepartment.dept_name}}
+          </span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Department Loading -->
+    <div *ngIf="isDepartmentLoading" class="loading">
+      <i class="fas fa-spinner fa-spin"></i> Loading documents for {{selectedDepartment ? getDepartmentDisplayName(selectedDepartment) : 'your department'}}...
+    </div>
+
+    <!-- Empty State for Department -->
+    <div *ngIf="!isDepartmentLoading && filteredDocuments.length === 0 && (selectedDepartment || isEmployee || isManager)" class="empty-state">
+      <i class="fas fa-folder-open"></i>
+      <h3 *ngIf="documents.length === 0 && isEmployee">Welcome! Upload your first document</h3>
+      <h3 *ngIf="documents.length === 0 && isManager">No documents found in your managed department</h3>
+      <h3 *ngIf="documents.length === 0 && !isEmployee && !isManager && selectedDepartment">No documents found in {{getDepartmentDisplayName(selectedDepartment)}}</h3>
+      <h3 *ngIf="documents.length > 0">No documents match your current filters</h3>
+      
+      <p *ngIf="documents.length === 0 && isEmployee">Start by uploading documents to share with your team.</p>
+      <p *ngIf="documents.length === 0 && isManager">Your department team hasn't uploaded any documents yet.</p>
+      <p *ngIf="documents.length === 0 && !isEmployee && !isManager">This department doesn't have any documents yet.</p>
+      <p *ngIf="documents.length > 0">Try adjusting your search or filter criteria.</p>
+      
+      <button class="upload-btn" 
+              *ngIf="(selectedDepartment && canUploadToDepartment(selectedDepartment.dept_id)) || 
+                     (isEmployee && userDepartment && canUploadToDepartment(userDepartment.dept_id)) ||
+                     (isManager && managedDepartment && canUploadToDepartment(managedDepartment.dept_id))"
+              (click)="openUploadModal()">
+        <i class="fas fa-upload"></i> Upload Document
+      </button>
+    </div>
+
+    <!-- Documents Table -->
+    <table class="documents-table" *ngIf="!isDepartmentLoading && filteredDocuments.length > 0 && (selectedDepartment || isEmployee || isManager)">
+      <thead>
+        <tr>
+          <th>File Name</th>
+          <th>Uploaded By</th>
+          <th>Uploaded Date</th>
+          <th *ngIf="!isEmployee">Visibility</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let doc of filteredDocuments" 
+            [class.restricted]="!canViewDocument(doc)"
+            [class.my-document]="doc.createdByEmpId === userProfile?.empId"
+            [class.cross-department]="hasAdminAccess() && selectedDepartment && doc.deptId !== selectedDepartment.dept_id">
           
-          <!-- Debug button (remove in production) -->
-          <!-- <button *ngIf="doc.documentCode" 
-                  (click)="testDownloadEndpoint(doc.documentCode)" 
-                  title="Test Download (Debug)" 
-                  class="debug-btn"
-                  style="background: #ff6b6b; color: white; margin-left: 5px;">
-            <i class="fas fa-bug"></i>
-          </button> -->
-        </td>
-      </tr>
-    </tbody>
-  </table>
+          <!-- File Name with Icon -->
+          <td class="file-cell">
+            <div class="file-icon-container">
+              <i [class]="getFileIconClass(doc.userInputFileName)" 
+                 [style.color]="getFileIconColor(doc.userInputFileName)"
+                 class="file-type-icon"></i>
+            </div>
+            <div class="file-info">
+              <div class="file-name" [innerHTML]="highlightText(getDisplayName(doc))"></div>
+              <small class="document-code">{{doc.documentCode}}</small>
+              
+              <!-- ENHANCED: Document indicators -->
+              <div class="document-indicators">
+                <span class="pdf-indicator" *ngIf="getFileExtension(doc.userInputFileName) === 'pdf'">
+                  <i class="fas fa-file-pdf"></i> PDF
+                </span>
+                <span class="my-doc-indicator" *ngIf="doc.createdByEmpId === userProfile?.empId">
+                  <i class="fas fa-user"></i> Your Document
+                </span>
+                <span class="cross-dept-indicator" *ngIf="hasAdminAccess() && selectedDepartment && doc.deptId !== selectedDepartment.dept_id">
+                  <i class="fas fa-exchange-alt"></i> Cross-Department
+                </span>
+              </div>
+            </div>
+          </td>
+          
+          <td [innerHTML]="highlightText(getUploadedBy(doc))"></td>
+          <td>{{getCreatedDate(doc)}}</td>
+          
+          <!-- Visibility column (hidden for employees) -->
+          <td *ngIf="!isEmployee">
+            <span class="badge" [class.private]="doc.visibleOnlyToMe">
+              {{doc.visibleOnlyToMe ? 'Private' : 'Public'}}
+            </span>
+            <span class="owner-indicator" *ngIf="doc.createdByEmpId === userProfile?.empId">
+              <i class="fas fa-user"></i> Yours
+            </span>
+          </td>
+          
+          <!-- Actions column -->
+          <td class="actions">
+            <!-- ENHANCED: View button with better permissions -->
+            <button class="view-btn" 
+                    *ngIf="doc.documentCode && canViewDocument(doc)"
+                    (click)="viewDocument(doc)" 
+                    title="View Document"
+                    [class.pdf-btn]="getFileExtension(doc.userInputFileName) === 'pdf'">
+              <i class="fas fa-eye"></i>
+              <span *ngIf="getFileExtension(doc.userInputFileName) === 'pdf'" class="btn-label">View PDF</span>
+            </button>
+            
+            <!-- ENHANCED: Download button with cross-department permissions -->
+            <button *ngIf="doc.documentCode && canDownloadDocument(doc)" 
+                    (click)="downloadDocument(doc.documentCode, $event)" 
+                    title="Download" 
+                    class="download-btn"
+                    [disabled]="isDownloading(doc.documentCode)">
+              <i class="fas fa-download" *ngIf="!isDownloading(doc.documentCode)"></i>
+              <i class="fas fa-spinner fa-spin" *ngIf="isDownloading(doc.documentCode)"></i>
+            </button>
+
+            <!-- ENHANCED: No access indicator -->
+            <span class="no-access" *ngIf="!canViewDocument(doc)">
+              <i class="fas fa-lock"></i> No Access
+            </span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
   <!-- Upload Modal -->
   <div class="modal" *ngIf="showUploadModal" (click)="closeUploadModal()">
@@ -143,15 +322,44 @@
       </div>
       
       <div class="modal-body">
-        <div class="form-group">
-          <label>Display Name</label>
-          <input type="text" [(ngModel)]="fileName" placeholder="Enter display name" required>
+        <!-- ENHANCED: Department display with better styling -->
+        <div class="form-group" *ngIf="selectedDepartment">
+          <label>Department</label>
+          <div class="department-display" [class.employee-upload]="isEmployee">
+            <i [class]="getDepartmentIcon(selectedDepartment.dept_name)" 
+               [style.color]="getDepartmentColor(getSelectedDepartmentColorIndex())"></i>
+            <div class="dept-info">
+              <span class="dept-name">{{getDepartmentDisplayName(selectedDepartment)}}</span>
+              <small class="dept-code">{{selectedDepartment.dept_code}}</small>
+              <!-- ENHANCED: Employee upload indicator -->
+              <small class="upload-indicator" *ngIf="isEmployee">
+                <i class="fas fa-info-circle"></i> Uploading to your department
+              </small>
+              <!-- ENHANCED: Admin upload indicator -->
+              <small class="upload-indicator" *ngIf="hasAdminAccess()">
+                <i class="fas fa-crown"></i> Admin upload to {{selectedDepartment.dept_name}}
+              </small>
+            </div>
+          </div>
         </div>
 
         <div class="form-group">
-          <label>Select File</label>
+          <label>Display Name *</label>
+          <input type="text" 
+                 [(ngModel)]="fileName" 
+                 placeholder="Enter display name for the document" 
+                 required
+                 maxlength="255">
+          <small class="field-help">This will be the display name shown in the document list.</small>
+        </div>
+
+        <div class="form-group">
+          <label>Select File *</label>
           <div class="file-upload">
-            <input type="file" #fileInput (change)="onFileSelected($event)" style="display: none;" 
+            <input type="file" 
+                   #fileInput 
+                   (change)="onFileSelected($event)" 
+                   style="display: none;" 
                    accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.log,.md,.jpg,.jpeg,.png,.gif,.bmp,.svg,.zip,.rar,.ppt,.pptx,.mp4,.avi,.mp3,.wav,.json,.xml,.html,.css,.js,.ts">
             <button type="button" (click)="fileInput.click()" class="file-select-btn">
               <i class="fas fa-paperclip"></i> Choose File
@@ -166,29 +374,49 @@
           </small>
         </div>
 
-        <div class="form-group">
+        <!-- ENHANCED: Privacy setting with role-based explanations -->
+        <div class="form-group" *ngIf="!hasAdminAccess()">
           <label class="checkbox-label">
             <input type="checkbox" [(ngModel)]="visibleOnlyToMe">
             Make private (visible only to me)
           </label>
+          <small class="privacy-note">
+            <i class="fas fa-info-circle"></i>
+            <span *ngIf="isEmployee">
+              Private documents are only visible to you and department administrators.
+            </span>
+            <span *ngIf="isManager">
+              Private documents are only visible to you. Public documents are visible to all department members.
+            </span>
+          </small>
+        </div>
+
+        <!-- ENHANCED: Admin note about public uploads -->
+        <div class="form-group" *ngIf="hasAdminAccess()">
+          <div class="admin-upload-note">
+            <i class="fas fa-info-circle"></i>
+            <span>Admin uploads are always public and visible to all department members.</span>
+          </div>
         </div>
       </div>
 
       <div class="modal-footer">
         <button (click)="closeUploadModal()" [disabled]="isLoading">Cancel</button>
-        <button (click)="uploadFile()" [disabled]="!selectedFile || !fileName.trim() || isLoading" class="primary">
+        <button (click)="uploadFile()" 
+                [disabled]="!selectedFile || !fileName.trim() || isLoading" 
+                class="primary">
           <span *ngIf="isLoading">
             <i class="fas fa-spinner fa-spin"></i> Uploading...
           </span>
           <span *ngIf="!isLoading">
-            <i class="fas fa-upload"></i> Upload
+            <i class="fas fa-upload"></i> Upload Document
           </span>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- View Modal -->
+  <!-- Enhanced View Modal for PDFs -->
   <div class="modal view-modal" *ngIf="showViewModal" (click)="closeViewModal()">
     <div class="modal-content view-modal-content" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -197,7 +425,14 @@
           <span class="file-type-indicator" *ngIf="selectedDocument">
             {{getFileTypeDisplayName(getFileExtension(selectedDocument.userInputFileName || ''))}}
           </span>
-          <button *ngIf="selectedDocument?.documentCode" 
+          <span class="pdf-enhanced" *ngIf="getFileExtension(selectedDocument?.userInputFileName || '') === 'pdf'">
+            <i class="fas fa-file-pdf"></i> Enhanced PDF Viewer
+          </span>
+          <!-- ENHANCED: Cross-department access indicator -->
+          <span class="cross-dept-viewer" *ngIf="hasAdminAccess() && selectedDocument?.deptId !== selectedDepartment?.dept_id">
+            <i class="fas fa-crown"></i> Admin Access
+          </span>
+          <button *ngIf="selectedDocument?.documentCode && canDownloadDocument(selectedDocument)" 
                   (click)="downloadDocument(selectedDocument.documentCode)" 
                   class="download-btn" 
                   title="Download"
@@ -210,22 +445,26 @@
       </div>
       
       <div class="modal-body view-modal-body">
+        <!-- Enhanced PDF viewer instructions -->
+        <div *ngIf="getFileExtension(selectedDocument?.userInputFileName || '') === 'pdf' && !safeUrl" class="pdf-loading-notice">
+          <div class="pdf-notice">
+            <i class="fas fa-file-pdf"></i>
+            <h4>Loading PDF Document</h4>
+            <p>Preparing enhanced PDF viewer...</p>
+            <div class="loading-bar">
+              <div class="loading-progress"></div>
+            </div>
+          </div>
+        </div>
+
         <!-- For Office documents and others that need special handling -->
         <div *ngIf="safeUrl && !shouldUseIframe()" class="office-viewer">
           <div class="office-notice">
             <i class="fas fa-info-circle"></i>
             <h4>Document Viewer</h4>
-            <p>This file type requires a special viewer.</p>
+            <p>This file type requires a special viewer or download to view properly.</p>
             
             <div class="viewer-options">
-              <button (click)="openWithGoogleDocs()" class="option-btn">
-                <i class="fas fa-external-link-alt"></i> Open with Google Docs
-              </button>
-              
-              <button (click)="openWithOfficeLive()" class="option-btn">
-                <i class="fas fa-external-link-alt"></i> Open with Office Online
-              </button>
-              
               <button (click)="downloadDocument(selectedDocument?.documentCode)" 
                       class="option-btn primary"
                       [disabled]="isDownloading(selectedDocument?.documentCode || '')">
@@ -235,22 +474,23 @@
           </div>
         </div>
 
-        <!-- Direct iframe for PDFs and images -->
+        <!-- Enhanced iframe for PDFs and images -->
         <iframe *ngIf="safeUrl && shouldUseIframe()" 
                 [src]="safeUrl" 
                 class="document-viewer"
+                [class.pdf-viewer]="getFileExtension(selectedDocument?.userInputFileName || '') === 'pdf'"
                 allowfullscreen
                 (load)="onIframeLoad()"
                 (error)="onIframeError()">
         </iframe>
         
-        <div *ngIf="!safeUrl" class="no-preview">
+        <div *ngIf="!safeUrl && getFileExtension(selectedDocument?.userInputFileName || '') !== 'pdf'" class="no-preview">
           <i class="fas fa-file-alt"></i>
           <h4>Unable to preview this document</h4>
           <p>This file type cannot be previewed in the browser.</p>
           
           <div class="preview-options">
-            <button *ngIf="selectedDocument?.documentCode" 
+            <button *ngIf="selectedDocument?.documentCode && canDownloadDocument(selectedDocument)" 
                     (click)="downloadDocument(selectedDocument.documentCode)" 
                     class="option-btn primary"
                     [disabled]="isDownloading(selectedDocument.documentCode)">

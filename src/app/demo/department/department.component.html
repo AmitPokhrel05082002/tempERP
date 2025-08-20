@@ -111,29 +111,36 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let dept of paginatedDepartments">
-            <td>{{ dept.dept_name }}</td>
-            <td>{{ dept.dept_code }}</td>
-            <td>{{ dept.org_name }}</td>
-            <td>{{ dept.branch_name }}</td>
-            <td>{{ dept.budget_allocation | currency:'BTN ':'symbol':'1.0-0' }}</td>
-            <td>{{ dept.sub_departments_count }}</td>
-            <td>
-              <div class="status-badge active" *ngIf="dept.status">Active</div>
-              <div class="status-badge inactive" *ngIf="!dept.status">Inactive</div>
-            </td>
-            <td>
-              <div class="action-buttons">
-                <button class="view-btn" title="View"><i class="ti ti-eye"></i></button>
-                <button class="edit-btn" title="Edit" (click)="openEditModal(dept)">
-                  <i class="ti ti-edit"></i>
-                </button>
-                <button class="delete-btn" title="Delete">
-                  <i class="ti ti-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
+          @for (dept of paginatedDepartments; track dept.dept_id) {
+            <tr>
+              <td>{{ dept.dept_name }}</td>
+              <td>{{ dept.dept_code }}</td>
+              <td>{{ dept.org_name }}</td>
+              <td>{{ dept.branch_name }}</td>
+              <td>{{ dept.budget_allocation | currency:'BTN ':'symbol':'1.0-0' }}</td>
+              <td>{{ dept.sub_departments_count }}</td>
+              <td>
+                @if (dept.status) {
+                  <div class="status-badge active">Active</div>
+                } @else {
+                  <div class="status-badge inactive">Inactive</div>
+                }
+              </td>
+              <td>
+                <div class="action-buttons">
+                  <button class="view-btn" title="View" (click)="viewDepartment(dept)">
+                    <i class="ti ti-eye"></i>
+                  </button>
+                  <button class="edit-btn" title="Edit" (click)="openEditModal(dept)">
+                    <i class="ti ti-edit"></i>
+                  </button>
+                  <button class="delete-btn" title="Delete">
+                    <i class="ti ti-trash"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          }
           <tr *ngIf="!paginatedDepartments.length">
             <td colspan="8" class="no-records">No departments found</td>
           </tr>

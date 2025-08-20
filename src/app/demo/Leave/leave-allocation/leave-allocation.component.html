@@ -11,8 +11,40 @@
         class="search-input"
         placeholder="Search employees..."
         [(ngModel)]="searchQuery"
-        (ngModelChange)="onSearchChange()"
+        (ngModelChange)="onSearchChange(); applyFilters()"
       />
+    </div>
+    
+    <div class="filters">
+      <div class="filter-group">
+        <label for="branchFilter">Branch</label>
+        <select 
+          id="branchFilter" 
+          class="form-select"
+          [(ngModel)]="selectedBranch"
+          (change)="onFilterChange()"
+        >
+          <option value="">All Branches</option>
+          <option *ngFor="let branch of branches" [value]="branch.branchId">
+            {{ branch.branchName }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="departmentFilter">Department</label>
+        <select 
+          id="departmentFilter" 
+          class="form-select"
+          [(ngModel)]="selectedDepartment"
+          (change)="onFilterChange()"
+        >
+          <option value="">All Departments</option>
+          <option *ngFor="let dept of departments" [value]="dept.dept_id">
+            {{ dept.dept_name }}
+          </option>
+        </select>
+      </div>
     </div>
   </div>
 
@@ -41,8 +73,8 @@
           <th>Full Name</th>
           <th>Status</th>
           <th>Organization</th>
-          <th>Branch</th>
           <th>Department</th>
+          <th>Branch</th>
           <th>Action</th>
         </tr>
       </thead>

@@ -29,7 +29,7 @@ export interface SeparationResponse {
   noticePeriodServed: number;
   separationReason: string;
   resignationLetterPath: string;
-  separationStatus: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
+  separationStatus: 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
   approvedBy: string | null;
   approvalDate: string | null;
   exitInterviewCompleted: boolean;
@@ -119,6 +119,7 @@ export interface SeparationRequest {
   resignationLetterPath?: string;
   rehireEligible: boolean;
   rehireNotes?: string;
+  separationStatus: 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
 }
 
 export interface SeparationUpdateRequest {
@@ -132,6 +133,7 @@ export interface SeparationUpdateRequest {
   resignationLetterPath?: string;
   rehireEligible: boolean;
   rehireNotes?: string;
+  separationStatus?: 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
 }
 
 export interface DateRangeFilter {
@@ -157,8 +159,8 @@ export interface Separation {
   noticePeriodServed: number;
   separationReason: string;
   resignationLetterPath?: string;
-  separationStatus: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
-  status: 'Pending' | 'Approved' | 'Rejected' | 'Completed';
+  separationStatus?: 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
+  status: 'Pending' | 'Approved' | 'Cancelled' | 'Completed';
   approvedBy?: string | null;
   approvedByName?: string;
   approvalDate?: string | null;
@@ -911,7 +913,7 @@ export class SeparationService {
     const formattedInitiationDate = formatDate(separation.initiationDate, 'initiation date');
 
     // Create sanitized request payload
-    const requestPayload = {
+    const requestPayload: any = {
       empId: separation.empId.trim(),
       separationTypeId: separation.separationTypeId.trim(),
       initiatedBy: separation.initiatedBy.trim(),
@@ -923,6 +925,11 @@ export class SeparationService {
       rehireEligible: Boolean(separation.rehireEligible),
       rehireNotes: (separation.rehireNotes || '').trim()
     };
+
+    // Add separationStatus if provided (for admin/HR users)
+    if (separation.separationStatus) {
+      requestPayload.separationStatus = separation.separationStatus;
+    }
 
     console.log('=== UPDATE SEPARATION REQUEST ===');
     console.log('Separation ID:', separationId);
@@ -1002,29 +1009,6 @@ export class SeparationService {
         
         return throwError(() => new Error(errorMessage));
       })
-    );
-  }
-
-  updateSeparationStatus(
-    separationId: string,
-    status: 'Pending' | 'Approved' | 'Rejected' | 'Completed',
-    approvalNotes: string = ''
-  ): Observable<any> {
-    const currentUser = this.authService.currentUserValue;
-    if (!currentUser?.userId) {
-      return throwError(() => new Error('Current user not available'));
-    }
-
-    const payload = {
-      separationStatus: status,
-      approvedBy: currentUser.userId,
-      approvalDate: new Date().toISOString().split('T')[0],
-      approvalNotes: approvalNotes
-    };
-
-    const url = `${this.apiUrl}/${separationId}/status`;
-    return this.http.put(url, payload, { headers: this.getAuthHeaders() }).pipe(
-      catchError(this.handleError)
     );
   }
 

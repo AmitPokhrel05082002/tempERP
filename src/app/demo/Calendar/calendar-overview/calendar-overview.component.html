@@ -1,91 +1,94 @@
 <div class="calendar-container">
-    <h2>Calendar Overview</h2>
-    <p class="subheading">Branch-wise leave summary for {{ selectedYear }}</p>
+  <h2>Calendar Overview</h2>           
+
+  <p class="subheading">Branch-wise leave summary for {{ selectedYear }}</p>
+  
+  <!-- Holiday Details Modal -->
+  <div class="modal" *ngIf="selectedHolidays.length > 0" (click)="closeHolidayModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Holiday Details - {{ selectedBranch }}</h3>
+        <button class="close-btn" (click)="closeHolidayModal()">&times;</button>
+      </div>
+      <div class="holiday-list">
+        <div class="holiday-item header">
+          <span>Date</span>
+          <span>Holiday Name</span>
+          <span>Type</span>
+          <span>Day Type</span>
+        </div>
+        <div class="holiday-item" *ngFor="let holiday of selectedHolidays">
+          <span>{{ holiday.holidayDate | date:'mediumDate' }}</span>
+          <span>{{ holiday.holidayName }}</span>
+          <span [class.optional]="holiday.isOptional">
+            {{ holiday.holidayType }}
+            <span *ngIf="holiday.isOptional"> (Optional)</span>
+          </span>
+          <span>{{ holiday.leaveDayType }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="year-selector">
+      <label>Year:</label>
+      <select [(ngModel)]="selectedYear" (change)="onYearChange()">
+        <option *ngFor="let year of [2023, 2024, 2025, 2026]" [value]="year">{{ year }}</option>
+      </select>
+    </div>
+
+    <div class="search-box">
+      <i class="bi bi-search search-icon"></i>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search branches..."
+        [(ngModel)]="searchQuery"
+      />
+    </div>
+
+    <button class="add-btn" routerLink="/calendar/add">
+      <i class="bi bi-plus-circle"></i>
+      ADD HOLIDAY
+    </button>
+  </div>
     
-    <!-- Holiday Details Modal -->
-    <div class="modal" *ngIf="selectedHolidays.length > 0" (click)="closeHolidayModal()">
-      <div class="modal-content" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <h3>Holiday Details - {{ selectedBranch }}</h3>
-          <button class="close-btn" (click)="closeHolidayModal()">&times;</button>
-        </div>
-        <div class="holiday-list">
-          <div class="holiday-item header">
-            <span>Date</span>
-            <span>Holiday Name</span>
-            <span>Type</span>
-            <span>Day Type</span>
-          </div>
-          <div class="holiday-item" *ngFor="let holiday of selectedHolidays">
-            <span>{{ holiday.holidayDate | date:'mediumDate' }}</span>
-            <span>{{ holiday.holidayName }}</span>
-            <span [class.optional]="holiday.isOptional">
-              {{ holiday.holidayType }}
-              <span *ngIf="holiday.isOptional"> (Optional)</span>
-            </span>
-            <span>{{ holiday.leaveDayType }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  
-    <div class="controls">
-      <div class="year-selector">
-        <label>Year:</label>
-        <select [(ngModel)]="selectedYear" (change)="onYearChange()">
-          <option *ngFor="let year of [2023, 2024, 2025, 2026]" [value]="year">{{ year }}</option>
-        </select>
-      </div>
-  
-      <div class="search-box">
-        <i class="bi bi-search search-icon"></i>
-        <input
-          type="text"
-          class="search-input"
-          placeholder="Search branches..."
-          [(ngModel)]="searchQuery"
-        />
-      </div>
-  
-      <button class="add-btn" routerLink="/calendar/add">
-        <i class="bi bi-plus-circle"></i>
-        ADD HOLIDAY
-      </button>
-    </div>
-      
-    <div class="table-responsive">
-      <table class="leave-summary-table">
-        <thead>
+  <div class="table-responsive">
+    <table class="leave-summary-table">
+      <thead>
+        <tr>
+          <th>Sl No</th>
+          <th>Branch Name</th>
+          <th>Full Day</th>
+          <th>Half Day</th>
+          <th>Total Days</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        @for (row of holidayRows; track row.id) {
           <tr>
-            <th>Sl No</th>
-            <th>Branch Name</th>
-            <th>Full Day</th>
-            <th>Half Day</th>
-            <th>Total Days</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of holidayRows">
             <td>{{ row.id }}</td>
             <td>{{ row.branch }}</td>
             <td class="full-day">{{ row.fullDayLeaves }}</td>
             <td class="half-day">{{ row.halfDayLeaves }}</td>
-            <td class="total-days">{{ row.totalDays }}</td>
+            <td class="total-days">{{ row.totalDays }} </td>
             <td class="action-buttons">
               <button class="btn btn-sm btn-info"
                 (click)="viewHolidays(row.branchData.holidays ? row.branchData : { branch: row.branch, holidays: [], id: row.id })"
-                [disabled]="!row.branchData.holidays || row.branchData.holidays.length === 0"
                 title="View Details">
                 <i class="bi bi-eye"></i>
               </button>
             </td>
           </tr>
-          <tr *ngIf="!holidayRows.length">
-            <td colspan="6" class="text-center">No data available for selected month</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+        }
+        
+        <tr *ngIf="!holidayRows.length">
+          <td colspan="6" class="text-center">No data available for selected month</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
-  
+</div>
