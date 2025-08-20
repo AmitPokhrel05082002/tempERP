@@ -1,4 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewInit, OnDestroy } from '@angular/core';
+
+// Export the component as default for lazy loading
+export { AttendanceSheetComponent as default };
 import { Router } from '@angular/router';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import { CommonModule } from '@angular/common';
@@ -15,7 +18,7 @@ interface EmployeeSummary {
   employeeId: string;
   name: string;
   designation: string;
-  department: string; // Add department field
+  department: string;
   totals: {
     fullDay: number;
     halfDay: number;
@@ -43,6 +46,25 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('attendanceChart', { static: false }) chartRef!: ElementRef<HTMLCanvasElement>;
   private chart: Chart | null = null;
   private subscription: Subscription = new Subscription();
+
+  // Role-based access properties
+  currentUserRole: string = 'EMPLOYEE';
+  currentUserId: string = '';
+  currentUserEmpId: string = '';
+  currentUserName: string = '';
+
+  // Permission flags
+  canViewAllEmployeesFlag: boolean = false;
+  canViewAllDepartments: boolean = false;
+  canSearch: boolean = false;
+  canExport: boolean = false;
+  canFilterByDate: boolean = false;
+
+  // Manager specific properties
+  isManager: boolean = false;
+  managerDepartmentId: string = '';
+  managerDepartmentName: string = '';
+  managerDepartmentCode: string = '';
 
   // Configuration
   currentDepartment = 'All Departments';
@@ -96,9 +118,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
   ) {}
 
   ngOnInit(): void {
-    this.currentUser = this.authService.getCurrentUser();
-    this.currentUserRoleBasedId = this.authService.roleBasedId;
-    
+    this.initializeUserRoleAndPermissions();
     this.initializeFilters();
     this.loadAvailableDates();
     this.loadAttendanceData();
@@ -116,28 +136,247 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.subscription.unsubscribe();
   }
 
+  // ===============================
+  // INITIALIZATION METHODS
+  // ===============================
+
+  private initializeUserRoleAndPermissions(): void {
+    const currentUser = this.authService.getCurrentUser();
+
+    if (currentUser) {
+      const roleMapping: { [key: string]: string } = {
+        'Admin': 'ADMIN',
+        'HR': 'HR',
+        'Manager': 'MANAGER',
+        'Employee': 'EMPLOYEE',
+        'CTO': 'ADMIN'
+      };
+
+      this.currentUserRole = roleMapping[currentUser.roleName] || 'EMPLOYEE';
+      this.currentUserId = currentUser.userId || '';
+      this.currentUserEmpId = currentUser.empId || '';
+      this.currentUserName = currentUser.username || '';
+
+      // Manager checks
+      this.isManager = this.authService.isManager();
+      
+      if (this.isManager) {
+        const managerDeptId = this.authService.getManagerDepartmentId();
+        this.managerDepartmentId = managerDeptId || '';
+        
+        console.log('Manager Details:', {
+          isDeptHead: currentUser.isDeptHead,
+          managerDepartmentId: this.managerDepartmentId,
+          roleName: currentUser.roleName,
+          hasDeptId: !!managerDeptId,
+          canAccess: this.authService.canManagerAccessDepartment()
+        });
+
+        if (!this.managerDepartmentId) {
+          console.warn('Manager has no department assigned');
+          this.errorMessage = 'Access restricted: No department assigned to your manager account.';
+          this.isLoading = false;
+          return;
+        }
+
+        // Load manager department details
+        this.loadManagerDepartmentDetails();
+      }
+
+      // Get current user based ID
+      this.currentUserRoleBasedId = this.authService.roleBasedId;
+
+      console.log('User initialized:', {
+        role: this.currentUserRole,
+        userId: this.currentUserId,
+        empId: this.currentUserEmpId,
+        isManager: this.isManager,
+        managerDepartmentId: this.managerDepartmentId,
+        roleBasedId: this.currentUserRoleBasedId
+      });
+
+      if (this.currentUserRole === 'EMPLOYEE' && this.currentUserEmpId) {
+        this.loadEmployeeDetails(this.currentUserEmpId);
+      }
+    } else {
+      this.currentUserRole = 'EMPLOYEE';
+      console.warn('No user found in auth service, defaulting to EMPLOYEE role');
+    }
+
+    this.setPermissionsBasedOnRole();
+  }
+
+  private setPermissionsBasedOnRole(): void {
+    if (this.authService.hasAdminAccess()) {
+      this.canViewAllEmployeesFlag = true;
+      this.canViewAllDepartments = true;
+      this.canSearch = true;
+      this.canExport = true;
+      this.canFilterByDate = true;
+    } else if (this.authService.isHR()) {
+      this.canViewAllEmployeesFlag = true;
+      this.canViewAllDepartments = true;
+      this.canSearch = true;
+      this.canExport = true;
+      this.canFilterByDate = true;
+    } else if (this.authService.isManager() && this.managerDepartmentId) {
+      this.canViewAllEmployeesFlag = false; // Can only view department employees
+      this.canViewAllDepartments = false; // Can only view their department
+      this.canSearch = true;
+      this.canExport = true;
+      this.canFilterByDate = true;
+    } else if (this.authService.isManager() && !this.managerDepartmentId) {
+      this.canViewAllEmployeesFlag = false;
+      this.canViewAllDepartments = false;
+      this.canSearch = false;
+      this.canExport = false;
+      this.canFilterByDate = false;
+    } else if (this.authService.isEmployee()) {
+      this.canViewAllEmployeesFlag = false;
+      this.canViewAllDepartments = false;
+      this.canSearch = false;
+      this.canExport = true;
+      this.canFilterByDate = true;
+    } else {
+      this.canViewAllEmployeesFlag = false;
+      this.canViewAllDepartments = false;
+      this.canSearch = false;
+      this.canExport = false;
+      this.canFilterByDate = false;
+    }
+  }
+
+  private loadManagerDepartmentDetails(): void {
+    if (!this.managerDepartmentId) {
+      this.errorMessage = 'No department assigned to your manager account.';
+      this.isLoading = false;
+      return;
+    }
+
+    console.log('Loading manager department details for ID:', this.managerDepartmentId);
+    
+    const sub = this.attendanceService.getDepartmentById(this.managerDepartmentId).subscribe({
+      next: (response) => {
+        console.log('Manager department response:', response);
+        
+        if (response && response.success && response.data) {
+          this.managerDepartmentName = response.data.dept_name || response.data.name || 'My Department';
+          this.managerDepartmentCode = response.data.dept_code || this.managerDepartmentName;
+          
+          console.log('Manager department loaded:', {
+            name: this.managerDepartmentName,
+            code: this.managerDepartmentCode,
+            id: this.managerDepartmentId
+          });
+          
+          // Update current department display
+          this.currentDepartment = this.managerDepartmentName;
+          this.selectedDepartment = this.managerDepartmentName;
+          this.departments = [this.managerDepartmentName];
+        } else if (response && (response.dept_name || response.name)) {
+          // Direct response format
+          this.managerDepartmentName = response.dept_name || response.name || 'My Department';
+          this.managerDepartmentCode = response.dept_code || this.managerDepartmentName;
+          this.currentDepartment = this.managerDepartmentName;
+          this.selectedDepartment = this.managerDepartmentName;
+          this.departments = [this.managerDepartmentName];
+        } else {
+          console.error('Invalid department response:', response);
+          this.managerDepartmentName = 'My Department';
+          this.currentDepartment = this.managerDepartmentName;
+          this.selectedDepartment = this.managerDepartmentName;
+          this.departments = [this.managerDepartmentName];
+        }
+      },
+      error: (error) => {
+        console.error('Error loading manager department:', error);
+        this.managerDepartmentName = 'My Department';
+        this.currentDepartment = this.managerDepartmentName;
+        this.selectedDepartment = this.managerDepartmentName;
+        this.departments = [this.managerDepartmentName];
+      }
+    });
+    
+    this.subscription.add(sub);
+  }
+
+  private loadEmployeeDetails(empId: string): void {
+    console.log('Loading employee details for empId:', empId);
+    
+    this.authService.getEmployeeByEmpId(empId).subscribe({
+      next: (employeeData) => {
+        console.log('Employee data from auth service:', employeeData);
+        
+        if (employeeData?.data) {
+          this.processEmployeeData(employeeData.data);
+        }
+      },
+      error: (error) => {
+        console.error('Error fetching employee details from auth service:', error);
+        this.currentUserName = 'Employee';
+      }
+    });
+  }
+
+  private processEmployeeData(employeeData: any): void {
+    console.log('Processing employee data:', employeeData);
+    
+    let employeeName = '';
+    
+    if (employeeData.firstName || employeeData.lastName) {
+      const firstName = employeeData.firstName || '';
+      const lastName = employeeData.lastName || '';
+      employeeName = `${firstName} ${lastName}`.trim();
+    } else if (employeeData.fullName) {
+      employeeName = employeeData.fullName.trim();
+    } else if (employeeData.name) {
+      employeeName = employeeData.name.trim();
+    } else if (employeeData.employeeName) {
+      employeeName = employeeData.employeeName.trim();
+    }
+
+    this.currentUserName = employeeName || this.currentUserName || 'Employee';
+
+    console.log('Employee details processed:', {
+      empId: this.currentUserEmpId,
+      name: this.currentUserName
+    });
+  }
+
   // Role-based access control methods
   canViewAllEmployees(): boolean {
-    if (!this.currentUser) return false;
-    const role = this.currentUser.roleName;
-    return ['Admin', 'HR', 'Manager'].includes(role);
+    if (!this.currentUser && !this.authService.getCurrentUser()) return false;
+    
+    if (this.authService.hasAdminAccess()) return true;
+    if (this.authService.isHR()) return true;
+    if (this.authService.isManager() && this.managerDepartmentId) return true; // Can view department employees
+    
+    return false;
   }
 
   isEmployeeRole(): boolean {
-    if (!this.currentUser) return false;
-    return this.currentUser.roleName === 'Employee';
+    return this.authService.isEmployee();
   }
 
   private initializeFilters(): void {
     const currentDate = new Date();
     // Set to previous month by default to show historical data
-    const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
+    // const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
     
-    this.selectedYear = previousMonth.getFullYear();
-    this.selectedMonth = previousMonth.getMonth() + 1;
-    this.selectedDepartment = 'All Departments';
+    this.selectedYear = currentDate.getFullYear();
+    this.selectedMonth = currentDate.getMonth() + 1;
+    
+    // For managers, set department filter
+    if (this.isManager && this.managerDepartmentName) {
+      this.selectedDepartment = this.managerDepartmentName;
+      this.currentDepartment = this.managerDepartmentName;
+    } else {
+      this.selectedDepartment = 'All Departments';
+      this.currentDepartment = 'All Departments';
+    }
+    
     this.currentYear = this.selectedYear;
-    this.currentMonth = previousMonth.toLocaleString('default', { month: 'long' });
+    this.currentMonth = currentDate.toLocaleString('default', { month: 'long' });
   }
 
   private loadAvailableDates(): void {
@@ -174,7 +413,14 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.currentYear = this.selectedYear;
     const selectedMonthObj = this.availableMonths.find(m => m.value === this.selectedMonth);
     this.currentMonth = selectedMonthObj ? selectedMonthObj.name : 'Month';
-    this.currentDepartment = this.selectedDepartment === 'All Departments' ? 'All Departments' : this.selectedDepartment;
+    
+    // For managers, maintain their department selection
+    if (this.isManager && this.managerDepartmentName) {
+      this.currentDepartment = this.managerDepartmentName;
+    } else {
+      this.currentDepartment = this.selectedDepartment === 'All Departments' ? 'All Departments' : this.selectedDepartment;
+    }
+    
     this.loadAttendanceData();
   }
 
@@ -185,7 +431,16 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     
     this.selectedYear = previousMonth.getFullYear();
     this.selectedMonth = previousMonth.getMonth() + 1;
-    this.selectedDepartment = 'All Departments';
+    
+    // For managers, keep their department
+    if (this.isManager && this.managerDepartmentName) {
+      this.selectedDepartment = this.managerDepartmentName;
+      this.currentDepartment = this.managerDepartmentName;
+    } else {
+      this.selectedDepartment = 'All Departments';
+      this.currentDepartment = 'All Departments';
+    }
+    
     this.clearSearch();
     this.onFilterChange();
   }
@@ -233,39 +488,85 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     this.filteredEmployees = [];
     this.summary = {};
     
-    // Always generate headers first
+    // Update current year and month based on selection
+    this.currentYear = this.selectedYear;
+    const selectedMonthObj = this.availableMonths.find(m => m.value === this.selectedMonth);
+    this.currentMonth = selectedMonthObj ? selectedMonthObj.name : 'Month';
+    
+    // Always generate headers first with the selected month and year
     this.generateMonthHeaders(this.selectedMonth, this.selectedYear);
 
     // Determine what data to load based on role
     let loadData$;
     
+    console.log('=== ATTENDANCE SHEET LOAD DEBUG ===');
+    console.log('Loading data for:', {
+      year: this.selectedYear,
+      month: this.selectedMonth,
+      monthName: this.currentMonth,
+      role: this.currentUserRole,
+      empId: this.currentUserEmpId,
+      isManager: this.isManager,
+      managerDepartmentId: this.managerDepartmentId
+    });
+
     if (this.isEmployeeRole() && this.currentUserRoleBasedId) {
-      // Employee role - load only their data
+      console.log('🔒 Employee detected - loading employee data...');
       loadData$ = this.attendanceService.getEmployeeAttendanceData(
         this.currentUserRoleBasedId,
         this.selectedYear,
         this.selectedMonth
       ).pipe(
-        map(data => data ? [data] : []), // Wrap single employee data in array
+        map(data => {
+          console.log('Employee data received:', data);
+          return data ? [data] : [];
+        }),
         catchError(error => {
           console.warn('Employee API call failed:', error);
           return of([]);
         })
       );
+    } else if (this.isManager) {
+      console.log('👔 Manager detected - checking access permissions...');
+      
+      if (!this.authService.canManagerAccessDepartment()) {
+        this.errorMessage = 'Access restricted: No department assigned to your manager account.';
+        this.isLoading = false;
+        return;
+      }
+      
+      console.log('✅ Manager access verified - loading department employee data');
+      loadData$ = this.attendanceService.getAllAttendanceData(
+        this.selectedYear,
+        this.selectedMonth,
+        undefined // Don't filter by attendanceGroup parameter, we'll filter manually
+      ).pipe(
+        map(data => {
+          console.log(`Manager data received for ${this.selectedMonth}/${this.selectedYear}:`, data);
+          return data || [];
+        }),
+        catchError(error => {
+          console.warn('Manager API call failed:', error);
+          return of([]);
+        })
+      );
     } else if (this.canViewAllEmployees()) {
-      // HR, Manager, Admin roles - load all data
+      console.log('👥 Admin/HR detected - loading all employee data');
       loadData$ = this.attendanceService.getAllAttendanceData(
         this.selectedYear,
         this.selectedMonth,
         this.selectedDepartment === 'All Departments' ? undefined : this.selectedDepartment
       ).pipe(
+        map(data => {
+          console.log(`Admin/HR data received for ${this.selectedMonth}/${this.selectedYear}:`, data);
+          return data || [];
+        }),
         catchError(error => {
           console.warn('API call failed:', error);
           return of([]);
         })
       );
     } else {
-      // No access
       this.errorMessage = 'You do not have permission to view attendance data.';
       this.isLoading = false;
       return;
@@ -273,20 +574,32 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
 
     const sub = loadData$.subscribe({
       next: (data) => {
+        console.log('Processing attendance data:', data);
         if (data && data.length > 0) {
           this.processAttendanceData(data);
-          this.applyFilters(); // Apply search filters after loading data
+          this.applyFilters();
           this.updateChartData();
           this.hasError = false;
         } else {
-          // Try to load latest available data
-          this.loadLatestAvailableData();
-          return; // Don't complete loading here
+          console.log(`No data found for ${this.selectedMonth}/${this.selectedYear}`);
+          this.hasError = true;
+          this.errorMessage = `No attendance data available for the selected period (${this.availableMonths[this.selectedMonth - 1]?.name || 'Month'} ${this.selectedYear}).`;
+          this.employees = [];
+          this.filteredEmployees = [];
+          this.summary = {};
+          this.updateChartData();
         }
         this.isLoading = false;
       },
-      error: () => {
-        this.loadLatestAvailableData();
+      error: (error) => {
+        console.error('Error loading attendance data:', error);
+        this.hasError = true;
+        this.errorMessage = 'An error occurred while loading attendance data. Please try again later.';
+        this.employees = [];
+        this.filteredEmployees = [];
+        this.summary = {};
+        this.updateChartData();
+        this.isLoading = false;
       }
     });
     
@@ -315,6 +628,15 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
             month
           ).pipe(
             map(data => ({ data: data ? [data] : [], year, month })),
+            catchError(() => of({ data: [], year, month }))
+          );
+        } else if (this.isManager) {
+          loadData$ = this.attendanceService.getAllAttendanceData(
+            year, 
+            month, 
+            undefined // Load all and filter manually
+          ).pipe(
+            map(data => ({ data, year, month })),
             catchError(() => of({ data: [], year, month }))
           );
         } else {
@@ -353,6 +675,8 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         this.hasError = true;
         this.errorMessage = this.isEmployeeRole() 
           ? 'No attendance data available for your account in recent months.'
+          : this.isManager
+          ? `No attendance data available for ${this.managerDepartmentName} department in recent months.`
           : 'No attendance data available for any recent months.';
         this.employees = [];
         this.filteredEmployees = [];
@@ -362,6 +686,41 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     });
 
     this.subscription.add(sub);
+  }
+
+  private isDepartmentMatch(employeeDepartment: string, managerDepartment: string): boolean {
+    if (!employeeDepartment || !managerDepartment) return false;
+
+    // Normalize strings
+    const empDept = employeeDepartment.toLowerCase().trim().replace(/\s+/g, ' ');
+    const mgrDept = managerDepartment.toLowerCase().trim().replace(/\s+/g, ' ');
+
+    console.log('Comparing departments:', { empDept, mgrDept });
+
+    // Direct match
+    if (empDept === mgrDept) {
+      return true;
+    }
+
+    // Handle hierarchical department structure like "All Departments>E-CENTRIC"
+    if (empDept.includes('>')) {
+      const departmentParts = empDept.split('>');
+      const lastPart = departmentParts[departmentParts.length - 1].trim().toLowerCase();
+      
+      if (lastPart === mgrDept) {
+        return true;
+      }
+      
+      // Check if any part matches the manager department
+      return departmentParts.some(part => part.trim().toLowerCase() === mgrDept);
+    }
+
+    // Check for partial matches (e.g., "E-Centric" vs "E-CENTRIC")
+    const empParts = empDept.split(/\s+|>|_|-/);
+    const mgrParts = mgrDept.split(/\s+|>|_|-/);
+    
+    return empParts.some(part => mgrParts.includes(part)) || 
+           mgrParts.some(part => empParts.includes(part));
   }
 
   private processAttendanceData(data: any[]) {
@@ -380,7 +739,13 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
       });
 
       const sortedDepartments = Array.from(uniqueAttendanceGroups).sort();
-      this.departments = ['All Departments', ...sortedDepartments];
+      
+      // For managers, only show their department
+      if (this.isManager && this.managerDepartmentName) {
+        this.departments = [this.managerDepartmentName];
+      } else {
+        this.departments = ['All Departments', ...sortedDepartments];
+      }
 
       data.forEach(employeeData => {
         if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
@@ -390,6 +755,14 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
           if (this.isEmployeeRole()) {
             const employeeId = employeeData.employeeId || employeeData.attendanceList[0]?.employeeId || '';
             if (employeeId === this.currentUserRoleBasedId) {
+              this.processEmployeeAttendance(employeeData);
+            }
+          } else if (this.isManager) {
+            // For managers, filter by department match
+            const shouldInclude = this.isDepartmentMatch(attendanceGroup, this.managerDepartmentName);
+            console.log(`Manager filter: ${attendanceGroup} matches ${this.managerDepartmentName}:`, shouldInclude);
+            
+            if (shouldInclude) {
               this.processEmployeeAttendance(employeeData);
             }
           } else {
@@ -405,7 +778,12 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         }
       });
     } else {
-      this.departments = ['All Departments'];
+      // For managers, show their department even if no data
+      if (this.isManager && this.managerDepartmentName) {
+        this.departments = [this.managerDepartmentName];
+      } else {
+        this.departments = ['All Departments'];
+      }
     }
 
     this.updateSummary();
@@ -416,14 +794,6 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     let departmentName = 'Not specified';
     if (employeeData.attendanceList && employeeData.attendanceList.length > 0) {
       const attendance = employeeData.attendanceList[0];
-      
-      // Debug: Log available fields to understand data structure
-      console.log('Employee Data Structure:', {
-        attendanceGroup: attendance.attendanceGroup,
-        department: attendance.department,
-        firstName: attendance.firstName,
-        lastName: attendance.lastName
-      });
       
       departmentName = attendance.attendanceGroup || 
                      attendance.department || 
@@ -630,7 +1000,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         queryParams: {
           year: this.selectedYear,
           month: this.selectedMonth,
-          department: this.selectedDepartment === 'All' ? undefined : this.selectedDepartment
+          department: this.selectedDepartment === 'All Departments' ? undefined : this.selectedDepartment
         }
       });
     } else {
@@ -639,7 +1009,7 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
         queryParams: {
           year: this.selectedYear,
           month: this.selectedMonth,
-          department: this.selectedDepartment === 'All' ? undefined : this.selectedDepartment,
+          department: this.selectedDepartment === 'All Departments' ? undefined : this.selectedDepartment,
           // Add a flag to indicate we have data loaded
           hasData: this.employees.length > 0 ? 'true' : 'false'
         }
@@ -708,4 +1078,26 @@ export class AttendanceSheetComponent implements OnInit, AfterViewInit, OnDestro
     if (page < 1 || page > this.totalPages) return;
     this.currentPage = page;
   }
+
+  // Helper method for no data message
+  getNoDataMessage(): string {
+    if (this.searchName || this.searchDepartment) {
+      if (this.isManager) {
+        return `No employees found in ${this.managerDepartmentName} matching your search criteria`;
+      }
+      return 'No employees found matching your search criteria';
+    }
+    
+    if (this.isEmployeeRole()) {
+      return 'No attendance data available for your account for the selected period';
+    } else if (this.isManager) {
+      return `No attendance data available for ${this.managerDepartmentName} department for the selected period`;
+    } else {
+      return 'No attendance data available for the selected period';
+    }
+  }
 }
+  // Override canViewAllEmployees method for template usage
+  // canViewAllEmployees(): boolean {
+  //   return this.canViewAllEmployeesCheck();
+  // }

@@ -2,7 +2,11 @@
   <!-- Filter Controls -->
   <div class="filter-controls">
     <div class="filters-container">
-      <h4 class="page-title">Attendance Sheet</h4>
+      <h4 class="page-title">
+        {{ isEmployeeRole() ? 'My Attendance Sheet' : 
+           (isManager && managerDepartmentName) ? managerDepartmentName + ' Department Attendance Sheet' : 
+           'Attendance Sheet' }}
+      </h4>
     </div>
   </div>
 
@@ -75,46 +79,121 @@
     </div>
   </div>
 
+  <!-- Role-based Access Warning for Managers -->
+  <div class="alert alert-warning alert-sm mt-2" *ngIf="isManager && !managerDepartmentId">
+    <i class="bi bi-exclamation-triangle me-1"></i>
+    Access restricted: No department assigned to your manager account.
+  </div>
+
+  <!-- Manager Department Confirmation -->
+  <div class="alert alert-info alert-sm mt-2" *ngIf="isManager && managerDepartmentId">
+    <i class="bi bi-check-circle me-1"></i>
+    Department access confirmed: {{ managerDepartmentName || 'Loading department...' }}
+  </div>
+
   <!-- Action Buttons -->
   <div class="action-buttons">
-    <div class="filter-group" *ngIf="canViewAllEmployees()">
+    <!-- Filter Controls for Admin/HR -->
+    <div class="filter-group" *ngIf="canViewAllEmployees() && !isManager">
         <label for="yearFilter">Year:</label>
         <select id="yearFilter" [(ngModel)]="selectedYear" (change)="onFilterChange()">
           <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
         </select>
       </div>
 
-      <div class="filter-group" *ngIf="canViewAllEmployees()">
+      <div class="filter-group" *ngIf="canViewAllEmployees() && !isManager">
         <label for="monthFilter">Month:</label>
         <select id="monthFilter" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
           <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
         </select>
       </div>
 
-      <div class="filter-group" *ngIf="canViewAllEmployees()">
+      <div class="filter-group" *ngIf="canViewAllEmployees() && !isManager">
         <select id="deptFilter" [(ngModel)]="selectedDepartment" (change)="onFilterChange()">
           <option *ngIf="departments.length === 0" value="">Loading...</option>
-          <option *ngFor="let dept of departments" [value]="dept === 'All' ? 'All' : dept">
+          <option *ngFor="let dept of departments" [value]="dept === 'All Departments' ? 'All Departments' : dept">
             {{ dept }}
           </option>
         </select>
       </div>
-    <!-- Search Controls -->
-    <div class="search-controls" *ngIf="canViewAllEmployees()">
+
+    <!-- Filter Controls for Managers -->
+    <div class="filter-group" *ngIf="isManager && managerDepartmentId">
+        <label for="yearFilterManager">Year:</label>
+        <select id="yearFilterManager" [(ngModel)]="selectedYear" (change)="onFilterChange()">
+          <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group" *ngIf="isManager && managerDepartmentId">
+        <label for="monthFilterManager">Month:</label>
+        <select id="monthFilterManager" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+          <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
+        </select>
+      </div>
+
+      <!-- Manager Department Display (Read-only) -->
+      <div class="filter-group" *ngIf="isManager && managerDepartmentId">
+        <div class="manager-dept-display form-control form-control-sm h-100 d-flex align-items-center bg-success bg-opacity-10">
+          <i class="bi bi-building me-2 text-success"></i>
+          <span class="fw-medium text-dark">{{ managerDepartmentName || 'Loading...' }}</span>
+          <small class="text-muted ms-2">(Your Department)</small>
+        </div>
+      </div>
+
+    <!-- Filter Controls for Employees -->
+    <div class="filter-group" *ngIf="isEmployeeRole()">
+        <label for="yearFilterEmployee">Year:</label>
+        <select id="yearFilterEmployee" [(ngModel)]="selectedYear" (change)="onFilterChange()">
+          <option *ngFor="let year of availableYears" [value]="year">{{ year }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group" *ngIf="isEmployeeRole()">
+        <label for="monthFilterEmployee">Month:</label>
+        <select id="monthFilterEmployee" [(ngModel)]="selectedMonth" (change)="onFilterChange()">
+          <option *ngFor="let month of availableMonths" [value]="month.value">{{ month.name }}</option>
+        </select>
+      </div>
+
+      <!-- Employee Name Display -->
+      <div class="filter-group" *ngIf="isEmployeeRole() && currentUserName">
+        <div class="employee-name-display form-control form-control-sm h-100 d-flex align-items-center bg-light">
+          <i class="bi bi-person-circle me-2 text-primary"></i>
+          <span class="fw-medium text-dark">{{ currentUserName }}</span>
+        </div>
+      </div>
+
+    <!-- Search Controls for Admins/HR/Managers -->
+    <div class="search-controls" *ngIf="canSearch">
       <input 
         type="text" 
         placeholder="Search by name..." 
         [(ngModel)]="searchName"
         (input)="onSearchChange()"
-        class="search-input">
-      <button (click)="clearSearch()" class="btn btn-secondary" title="Clear Search">
+        class="search-input"
+        [disabled]="isManager && !managerDepartmentId">
+      <button (click)="clearSearch()" class="btn btn-secondary" title="Clear Search" *ngIf="searchName">
         <i class="ti ti-x"></i>
       </button>
     </div>
     
-    <button (click)="exportToExcel()" class="btn btn-primary d-flex align-items-center" title="Export to Excel">
+    <!-- Export Button -->
+    <button (click)="exportToExcel()" class="btn btn-primary d-flex align-items-center" title="Export to Excel" *ngIf="canExport">
       <i class="bi bi-download me-2"></i> Export
     </button>
+  </div>
+
+  <!-- Error State for Manager without Department -->
+  <div *ngIf="isManager && !managerDepartmentId" 
+       class="alert alert-warning mt-3">
+    <div class="d-flex align-items-center">
+      <i class="bi bi-shield-exclamation fs-4 me-3"></i>
+      <div>
+        <h6 class="alert-heading mb-1">Department Assignment Required</h6>
+        <p class="mb-0">Your manager account is not assigned to any department. Please contact your administrator.</p>
+      </div>
+    </div>
   </div>
 
   <!-- Loading State -->
@@ -135,11 +214,10 @@
       <div class="summary-header">
         <h2 class="summary-title">
           <i class="ti ti-layout-grid summary-icon"></i>
-          <span>{{ isEmployeeRole() ? 'My Attendance Summary' : 'Attendance Summary' }}</span>
+          <span>{{ isEmployeeRole() ? 'My Attendance Summary' : 
+                   isManager ? managerDepartmentName + ' Department Summary' :
+                   'Attendance Summary' }}</span>
         </h2>
-        <!-- <button class="view-button" (click)="viewEmployeeDetails()" title="View All Employee Details" *ngIf="canViewAllEmployees()">
-          <i class="ti ti-eye"></i>
-        </button> -->
       </div>
 
       <div class="summary-grid-container">
@@ -219,7 +297,7 @@
         <ng-template #noData>
           <div class="no-data-message">
             <i class="ti ti-info-circle"></i>
-            <span>{{ searchName || searchDepartment ? 'No employees found matching your search criteria' : 'No attendance data available for the selected period' }}</span>
+            <span>{{ getNoDataMessage() }}</span>
           </div>
         </ng-template>
       </div>

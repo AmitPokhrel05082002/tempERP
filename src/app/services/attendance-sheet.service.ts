@@ -60,7 +60,7 @@ interface ApiResponse {
 export class AttendanceSheetService {
   apiUrl = `${environment.apiUrl}/api/v1/employee-attendance/monthly-grouped`;
 
-  constructor(private http: HttpClient) { }
+  constructor(public http: HttpClient) { }
 
   /**
    * Get attendance data for a specific employee - for Employee role or specific employee view
@@ -214,6 +214,19 @@ export class AttendanceSheetService {
         return ['All', ...Array.from(groups).sort()];
       }),
       catchError(() => of(['All']))
+    );
+  }
+
+  /**
+   * Get department details by ID - for manager department loading
+   */
+  getDepartmentById(departmentId: string): Observable<any> {
+    const url = `${environment.apiUrl}/api/v1/departments/${departmentId}`;
+    return this.http.get<any>(url).pipe(
+      catchError(error => {
+        console.error('Error fetching department details:', error);
+        return of(null);
+      })
     );
   }
 }
