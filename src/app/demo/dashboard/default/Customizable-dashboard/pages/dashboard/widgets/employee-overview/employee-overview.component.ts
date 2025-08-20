@@ -1,12 +1,31 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+
+interface EmployeeOverviewApiResponse {
+  totalActiveEmployees: number;
+  employmentStatus: string;
+  timestamp: string;
+}
 
 @Component({
   selector: 'app-employee-overview',
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="attendance-card">
+    <!-- Loading State -->
+    <div *ngIf="isLoading" class="loading-state">
+      <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Error State -->
+    <div *ngIf="error && !isLoading" class="error-state">
+      <div class="error-icon">⚠️</div>
+      <div class="error-text">Error loading data</div>
+    </div>
+
+    <!-- Main Content -->
+    <div *ngIf="!isLoading && !error" class="attendance-card">
       <div class="top-section">
         <div class="icon-container">
          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -31,7 +50,6 @@ import { Component, Input } from '@angular/core';
         </button>
         </div>
       </div>
-
     </div>
   `,
   styles: [`
@@ -39,6 +57,49 @@ import { Component, Input } from '@angular/core';
       display: block;
       width: 100%;
       height: 100%;
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 150px;
+      color: #666;
+    }
+
+    .loading-spinner {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3B82F6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 8px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 150px;
+      color: #dc3545;
+      text-align: center;
+    }
+
+    .error-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+
+    .error-text {
+      font-size: 12px;
     }
 
     .attendance-card {
@@ -83,7 +144,6 @@ import { Component, Input } from '@angular/core';
     .stats-container {
       display: flex;
       align-items: baseline;
-      // gap: 40px;
       margin: 8px 0;
       flex-grow: 1;
       justify-content: space-between;
@@ -135,13 +195,61 @@ import { Component, Input } from '@angular/core';
     }
   `]
 })
-export class EmployeeOverviewComponent {
+export class EmployeeOverviewComponent implements OnInit {
   @Input() title = 'Employee Overview';
-  @Input() currentAttendance = 120;
-  @Input() totalCapacity = 154;
-  @Input() percentage = 2.1;
-  @Input() isPositive = true;
+  @Input() totalCapacity = 154; // You can still pass this as input or make it configurable
   @Input() viewDetailsText = 'View Details';
+
+  // API-driven properties
+  currentAttendance = 0;
+  percentage = 0;
+  isPositive = true;
+  isLoading = true;
+  error: string | null = null;
+
+  constructor(private http: HttpClient) { }
+
+  ngOnInit(): void {
+    this.loadEmployeeOverviewData();
+  }
+
+  loadEmployeeOverviewData(): void {
+    this.isLoading = true;
+    this.error = null;
+
+    const apiUrl = 'http://localhost:8080/api/dashboard/total-active-employees';
+
+    this.http.get<EmployeeOverviewApiResponse>(apiUrl).subscribe({
+      next: (response) => {
+        this.processEmployeeOverviewData(response);
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error fetching employee overview data:', error);
+        this.error = 'Failed to load employee data';
+        this.isLoading = false;
+        // Fallback values
+        this.currentAttendance = 0;
+        this.percentage = 0;
+      }
+    });
+  }
+
+  processEmployeeOverviewData(data: EmployeeOverviewApiResponse): void {
+    this.currentAttendance = data.totalActiveEmployees;
+
+    // Calculate percentage based on current vs total capacity
+    if (this.totalCapacity > 0) {
+      const calculatedPercentage = (this.currentAttendance / this.totalCapacity) * 100;
+      this.percentage = Math.round(calculatedPercentage * 10) / 10; // Round to 1 decimal place
+
+      // Determine if it's positive (above 90%) or negative
+      this.isPositive = calculatedPercentage >= 90;
+    } else {
+      this.percentage = 0;
+      this.isPositive = true;
+    }
+  }
 
   get percentagePrefix(): string {
     return this.isPositive ? '+' : '';
@@ -150,5 +258,21 @@ export class EmployeeOverviewComponent {
   onViewDetails(): void {
     // Emit event or handle navigation
     console.log('View details clicked');
+  }
+
+  // Method to refresh data manually
+  refreshData(): void {
+    this.loadEmployeeOverviewData();
+  }
+
+  // Method to update total capacity if needed
+  updateTotalCapacity(newCapacity: number): void {
+    this.totalCapacity = newCapacity;
+    // Recalculate percentage with new capacity
+    if (this.currentAttendance > 0) {
+      const calculatedPercentage = (this.currentAttendance / this.totalCapacity) * 100;
+      this.percentage = Math.round(calculatedPercentage * 10) / 10;
+      this.isPositive = calculatedPercentage >= 90;
+    }
   }
 }

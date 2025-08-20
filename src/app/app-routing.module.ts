@@ -5,18 +5,19 @@ import { GuestComponent } from './theme/layout/guest/guest.component';
 import { AuthGuard } from './core/guards/auth.guard';
 import { SalaryViewDetailsComponent } from './demo/dashboard/pay-revision/salary-view-details/salary-view-details.component';
 import { PayRollDetailComponent } from './demo/pay-roll/pay-roll-details/pay-roll-detail.component';
-
+import { AssetManagementComponent } from './demo/asset-management/asset-management.component';
+import { ReportComponent } from './demo/dashboard/report/report.component';
+import { CommanDashboardComponent } from './comman-dashboard/comman-dashboard.component';
 
 export const routes: Routes = [
-
-   {
+  {
     path: '',
     redirectTo: '/guest/login',
     pathMatch: 'full'
   },
   {
     path: 'login',
-    loadChildren: () => import('./demo/pages/authentication/authentication-routing.module').then(m => m.AuthenticationRoutingModule)
+    loadChildren: () => import('./demo/pages/authentication/authentication-routing.module').then((m) => m.AuthenticationRoutingModule)
   },
   {
     path: '',
@@ -33,17 +34,23 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/dashboard/default/default.component').then((c) => c.DefaultComponent)
       },
       {
+        path: 'report',
+        component: ReportComponent
+      },
+      {
         path: 'attendence',
         loadComponent: () => import('./demo/dashboard/attendence/attendence.component').then((c) => c.AttendenceComponent),
         children: [
           { path: '', redirectTo: 'employee-attendance', pathMatch: 'full' },
           {
             path: 'employee-attendance',
-           loadComponent: () => import('./demo/dashboard/employee-attendance/employee-attendance.component').then((c) => c.EmployeeAttendanceComponent)
+            loadComponent: () =>
+              import('./demo/dashboard/employee-attendance/employee-attendance.component').then((c) => c.EmployeeAttendanceComponent)
           },
           {
-           path: 'attendance-sheet',
-        loadComponent: () => import('./demo/dashboard/attendance-sheet/attendance-sheet.component').then((c) => c.AttendanceSheetComponent)
+            path: 'attendance-sheet',
+            loadComponent: () =>
+              import('./demo/dashboard/attendance-sheet/attendance-sheet.component').then((c) => c.AttendanceSheetComponent)
           }
         ]
       },
@@ -53,14 +60,15 @@ export const routes: Routes = [
         redirectTo: 'job-management/employee-attendance',
         pathMatch: 'full'
       },
-        {
+      {
         path: 'menu-permissions',
-        loadComponent: () => import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent),
+        loadComponent: () =>
+          import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent)
       },
-    
+
       {
         path: 'rbac',
-        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent),
+        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent)
       },
       {
         path: 'attendance-sheet',
@@ -69,12 +77,12 @@ export const routes: Routes = [
       },
       {
         path: 'employees/all',
-        loadComponent: () => import('./demo/dashboard/view-employee/view-employee.component').then(c => c.ViewEmployeeComponent),
+        loadComponent: () => import('./demo/dashboard/view-employee/view-employee.component').then((c) => c.ViewEmployeeComponent),
         data: { title: 'All Employees Attendance Details' }
       },
       {
         path: 'employees/:id',
-        loadComponent: () => import('./demo/dashboard/view-employee/view-employee.component').then(c => c.ViewEmployeeComponent),
+        loadComponent: () => import('./demo/dashboard/view-employee/view-employee.component').then((c) => c.ViewEmployeeComponent),
         data: { title: 'Employee Attendance Details' }
       },
       // Backward compatibility redirects
@@ -90,7 +98,7 @@ export const routes: Routes = [
         path: 'sample-page',
         loadComponent: () => import('./demo/other/sample-page/sample-page.component')
       },
-     {
+      {
         path: 'leave-list',
         loadComponent: () => import('./demo/Leave/ELMR/elmr.component').then((c) => c.ELMRComponent)
       },
@@ -101,41 +109,42 @@ export const routes: Routes = [
 
       {
         path: 'balanceleave/:id',
-        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent),
+        loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
       },
       {
         path: 'pay-roll',
         loadComponent: () => import('./demo/pay-roll/pay-roll.component').then((c) => c.PayRollComponent)
       },
       {
-  path: 'pay-roll-detail/:id',
-          loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
-
-},
-{
-  path: 'pay-roll-detail/view',
+        path: 'pay-roll-detail/:id',
         loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
-},
+      },
+      {
+        path: 'pay-roll-detail/view',
+        loadComponent: () => import('./demo/pay-roll/pay-roll-details/pay-roll-detail.component').then((c) => c.PayRollDetailComponent)
+      },
       {
         path: 'pay-slip/:empId',
         loadComponent: () => import('./demo/pay-roll/pay-slip/pay-slip.component').then((c) => c.PaySlipComponent)
       },
       {
         path: 'pay-revision',
-        loadComponent: () => import('./demo/dashboard/pay-revision/salary-details/pay-revision.component').then((c) => c.PayRevisionComponent)
+        loadComponent: () =>
+          import('./demo/dashboard/pay-revision/salary-details/pay-revision.component').then((c) => c.PayRevisionComponent)
       },
-       {
-    path: 'salary-view-details/:empId',
-    component: SalaryViewDetailsComponent,
-    runGuardsAndResolvers: 'always' 
-  },
- {
+      {
+        path: 'salary-view-details/:empId',
+        component: SalaryViewDetailsComponent,
+        runGuardsAndResolvers: 'always'
+      },
+      {
         path: 'organizations/salarystructure',
         loadComponent: () => import('./demo/Add-salary-structure/AddSalaryStructure.component').then((m) => m.SalaryStructureComponent)
       },
       {
         path: 'document-archival',
-        loadComponent: () => import('./demo/elements/document-archival/document-archival.component').then((m) => m.DocumentArchivalComponent)
+        loadComponent: () =>
+          import('./demo/elements/document-archival/document-archival.component').then((m) => m.DocumentArchivalComponent)
       },
       {
         path: 'doc-view-file/:id',
@@ -151,7 +160,8 @@ export const routes: Routes = [
       },
       {
         path: 'leave-allocation-details/:empId',
-        loadComponent: () => import('./demo/Leave/leave-allocation-details/leave-allocation-details.component').then((c) => c.LeaveAllocationDetailsComponent)
+        loadComponent: () =>
+          import('./demo/Leave/leave-allocation-details/leave-allocation-details.component').then((c) => c.LeaveAllocationDetailsComponent)
       },
       {
         path: 'calendar',
@@ -160,13 +170,15 @@ export const routes: Routes = [
           {
             path: '',
             title: 'Calendar Overview',
-            loadComponent: () => import('./demo/Calendar/calendar-overview/calendar-overview.component').then((c) => c.CalendarOverviewComponent)
+            loadComponent: () =>
+              import('./demo/Calendar/calendar-overview/calendar-overview.component').then((c) => c.CalendarOverviewComponent)
           },
           // View Calendar Details (with full parameters)
           {
             path: 'details/:id/:branchId/:year',
             title: 'Calendar Details',
-            loadComponent: () => import('./demo/Calendar/calendar-details/calendar-details.component').then((c) => c.CalendarDetailsComponent)
+            loadComponent: () =>
+              import('./demo/Calendar/calendar-details/calendar-details.component').then((c) => c.CalendarDetailsComponent)
           },
           // Fallback route for direct ID access (redirects to overview)
           {
@@ -211,23 +223,25 @@ export const routes: Routes = [
         redirectTo: 'job-management/job-grade',
         pathMatch: 'full'
       },
-       {
+      {
         path: 'emp-training',
         loadComponent: () => import('./demo/Training Management/emp-training/emp-training.component').then((c) => c.EmpTrainingComponent)
       },
       {
         path: 'emp-categories',
-        loadComponent: () => import('./demo/Training Management/emp-categories/emp-categories.component').then((c) => c.EmpCategoriesComponent)
+        loadComponent: () =>
+          import('./demo/Training Management/emp-categories/emp-categories.component').then((c) => c.EmpCategoriesComponent)
       },
       {
         path: 'emp-nominations',
-        loadComponent: () => import('./demo/Training Management/emp-nominations/emp-nominations.component').then((c) => c.EmpNominationsComponent)
+        loadComponent: () =>
+          import('./demo/Training Management/emp-nominations/emp-nominations.component').then((c) => c.EmpNominationsComponent)
       },
       {
         path: 'emp-transfer',
         loadComponent: () => import('./demo/Transfer/emp-transfer/emp-transfer.component').then((c) => c.EmpTransferComponent)
       },
-         {
+      {
         path: 'transfer/transfer-types',
         loadComponent: () => import('./demo/Transfer/emp-type/emp-type.component').then((c) => c.EmpTypeComponent)
       },
@@ -237,36 +251,37 @@ export const routes: Routes = [
         redirectTo: 'emp-type',
         pathMatch: 'full'
       },
-       {
+      {
         path: 'emp-separation',
-          loadComponent: () => import('./demo/emp-separation/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)
-        },
+        loadComponent: () => import('./demo/emp-separation/emp-separation/emp-separation.component').then((c) => c.EmpSeparationComponent)
+      },
       {
         path: 'separation-type',
-        loadComponent: () => import('./demo/emp-separation/separation-type/separation-type.component').then((c) => c.SeparationTypeComponent)
+        loadComponent: () =>
+          import('./demo/emp-separation/separation-type/separation-type.component').then((c) => c.SeparationTypeComponent)
       },
-       {
+      {
         path: 'emp-det',
         loadComponent: () => import('./demo/emp-detail/emp-details/emp-det.component').then((c) => c.EmployeeDetailComponent)
       },
       {
-  path: 'emp-det/view/:empId',
-  loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
-},
-{
-  path: 'emp-det/view',
-  loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
-},
+        path: 'emp-det/view/:empId',
+        loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
+      },
+      {
+        path: 'emp-det/view',
+        loadComponent: () => import('./demo/emp-detail/emp-view/emp-view-detail.component').then((c) => c.EmployeeViewComponent)
+      },
       {
         path: 'menu-permissions',
-        loadComponent: () => import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent),
+        loadComponent: () =>
+          import('./demo/RoleBaseAccess/menu-permissions/menu-permissions.component').then((c) => c.MenuPermissionsComponent)
       },
 
       {
         path: 'rbac',
-        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent),
-      },
-
+        loadComponent: () => import('./demo/RoleBaseAccess/RBAC/RBAC.component').then((c) => c.RBACComponent)
+      }
     ]
   },
   {
@@ -278,6 +293,14 @@ export const routes: Routes = [
         loadChildren: () => import('./demo/pages/authentication/authentication.module').then((m) => m.AuthenticationModule)
       }
     ]
+  },
+  {
+    path: 'asset-mgt',
+    component: AssetManagementComponent
+  },
+  {
+    path: 'common-dashboard',
+    component: CommanDashboardComponent
   },
   {
     path: '',
@@ -301,8 +324,7 @@ export const routes: Routes = [
         loadComponent: () => import('./demo/Leave/balanceleave/balanceleave.component').then((c) => c.BalanceleaveComponent)
       }
     ]
-  },
-
+  }
 ];
 
 @NgModule({

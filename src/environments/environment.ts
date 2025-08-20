@@ -8,9 +8,9 @@ import packageInfo from '../../package.json';
 export const environment = {
   appVersion: packageInfo.version,
   production: false,
-  apiUrl: 'http://192.168.123.223:8080',
+  apiUrl: 'http://localhost:8080',
   leaveApiUrl: 'http://localhost:8085/api/leave',
-  payrollApiUrl: 'http://localhost:8082',
+  payrollApiUrl: 'http://localhost:8081',
   transferApiUrl: 'http://localhost:8080',
   documentUploadUrl:'http://localhost:8090',
   geminiApiKey: 'AIzaSyCnoIDiqK0N2pHx4W4psCpp3mYXRA-SW94',
