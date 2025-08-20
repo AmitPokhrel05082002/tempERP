@@ -1,0 +1,380 @@
+<!-- eslint-disable @angular-eslint/template/click-events-have-key-events -->
+<!-- eslint-disable @angular-eslint/template/interactive-supports-focus -->
+<div class="asset-management-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-content">
+      <h1 class="page-title">
+        <mat-icon class="title-icon">business</mat-icon>
+        Asset Management System
+      </h1>
+      <div class="header-actions">
+        <button mat-raised-button color="primary" (click)="openAssetForm()" class="add-asset-btn">
+          <mat-icon>add</mat-icon>
+          Add New Asset
+        </button>
+        <button mat-button (click)="exportToExcel()">
+          <mat-icon>file_download</mat-icon>
+          Export
+        </button>
+        <button mat-button (click)="generateReport()">
+          <mat-icon>description</mat-icon>
+          Generate Report
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard Metrics -->
+  <div class="metrics-section">
+    <div class="metric-card">
+      <div class="metric-icon blue">
+        <mat-icon>inventory_2</mat-icon>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value">{{ totalAssets }}</h3>
+        <p class="metric-label">Total Assets</p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon green">
+        <mat-icon>attach_money</mat-icon>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value">${{ totalValue | number:'1.0-0' }}</h3>
+        <p class="metric-label">Total Value</p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon orange">
+        <mat-icon>build_circle</mat-icon>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value">{{ assetsUnderMaintenance }}</h3>
+        <p class="metric-label">Under Maintenance</p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon red">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="metric-content">
+        <h3 class="metric-value">{{ upcomingMaintenance }}</h3>
+        <p class="metric-label">Upcoming Maintenance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="chart-card">
+      <h3 class="chart-title">Assets by Category</h3>
+      <div class="chart-container">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3 class="chart-title">Asset Status Distribution</h3>
+      <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3 class="chart-title">Top Assets Depreciation</h3>
+      <div class="chart-container">
+        <canvas id="depreciationChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Assets Table -->
+  <div class="table-section">
+    <mat-card class="table-card">
+      <mat-card-header>
+        <mat-card-title>Asset Inventory</mat-card-title>
+        <div class="table-actions">
+          <mat-form-field appearance="outline" class="search-field">
+            <mat-label>Search assets</mat-label>
+            <input matInput (keyup)="applyFilter($event)" placeholder="Search by name, code, location...">
+            <mat-icon matPrefix>search</mat-icon>
+          </mat-form-field>
+        </div>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="table-container">
+          <table mat-table [dataSource]="dataSource" matSort class="assets-table">
+
+            <!-- Asset Code Column -->
+            <ng-container matColumnDef="assetCode">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Asset Code</th>
+              <td mat-cell *matCellDef="let asset">
+                <span class="asset-code">{{ asset.assetCode }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Name Column -->
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+              <td mat-cell *matCellDef="let asset">
+                <div class="asset-name">
+                  <mat-icon class="category-icon" [style.color]="getCategoryColor(asset.category)">
+                    {{ getCategoryIcon(asset.category) }}
+                  </mat-icon>
+                  <span>{{ asset.name }}</span>
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Category Column -->
+            <ng-container matColumnDef="category">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Category</th>
+              <td mat-cell *matCellDef="let asset">{{ asset.category }}</td>
+            </ng-container>
+
+            <!-- Location Column -->
+            <ng-container matColumnDef="location">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Location</th>
+              <td mat-cell *matCellDef="let asset">
+                <div class="location-cell">
+                  <mat-icon class="location-icon">location_on</mat-icon>
+                  {{ asset.location }}
+                </div>
+              </td>
+            </ng-container>
+
+            <!-- Status Column -->
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Status</th>
+              <td mat-cell *matCellDef="let asset">
+                <mat-chip-list>
+                  <mat-chip [color]="getStatusColor(asset.status)" selected>
+                    {{ asset.status }}
+                  </mat-chip>
+                </mat-chip-list>
+              </td>
+            </ng-container>
+
+            <!-- Current Value Column -->
+            <ng-container matColumnDef="currentValue">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Current Value</th>
+              <td mat-cell *matCellDef="let asset">
+                <span class="value-cell">${{ asset.currentValue | number:'1.0-0' }}</span>
+              </td>
+            </ng-container>
+
+            <!-- Assigned To Column -->
+            <ng-container matColumnDef="assignedTo">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Assigned To</th>
+              <td mat-cell *matCellDef="let asset">{{ asset.assignedTo || 'Unassigned' }}</td>
+            </ng-container>
+
+            <!-- Next Maintenance Column -->
+            <ng-container matColumnDef="nextMaintenance">
+              <th mat-header-cell *matHeaderCellDef mat-sort-header>Next Maintenance</th>
+              <td mat-cell *matCellDef="let asset">
+                <span [class.overdue]="asset.nextMaintenance < today">
+                  {{ asset.nextMaintenance | date:'MMM dd, yyyy' }}
+                </span>
+              </td>
+            </ng-container>
+
+            <!-- Actions Column -->
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+              <td mat-cell *matCellDef="let asset">
+                <button mat-icon-button [matMenuTriggerFor]="menu" aria-label="Asset actions">
+                  <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                  <button mat-menu-item (click)="viewAssetDetails(asset)">
+                    <mat-icon>visibility</mat-icon>
+                    <span>View Details</span>
+                  </button>
+                  <button mat-menu-item (click)="openAssetForm(asset)">
+                    <mat-icon>edit</mat-icon>
+                    <span>Edit</span>
+                  </button>
+                  <button mat-menu-item (click)="openMaintenanceForm(asset)">
+                    <mat-icon>build</mat-icon>
+                    <span>Log Maintenance</span>
+                  </button>
+                  <mat-divider></mat-divider>
+                  <button mat-menu-item (click)="deleteAsset(asset)" class="delete-action">
+                    <mat-icon>delete</mat-icon>
+                    <span>Delete</span>
+                  </button>
+                </mat-menu>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;" class="asset-row"></tr>
+          </table>
+
+          <mat-paginator [pageSizeOptions]="[5, 10, 20]" showFirstLastButtons></mat-paginator>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Asset Form Dialog -->
+  <div class="form-overlay" *ngIf="showAssetForm" (click)="closeAssetForm()">
+    <div class="form-dialog" (click)="$event.stopPropagation()">
+      <h2 class="form-title">{{ editMode ? 'Edit Asset' : 'Add New Asset' }}</h2>
+
+      <form [formGroup]="assetForm" class="asset-form">
+        <div class="form-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Asset Code</mat-label>
+            <input matInput formControlName="assetCode" placeholder="XXX-0000">
+            <mat-hint>Format: 3 letters - 4 digits (e.g., HMC-0001)</mat-hint>
+            <mat-error *ngIf="assetForm.get('assetCode')?.hasError('pattern')">
+              Invalid format. Use XXX-0000
+            </mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Asset Name</mat-label>
+            <input matInput formControlName="name">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Category</mat-label>
+            <mat-select formControlName="category">
+              <mat-option *ngFor="let category of categories" [value]="category.name">
+                <mat-icon [style.color]="category.color">{{ category.icon }}</mat-icon>
+                {{ category.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Location</mat-label>
+            <input matInput formControlName="location">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Department</mat-label>
+            <input matInput formControlName="department">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Status</mat-label>
+            <mat-select formControlName="status">
+              <mat-option *ngFor="let status of statusOptions" [value]="status">
+                {{ status }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Purchase Date</mat-label>
+            <input matInput type="date" formControlName="purchaseDate">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Purchase Value</mat-label>
+            <input matInput type="number" formControlName="purchaseValue">
+            <span matPrefix>$&nbsp;</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Depreciation Rate (%)</mat-label>
+            <input matInput type="number" formControlName="depreciationRate">
+            <span matSuffix>%</span>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Manufacturer</mat-label>
+            <input matInput formControlName="manufacturer">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Model</mat-label>
+            <input matInput formControlName="model">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Serial Number</mat-label>
+            <input matInput formControlName="serialNumber">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Warranty Expiry</mat-label>
+            <input matInput type="date" formControlName="warrantyExpiry">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Assigned To</mat-label>
+            <input matInput formControlName="assignedTo">
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Notes</mat-label>
+            <textarea matInput formControlName="notes" rows="3"></textarea>
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button (click)="closeAssetForm()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveAsset()" [disabled]="assetForm.invalid">
+            {{ editMode ? 'Update' : 'Save' }} Asset
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Maintenance Form Dialog -->
+  <div class="form-overlay" *ngIf="showMaintenanceForm" (click)="closeMaintenanceForm()">
+    <div class="form-dialog maintenance-dialog" (click)="$event.stopPropagation()">
+      <h2 class="form-title">Log Maintenance for {{ selectedAsset?.name }}</h2>
+
+      <form [formGroup]="maintenanceForm" class="maintenance-form">
+        <mat-form-field appearance="outline">
+          <mat-label>Maintenance Type</mat-label>
+          <mat-select formControlName="type">
+            <mat-option *ngFor="let type of maintenanceTypes" [value]="type">
+              {{ type }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Date</mat-label>
+          <input matInput type="date" formControlName="date">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Technician</mat-label>
+          <input matInput formControlName="technician">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Cost</mat-label>
+          <input matInput type="number" formControlName="cost">
+          <span matPrefix>$&nbsp;</span>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline">
+          <mat-label>Downtime (hours)</mat-label>
+          <input matInput type="number" formControlName="downtime">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description</mat-label>
+          <textarea matInput formControlName="description" rows="4"></textarea>
+        </mat-form-field>
+
+        <div class="form-actions">
+          <button mat-button (click)="closeMaintenanceForm()">Cancel</button>
+          <button mat-raised-button color="primary" (click)="saveMaintenance()"
+                  [disabled]="maintenanceForm.invalid">
+            Save Maintenance Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

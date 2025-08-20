@@ -1,6 +1,7 @@
 // attendance-overview.component.ts
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-attendance-overview',
@@ -146,11 +147,14 @@ export class AttendanceOverviewComponent {
   @Input() isPositive = true;
   @Input() viewDetailsText = 'View Details';
 
+  constructor(private router:Router){}
+
   get percentagePrefix(): string {
     return this.isPositive ? '+' : '';
   }
 
   onViewDetails(): void {
+    this.router.navigate(['/report']);
     // Emit event or handle navigation
     console.log('View details clicked');
   }

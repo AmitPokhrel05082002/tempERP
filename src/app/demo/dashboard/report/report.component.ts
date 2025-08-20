@@ -1,7 +1,8 @@
 // Angular Import
-import { Component, ElementRef, ViewChild, OnDestroy } from '@angular/core';
+import { Component, ElementRef, ViewChild, OnDestroy, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { Chart, ChartConfiguration, ChartType, registerables } from 'chart.js';
 import * as Papa from 'papaparse';
 
@@ -32,20 +33,10 @@ interface DashboardStats {
   presentRecords: number;
   avgWorkingHours: string;
   uniqueEmployees: number;
-}// import { CommonModule } from '@angular/common';
-
-// project import
-// import { SharedModule } from 'src/app/theme/shared/shared.module';
-// import { BajajChartComponent } from 'src/app/theme/shared/components/apexchart/bajaj-chart/bajaj-chart.component';
-// import { BarChartComponent } from 'src/app/theme/shared/components/apexchart/bar-chart/bar-chart.component';
-// import { ChartDataMonthComponent } from 'src/app/theme/shared/components/apexchart/chart-data-month/chart-data-month.component';
+}
 
 @Component({
-  selector: 'app-default',
-  // imports: [CommonModule, BajajChartComponent, BarChartComponent, ChartDataMonthComponent, SharedModule],
-  // imports:[]
-  // templateUrl: './default.component.html',
-  // styleUrls: ['./default.component.scss']
+  selector: 'app-report',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
@@ -55,95 +46,99 @@ interface DashboardStats {
         <p>Comprehensive attendance analysis with date-wise insights and group comparisons</p>
       </div>
 
-      <div class="file-upload">
-        <input
-          type="file"
-          #csvFile
-          class="file-input"
-          accept=".csv"
-          (change)="handleFileUpload($event)">
-        <label for="csvFile" class="file-label" (click)="csvFile.click()">📁 Upload CSV File</label>
-        <p style="margin-top: 15px; color: #666;">Upload your attendance CSV file to generate insights</p>
+      <!-- Loading indicator -->
+      <div *ngIf="isLoading" class="loading-container">
+        <div class="loader"></div>
+        <p>Loading attendance data...</p>
       </div>
 
-      <div class="controls">
-        <div class="control-group">
-          <label for="monthSelect">Select Month:</label>
-          <select id="monthSelect" [(ngModel)]="selectedMonth" (change)="updateDashboard()">
-            <option value="">All Months</option>
-            <option *ngFor="let month of availableMonths" [value]="month.value">
-              {{month.label}}
-            </option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="groupSelect">Attendance Group:</label>
-          <select id="groupSelect" [(ngModel)]="selectedGroup" (change)="updateDashboard()">
-            <option value="">All Groups</option>
-            <option *ngFor="let group of availableGroups" [value]="group">
-              {{group}}
-            </option>
-          </select>
-        </div>
-        <div class="control-group">
-          <label for="employeeSelect">Employee:</label>
-          <select id="employeeSelect" [(ngModel)]="selectedEmployee" (change)="updateDashboard()">
-            <option value="">All Employees</option>
-            <option *ngFor="let employee of availableEmployees" [value]="employee">
-              {{employee}}
-            </option>
-          </select>
-        </div>
+      <!-- Error message -->
+      <div *ngIf="errorMessage" class="error-message">
+        <p>❌ {{errorMessage}}</p>
+        <button (click="loadCSVData()" class="retry-button">Retry</button>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-number">{{stats.attendanceRate}}%</div>
-          <div class="stat-label">Attendance Rate</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{stats.presentRecords}}</div>
-          <div class="stat-label">Present Days</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{stats.avgWorkingHours}}h</div>
-          <div class="stat-label">Avg Working Hours</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-number">{{stats.uniqueEmployees}}</div>
-          <div class="stat-label">Active Employees</div>
-        </div>
-      </div>
-
-      <div class="charts-grid">
-        <div class="chart-container">
-          <h3 class="chart-title">📈 Daily Attendance Trend</h3>
-          <canvas #dailyTrendChart class="chart-canvas"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3 class="chart-title">👥 Group Comparison</h3>
-          <canvas #groupComparisonChart class="chart-canvas"></canvas>
-        </div>
-
-        <div class="chart-container">
-          <h3 class="chart-title">📅 Monthly Attendance Rate</h3>
-          <canvas #monthlyChart class="chart-canvas"></canvas>
+      <!-- Dashboard content - only show when data is loaded -->
+      <div *ngIf="!isLoading && !errorMessage && attendanceData.length > 0">
+        <div class="controls">
+          <div class="control-group">
+            <label for="monthSelect">Select Month:</label>
+            <select id="monthSelect" [(ngModel)]="selectedMonth" (change)="updateDashboard()">
+              <option value="">All Months</option>
+              <option *ngFor="let month of availableMonths" [value]="month.value">
+                {{month.label}}
+              </option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="groupSelect">Attendance Group:</label>
+            <select id="groupSelect" [(ngModel)]="selectedGroup" (change)="updateDashboard()">
+              <option value="">All Groups</option>
+              <option *ngFor="let group of availableGroups" [value]="group">
+                {{group}}
+              </option>
+            </select>
+          </div>
+          <div class="control-group">
+            <label for="employeeSelect">Employee:</label>
+            <select id="employeeSelect" [(ngModel)]="selectedEmployee" (change)="updateDashboard()">
+              <option value="">All Employees</option>
+              <option *ngFor="let employee of availableEmployees" [value]="employee">
+                {{employee}}
+              </option>
+            </select>
+          </div>
         </div>
 
-        <div class="chart-container">
-          <h3 class="chart-title">⏰ Average Working Hours</h3>
-          <canvas #workingHoursChart class="chart-canvas"></canvas>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number">{{stats.attendanceRate}}%</div>
+            <div class="stat-label">Attendance Rate</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{stats.presentRecords}}</div>
+            <div class="stat-label">Present Days</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{stats.avgWorkingHours}}h</div>
+            <div class="stat-label">Avg Working Hours</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number">{{stats.uniqueEmployees}}</div>
+            <div class="stat-label">Active Employees</div>
+          </div>
         </div>
 
-        <div class="chart-container">
-          <h3 class="chart-title">🏆 Top Performers</h3>
-          <canvas #topPerformersChart class="chart-canvas"></canvas>
-        </div>
+        <div class="charts-grid">
+          <div class="chart-container">
+            <h3 class="chart-title">📈 Daily Attendance Trend</h3>
+            <canvas #dailyTrendChart class="chart-canvas"></canvas>
+          </div>
 
-        <div class="chart-container">
-          <h3 class="chart-title">📊 Attendance Heatmap</h3>
-          <canvas #heatmapChart class="chart-canvas"></canvas>
+          <div class="chart-container">
+            <h3 class="chart-title">👥 Group Comparison</h3>
+            <canvas #groupComparisonChart class="chart-canvas"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">📅 Monthly Attendance Rate</h3>
+            <canvas #monthlyChart class="chart-canvas"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">⏰ Average Working Hours</h3>
+            <canvas #workingHoursChart class="chart-canvas"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">🏆 Top Performers</h3>
+            <canvas #topPerformersChart class="chart-canvas"></canvas>
+          </div>
+
+          <div class="chart-container">
+            <h3 class="chart-title">📊 Attendance Heatmap</h3>
+            <canvas #heatmapChart class="chart-canvas"></canvas>
+          </div>
         </div>
       </div>
     </div>
@@ -188,38 +183,48 @@ interface DashboardStats {
       margin-bottom: 10px;
     }
 
-    .file-upload {
-      background: #f8f9fa;
-      border: 2px dashed #667eea;
-      border-radius: 15px;
-      padding: 30px;
+    .loading-container {
       text-align: center;
-      margin-bottom: 30px;
-      transition: all 0.3s ease;
+      padding: 60px 0;
     }
 
-    .file-upload:hover {
-      border-color: #764ba2;
-      background: #f0f4ff;
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #667eea;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
     }
 
-    .file-input {
-      display: none;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
-    .file-label {
-      display: inline-block;
-      padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+    .error-message {
+      text-align: center;
+      padding: 40px;
+      background: #fee;
+      border-radius: 10px;
+      border: 1px solid #fcc;
+      color: #c00;
+    }
+
+    .retry-button {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #667eea;
       color: white;
-      border-radius: 25px;
+      border: none;
+      border-radius: 5px;
       cursor: pointer;
       font-weight: 600;
-      transition: transform 0.3s ease;
     }
 
-    .file-label:hover {
-      transform: translateY(-2px);
+    .retry-button:hover {
+      background: #764ba2;
     }
 
     .controls {
@@ -335,7 +340,7 @@ interface DashboardStats {
     }
   `]
 })
-export class DefaultComponent  implements OnDestroy {
+export class ReportComponent implements OnInit, OnDestroy {
   @ViewChild('dailyTrendChart', { static: false }) dailyTrendChart!: ElementRef<HTMLCanvasElement>;
   @ViewChild('groupComparisonChart', { static: false }) groupComparisonChart!: ElementRef<HTMLCanvasElement>;
   @ViewChild('monthlyChart', { static: false }) monthlyChart!: ElementRef<HTMLCanvasElement>;
@@ -354,6 +359,9 @@ export class DefaultComponent  implements OnDestroy {
   availableGroups: string[] = [];
   availableEmployees: string[] = [];
 
+  isLoading = true;
+  errorMessage = '';
+
   stats: DashboardStats = {
     attendanceRate: '0',
     presentRecords: 0,
@@ -361,21 +369,46 @@ export class DefaultComponent  implements OnDestroy {
     uniqueEmployees: 0
   };
 
-  handleFileUpload(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+  constructor(private http: HttpClient) {}
 
-    Papa.parse(file, {
+  ngOnInit(): void {
+    this.loadCSVData();
+  }
+
+  loadCSVData(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    // Path to your CSV file in the assets folder
+    // Update this path based on where your CSV file is located
+    const csvPath = 'assets/aa.csv';
+
+    this.http.get(csvPath, { responseType: 'text' }).subscribe({
+      next: (csvText) => {
+        this.parseCSVData(csvText);
+      },
+      error: (error) => {
+        console.error('Error loading CSV file:', error);
+        this.isLoading = false;
+        this.errorMessage = 'Failed to load attendance data. Please ensure the CSV file exists in the assets folder.';
+      }
+    });
+  }
+
+  parseCSVData(csvText: string): void {
+    Papa.parse(csvText, {
       header: true,
       skipEmptyLines: true,
       complete: (results) => {
         this.attendanceData = this.processData(results.data as any[]);
         this.populateFilters();
         this.updateDashboard();
+        this.isLoading = false;
       },
       error: (error) => {
         console.error('Error parsing CSV:', error);
+        this.isLoading = false;
+        this.errorMessage = 'Failed to parse CSV data. Please check the file format.';
       }
     });
   }
@@ -559,89 +592,89 @@ export class DefaultComponent  implements OnDestroy {
     }
   }
 
-createGroupComparisonChart(data: AttendanceRecord[]): void {
-  if (!this.groupComparisonChart) return;
+  createGroupComparisonChart(data: AttendanceRecord[]): void {
+    if (!this.groupComparisonChart) return;
 
-  const groupData: { [key: string]: { total: number; present: number } } = {};
-  data.forEach(row => {
-    const group = row['Attendance Group'];
-    if (!groupData[group]) {
-      groupData[group] = { total: 0, present: 0 };
-    }
-    groupData[group].total++;
-    if (row.isPresent) groupData[group].present++;
-  });
+    const groupData: { [key: string]: { total: number; present: number } } = {};
+    data.forEach(row => {
+      const group = row['Attendance Group'];
+      if (!groupData[group]) {
+        groupData[group] = { total: 0, present: 0 };
+      }
+      groupData[group].total++;
+      if (row.isPresent) groupData[group].present++;
+    });
 
-  const labels = Object.keys(groupData);
-  const attendanceRates = labels.map(group =>
-    parseFloat(((groupData[group].present / groupData[group].total) * 100).toFixed(1))
-  );
+    const labels = Object.keys(groupData);
+    const attendanceRates = labels.map(group =>
+      parseFloat(((groupData[group].present / groupData[group].total) * 100).toFixed(1))
+    );
 
-  // Create labels with percentages for display
-  const labelsWithPercentages = labels.map((label, index) => 
-    label + ': ' + attendanceRates[index] + '%'
-  );
+    // Create labels with percentages for display
+    const labelsWithPercentages = labels.map((label, index) =>
+      label + ': ' + attendanceRates[index] + '%'
+    );
 
-  const ctx = this.groupComparisonChart.nativeElement.getContext('2d');
-  if (ctx) {
-    this.charts['groupComparison'] = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: labelsWithPercentages,
-        datasets: [{
-          data: attendanceRates,
-          backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b'],
-          borderWidth: 3,
-          borderColor: '#fff'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              usePointStyle: true,
-              padding: 20,
-              font: {
-                size: 12
+    const ctx = this.groupComparisonChart.nativeElement.getContext('2d');
+    if (ctx) {
+      this.charts['groupComparison'] = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labelsWithPercentages,
+          datasets: [{
+            data: attendanceRates,
+            backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b'],
+            borderWidth: 3,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                usePointStyle: true,
+                padding: 20,
+                font: {
+                  size: 12
+                }
               }
             }
           }
-        }
-      },
-      plugins: [
-        {
-          id: 'datalabels',
-          afterDatasetsDraw: function(chart: any) {
-            const ctx = chart.ctx;
-            
-            ctx.save();
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#fff';
-            ctx.font = 'bold 14px Arial';
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 2;
+        },
+        plugins: [
+          {
+            id: 'datalabels',
+            afterDatasetsDraw: function(chart: any) {
+              const ctx = chart.ctx;
 
-            chart.data.datasets[0].data.forEach((value: number, index: number) => {
-              const meta = chart.getDatasetMeta(0);
-              const arc = meta.data[index];
-              
-              if (arc && value > 5) { // Only show label if segment is large enough
-                const position = arc.tooltipPosition();
-                ctx.fillText(value + '%', position.x, position.y);
-              }
-            });
-            
-            ctx.restore();
+              ctx.save();
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'middle';
+              ctx.fillStyle = '#fff';
+              ctx.font = 'bold 14px Arial';
+              ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+              ctx.shadowBlur = 2;
+
+              chart.data.datasets[0].data.forEach((value: number, index: number) => {
+                const meta = chart.getDatasetMeta(0);
+                const arc = meta.data[index];
+
+                if (arc && value > 5) { // Only show label if segment is large enough
+                  const position = arc.tooltipPosition();
+                  ctx.fillText(value + '%', position.x, position.y);
+                }
+              });
+
+              ctx.restore();
+            }
           }
-        }
-      ]
-    });
+        ]
+      });
+    }
   }
-}
 
   createMonthlyChart(data: AttendanceRecord[]): void {
     if (!this.monthlyChart) return;

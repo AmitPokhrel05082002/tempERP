@@ -1,51 +1,55 @@
 <!-- employee-status.component.html -->
 <div class="employee-status-card">
-  <!-- Total Employees -->
-  <div class="total-section">
-    <div class="total-label">Total Employee</div>
-    <div class="total-count">{{totalEmployees}}</div>
+  <!-- Loading State -->
+  <div *ngIf="isLoading" class="loading-state">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Loading employee data...</div>
   </div>
 
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <div *ngFor="let status of employeeStatuses"
-         class="status-segment"
-         [style.width.%]="status.percentage"
-         [style.background-color]="status.color">
-    </div>
+  <!-- Error State -->
+  <div *ngIf="error && !isLoading" class="error-state">
+    <div class="error-message">{{ error }}</div>
+    <button (click)="refreshData()" class="retry-button">Retry</button>
   </div>
 
-  <!-- Status Details Grid -->
-  <div class="status-grid">
-    <!-- First Row -->
-    <div class="status-cell">
-      <div class="status-indicator" [style.background-color]="employeeStatuses[0].color"></div>
-      <div class="status-label">{{employeeStatuses[0].category}} ({{employeeStatuses[0].percentage}}%)</div>
-      <div class="status-value">{{employeeStatuses[0].count}}</div>
+  <!-- Main Content -->
+  <div *ngIf="!isLoading && !error">
+    <!-- Total Employees -->
+    <div class="total-section">
+      <div class="total-label">Total Employee</div>
+      <div class="total-count">{{totalEmployees}}</div>
     </div>
 
-    <div class="status-cell">
-      <div class="status-indicator" [style.background-color]="employeeStatuses[1].color"></div>
-      <div class="status-label">{{employeeStatuses[1].category}} ({{employeeStatuses[1].percentage}}%)</div>
-      <div class="status-value">{{employeeStatuses[1].count}}</div>
+    <!-- Status Bar -->
+    <div class="status-bar" *ngIf="employeeStatuses.length > 0">
+      <div *ngFor="let status of employeeStatuses"
+           class="status-segment"
+           [style.width.%]="status.percentage"
+           [style.background-color]="status.color"
+           [class.hidden-segment]="status.count === 0">
+      </div>
     </div>
 
-    <!-- Second Row -->
-    <div class="status-cell">
-      <div class="status-indicator" [style.background-color]="employeeStatuses[2].color"></div>
-      <div class="status-label">{{employeeStatuses[2].category}} ({{employeeStatuses[2].percentage}}%)</div>
-      <div class="status-value">{{employeeStatuses[2].count}}</div>
+    <!-- Status Details Grid -->
+    <div class="status-grid">
+      <!-- Dynamic grid that handles any number of statuses -->
+      <div *ngFor="let status of employeeStatuses; let i = index"
+           class="status-cell"
+           [class.empty-status]="status.count === 0">
+        <div class="status-indicator" [style.background-color]="status.color"></div>
+        <div class="status-label">{{status.category}} ({{status.percentage}}%)</div>
+        <div class="status-value">{{status.count}}</div>
+      </div>
     </div>
 
-    <div class="status-cell">
-      <div class="status-indicator" [style.background-color]="employeeStatuses[3].color"></div>
-      <div class="status-label">{{employeeStatuses[3].category}} ({{employeeStatuses[3].percentage}}%)</div>
-      <div class="status-value">{{employeeStatuses[3].count}}</div>
+    <!-- Empty State -->
+    <div *ngIf="employeeStatuses.length === 0" class="empty-state">
+      <div class="empty-message">No employee status data available</div>
     </div>
-  </div>
 
-  <!-- View All Link -->
-  <div class="view-all-section">
-    <a (click)="viewAllEmployees()" class="view-all-link">View All Employees</a>
+    <!-- View All Link -->
+    <div class="view-all-section">
+      <a (click)="viewAllEmployees()" class="view-all-link">View All Employees</a>
+    </div>
   </div>
 </div>
